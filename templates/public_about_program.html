@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}About the Program — Dallas Discovery{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container" style="max-width:760px">
+    <h1>Examine your past. Live your present. Build your future.</h1>
+    <p class="lead">
+      Dallas Discovery offers life-changing personal training and relationship
+      training designed to help you understand yourself, strengthen your
+      relationships, and move forward with purpose.
+    </p>
+    <div class="btn-row" style="justify-content:flex-start; margin-top:8px">
+      <a class="pub-btn" href="{{ url_for('public_register') }}">See upcoming sessions</a>
+      <a class="pub-btn secondary" href="{{ url_for('public_programs') }}">Explore the programs</a>
+    </div>
+  </div>
+</section>
+
+<section class="pub-section alt">
+  <div class="pub-container" style="max-width:760px">
+    <h2>About Dallas Discovery</h2>
+    <p class="lead">
+      Dallas Discovery was founded by Coach Kent Hafemann, his wife Pamela
+      Hafemann (MA, LPC, LCDC), and Coach Max Thompson with a vision to give
+      people a guided, safe, and honest space to look at their lives — where
+      they've been, where they are, and where they're headed — and to help
+      couples build stronger, healthier long term-relationships. Our trainings
+      are experiential, small-group based, and led by a seasoned team of
+      trained facilitators and assistants who've walked the path themselves.
+    </p>
+    <p class="lead" style="margin-bottom:0">
+      Our monthly core life training moves through three stages — Bluesky 1, 2, & 3 —
+      taken in sequence over three months. Each training builds on the prior month
+      and cannot be taken out of sequence. So, it is recommended, but not required,
+      that all three trainings be taken in consecutive months. However, for couples
+      (or committed relationships), the Bluesky &ldquo;Squeeze&rdquo; Relationship
+      Training is a practical and wisdom filled coaching weekend as a standalone
+      experience open to anyone. There is no prerequisite to attend Bluesky 1, 2 & 3,
+      although most people who attend the relationship training want additional
+      opportunities to explore the mastery of successful relationships.
+    </p>
+    <p class="lead" style="margin-bottom:0; margin-top:20px">
+      <a href="{{ url_for('public_our_story') }}">Read our story &rarr;</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "crm_base.html" %}
+{% block title %}Programs — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Programs</h1>
+
+<div class="card">
+  <h3 style="margin-top:0">Add a new program</h3>
+  <form class="inline" method="post" action="{{ url_for('.program_new') }}">
+    <input name="code" placeholder="Code (e.g. T5)" style="width:90px" required>
+    <input name="name" placeholder="Full name (e.g. T5 — Refocus)" style="width:220px" required>
+    <input name="description" placeholder="Description (optional)" style="width:260px">
+    <select name="prerequisite_program_id">
+      <option value="">No prerequisite</option>
+      {% for p in programs %}
+      <option value="{{ p.id }}">Requires {{ p.code }} first</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Add program</button>
+  </form>
+</div>
+
+{% for p in programs %}
+<div class="card">
+  <h3 style="margin-top:0">{{ p.name }}</h3>
+  <p class="muted">{{ p.description }}</p>
+  <p><a href="{{ url_for('.program_materials', program_id=p.id) }}">Training materials &rarr;</a>
+    &middot; <a href="{{ url_for('.program_playlists', program_id=p.id) }}">Music &amp; playlists &rarr;</a></p>
+
+  <details>
+    <summary style="cursor:pointer; color:#345a8f; font-size:0.88rem; margin-bottom:10px;">Edit this program</summary>
+    <form class="inline" method="post" action="{{ url_for('.program_edit', program_id=p.id) }}">
+      <input name="code" value="{{ p.code }}" style="width:90px" required>
+      <input name="name" value="{{ p.name }}" style="width:260px" required>
+      <input name="description" value="{{ p.description or '' }}" style="width:280px" placeholder="Description">
+      <select name="prerequisite_program_id">
+        <option value="">No prerequisite</option>
+        {% for other in programs if other.id != p.id %}
+        <option value="{{ other.id }}" {{ 'selected' if p.prerequisite_program_id == other.id else '' }}>Requires {{ other.code }} first</option>
+        {% endfor %}
+      </select>
+      <button class="btn secondary" type="submit">Save changes</button>
+    </form>
+    <form method="post" action="{{ url_for('.program_delete', program_id=p.id) }}" style="margin-top:10px"
+          onsubmit="return confirm('Delete {{ p.code }} — {{ p.name }}? This can\'t be undone. (Programs with scheduled sessions can\'t be deleted.)');">
+      <button class="btn danger" type="submit">Delete this program</button>
+    </form>
+  </details>
+
+  <table>
+    <tr><th>Session</th><th>Date</th><th>Status</th><th></th></tr>
+    {% for c in cohorts_by_program[p.id] %}
+    <tr>
+      <td>{{ p.code }} #{{ c.session_number }}</td>
+      <td>{{ c.session_date }}</td>
+      <td>{{ c.status }}</td>
+      <td>{% if session.staff_role == 'Leadership' or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No sessions scheduled yet.</td></tr>
+    {% endfor %}
+  </table>
+
+  <form class="inline" method="post" action="{{ url_for('.cohort_new', program_id=p.id) }}">
+    <label style="margin:0">New session date:</label>
+    <input type="date" name="session_date" required>
+    <button class="btn secondary" type="submit">Schedule next {{ p.code }} (#{{ (cohorts_by_program[p.id]|map(attribute='session_number')|list|max) + 1 if cohorts_by_program[p.id] else 1 }})</button>
+  </form>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "crm_base.html" %}
+{% block title %}Link {{ staff.name }} to a contact — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Link {{ staff.name }} to a contact</h1>
+<p class="muted">
+  Find their Contact record so their team login matches up with their full profile
+  (address, emergency contact, sponsor info, etc).
+</p>
+
+<div class="card">
+  <form method="get">
+    <div class="field">
+      <label>Search contacts by name or email</label>
+      <input name="q" value="{{ q }}" autofocus placeholder="e.g. Jane Smith">
+    </div>
+    <button class="btn" type="submit">Search</button>
+  </form>
+</div>
+
+{% if q %}
+<div class="card" style="margin-top:16px">
+  {% if contacts %}
+  <table>
+    <tr><th>Name</th><th>Email</th><th></th></tr>
+    {% for c in contacts %}
+    <tr>
+      <td>{{ c.full_name }}</td>
+      <td>{{ c.email or '—' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('.staff_link_contact', staff_id=staff.id, contact_id=c.id) }}">
+          <button class="btn" type="submit">Link</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No contacts matched "{{ q }}".</p>
+  {% endif %}
+  <p style="margin-top:14px">
+    Can't find them? <a href="{{ url_for('.contact_new', for_team_login=1, link_staff_id=staff.id) }}">Add them as a new contact</a>.
+  </p>
+</div>
+{% endif %}
+
+<p style="margin-top:14px"><a href="{{ url_for('.staff_list') }}">&larr; Back to Team accounts</a></p>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "crm_base.html" %}
+{% block title %}Donations — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Donations</h1>
+<div class="stat-row">
+  <div class="stat"><div class="num">${{ '%.2f'|format(total) }}</div><div class="label">Total recorded</div></div>
+</div>
+<div class="card">
+  <table>
+    <tr><th>Date</th><th>Donor</th><th>Amount</th><th>Fund</th><th>Method</th></tr>
+    {% for d in donations %}
+    <tr>
+      <td>{{ d.donation_date }}</td>
+      <td><a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a></td>
+      <td>${{ '%.2f'|format(d.amount) }}</td>
+      <td>{{ d.fund }}</td>
+      <td>{{ d.payment_method or '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No donations yet. Add one from a contact's page.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

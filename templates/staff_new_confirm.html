@@ -1,0 +1,27 @@
+{% extends "crm_base.html" %}
+{% block title %}Add a team account — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Add {{ contact.full_name }} as a team member</h1>
+<p class="muted">Their name comes from their <a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">contact record</a>.</p>
+
+<div class="card">
+  <form method="post" autocomplete="off">
+    <div class="grid2">
+      <div class="field"><label>Name</label><input value="{{ contact.full_name }}" disabled></div>
+      <div class="field">
+        <label>Email (for their CRM login)</label>
+        <input type="email" name="email" value="{{ contact.email or '' }}" required autocomplete="off">
+      </div>
+      <div class="field"><label>Role</label>
+        <select name="role">
+          <option value="Team">Team</option>
+          <option value="Leadership">Leadership</option>
+        </select>
+      </div>
+      <div class="field"><label>Temporary password</label><input name="password" required autocomplete="new-password" placeholder="They can change this after logging in"></div>
+    </div>
+    <button class="btn" type="submit">Add account</button>
+  </form>
+</div>
+<p style="margin-top:14px"><a href="{{ url_for('.staff_new_search') }}">&larr; Search for someone else</a></p>
+{% endblock %}

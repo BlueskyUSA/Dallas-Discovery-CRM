@@ -1,0 +1,34 @@
+{% extends "crm_base.html" %}
+{% block title %}Contacts — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Contacts</h1>
+<form class="inline" method="get">
+  <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
+  <button class="btn secondary" type="submit">Search</button>
+  <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
+</form>
+
+<div class="card">
+  <table>
+    <tr><th></th><th>Name</th><th>Email</th><th>Cell</th><th>Status</th></tr>
+    {% for c in contacts %}
+    <tr>
+      <td>
+        {% if c.photo_filename %}
+        <img src="{{ url_for('.contact_photo_file', contact_id=c.id, v=c.photo_filename) }}" alt=""
+             style="width:32px; height:32px; border-radius:50%; object-fit:cover; display:block">
+        {% else %}
+        <div style="width:32px; height:32px; border-radius:50%; background:#f1f4f7"></div>
+        {% endif %}
+      </td>
+      <td><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a></td>
+      <td>{{ c.email or '' }}</td>
+      <td>{{ c.cell_phone or '' }}</td>
+      <td><span class="badge">{{ c.status }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No contacts yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

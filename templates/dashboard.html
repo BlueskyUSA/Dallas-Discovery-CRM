@@ -1,0 +1,43 @@
+{% extends "crm_base.html" %}
+{% block title %}Dashboard — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Dallas Discovery — CRM &amp; registration</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="num">{{ contact_count }}</div><div class="label">Total contacts</div></div>
+  {% for p in programs %}
+  <div class="stat"><div class="num">{{ p.code }}</div><div class="label">{{ p.name.split('—')[1] if '—' in p.name else p.name }}</div></div>
+  {% endfor %}
+</div>
+
+<h2>Upcoming sessions</h2>
+<div class="card">
+  {% if upcoming %}
+  <table>
+    <tr><th>Program</th><th>Session #</th><th>Date</th><th></th></tr>
+    {% for c in upcoming %}
+    <tr>
+      <td>{{ c.code }}</td>
+      <td>#{{ c.session_number }}</td>
+      <td>{{ c.session_date }}</td>
+      <td>{% if session.staff_role == 'Leadership' or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No upcoming sessions scheduled yet.
+    {% if session.staff_role == 'Leadership' or has_program_access %}<a href="{{ url_for('.programs_list') }}">Schedule one</a>.{% endif %}
+  </p>
+  {% endif %}
+</div>
+
+<div class="stat-row">
+  {% if session.staff_role == 'Leadership' or has_contacts_access %}
+  <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
+  {% endif %}
+  {% if session.staff_role == 'Leadership' or has_program_access %}
+  <a class="btn secondary" href="{{ url_for('.programs_list') }}">Schedule a session</a>
+  {% endif %}
+</div>
+{% endblock %}

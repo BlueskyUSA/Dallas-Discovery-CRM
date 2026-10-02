@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Donate — Dallas Discovery{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container">
+    <h2>Support Dallas Discovery</h2>
+    <p class="lead">
+      Dallas Discovery is in the process of establishing 501(c)(3) nonprofit
+      status. Your generosity helps us keep this training accessible to people who
+      need it. Online giving isn't set up yet — in the meantime, let us know you'd
+      like to give and our team will follow up with the easiest way to do that.
+    </p>
+  </div>
+</section>
+
+<section class="pub-section alt">
+  <div class="pub-container">
+    <h2>I'd like to give</h2>
+    <p class="lead">Fill this out and we'll be in touch about how to make your gift.</p>
+    <form class="pub-form" method="post">
+      <div class="field"><label>First name *</label><input name="first_name" required></div>
+      <div class="field"><label>Last name</label><input name="last_name"></div>
+      <div class="field"><label>Email *</label><input type="email" name="email" required></div>
+      <div class="field"><label>Phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
+      <div class="field">
+        <label>Amount you're considering</label>
+        <select name="amount_range">
+          <option value="">Prefer not to say / not sure yet</option>
+          <option>Under $100</option>
+          <option>$100–$500</option>
+          <option>$500–$1,000</option>
+          <option>$1,000+</option>
+        </select>
+      </div>
+      <div class="field"><label>Anything you'd like us to know?</label><textarea name="message" rows="4"></textarea></div>
+      <button class="pub-btn dark" type="submit">Submit</button>
+    </form>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+{% endblock %}

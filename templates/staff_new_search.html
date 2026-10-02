@@ -1,0 +1,42 @@
+{% extends "crm_base.html" %}
+{% block title %}Add a team account — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Add a team account</h1>
+<p class="muted">
+  First, find the person's Contact record -- their team login will be matched to it, so their name and
+  details stay in one place. If they're not a contact yet, you'll add them as one first.
+</p>
+
+<div class="card">
+  <form method="get">
+    <div class="field">
+      <label>Search contacts by name or email</label>
+      <input name="q" value="{{ q }}" autofocus placeholder="e.g. Jane Smith">
+    </div>
+    <button class="btn" type="submit">Search</button>
+  </form>
+</div>
+
+{% if q %}
+<div class="card" style="margin-top:16px">
+  {% if contacts %}
+  <table>
+    <tr><th>Name</th><th>Email</th><th></th></tr>
+    {% for c in contacts %}
+    <tr>
+      <td>{{ c.full_name }}</td>
+      <td>{{ c.email or '—' }}</td>
+      <td><a class="btn" href="{{ url_for('.staff_new_for_contact', contact_id=c.id) }}">Use this contact</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No contacts matched "{{ q }}".</p>
+  {% endif %}
+  <p style="margin-top:14px">
+    Can't find them? <a href="{{ url_for('.contact_new', for_team_login=1) }}">Add them as a new contact</a>,
+    then come back here to finish setting up their login.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

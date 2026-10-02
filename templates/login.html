@@ -1,0 +1,21 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ page_title }} — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>{{ page_title }}</h1>
+<div class="card" style="max-width:380px">
+  <form method="post">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field"><label>Email</label><input type="email" name="email" required autofocus></div>
+    <div class="field"><label>Password</label><input type="password" name="password" required></div>
+    <button class="btn" type="submit" style="width:100%">Log in</button>
+  </form>
+  {% if other_login_url %}
+  <p style="margin-top:18px; margin-bottom:0; text-align:center">
+    <a href="{{ other_login_url }}" style="font-size:1.15rem; font-weight:600">{{ other_login_label }} &rarr;</a>
+  </p>
+  {% endif %}
+  <p class="muted" style="margin-top:18px; margin-bottom:0; text-align:center; font-size:0.85rem">
+    For security, you'll be logged out automatically after 30 minutes of inactivity.
+  </p>
+</div>
+{% endblock %}

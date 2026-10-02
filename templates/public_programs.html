@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Programs — Dallas Discovery{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container">
+    <h2>Our Programs</h2>
+    <p class="lead">
+      Bluesky 1, 2, and 3 build on each other and are taken in order, one per month.
+      The Bluesky &ldquo;Squeeze&rdquo; Relationship Training is our coaching weekend
+      for couples and stands on its own — no prerequisite required.
+    </p>
+    <div class="card-grid">
+      {% for p in programs %}
+      <div class="program-card">
+        <span class="code-badge">{{ p.code }}</span>
+        <h3>{{ p.name }}</h3>
+        <p>{{ p.description or "" }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:36px">
+      <a class="pub-btn dark" href="{{ url_for('public_register') }}">See upcoming session dates &rarr;</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ cohort.code }} #{{ cohort.session_number }} — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>{{ cohort.code }} #{{ cohort.session_number }}</h1>
+<p class="muted">{{ cohort.name }} &middot; {{ cohort.session_date }} &middot; <span class="badge">{{ cohort.status }}</span></p>
+
+<h2>Roster</h2>
+<div class="card">
+  {% if roster %}
+  <table>
+    <tr><th>Trainee</th><th>Group</th><th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
+    {% for e in roster %}
+    <tr>
+      <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
+      <td>
+        <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
+          <select name="small_group_id" onchange="this.form.submit()">
+            <option value="">{{ e.group_label or '— assign —' }}</option>
+            {% for sg in small_groups %}
+            <option value="{{ sg.id }}">{{ sg.label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
+      <td>
+        {% if e.questionnaire_completed_at %}<span class="badge good">✓ {{ e.questionnaire_completed_at }}</span>
+        {% else %}
+        <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
+          <button class="btn secondary" name="questionnaire_done" value="1" type="submit">Mark done</button>
+        </form>
+        {% endif %}
+      </td>
+      <td>
+        {% if e.payment_completed_at %}<span class="badge good">✓ {{ e.payment_completed_at }}</span>
+        {% else %}
+        <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
+          <button class="btn secondary" name="payment_done" value="1" type="submit">Mark paid</button>
+        </form>
+        {% endif %}
+      </td>
+      <td>
+        {% if e.attended %}<span class="badge good">✓</span>
+        {% else %}
+        <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
+          <button class="btn secondary" name="attended" value="1" type="submit">Mark attended</button>
+        </form>
+        {% endif %}
+      </td>
+      <td>
+        {% if not e.payment_completed_at or not e.questionnaire_completed_at %}
+        <span class="badge warn">outstanding</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if e.feedback_response_id %}
+        <span class="badge good">✓ submitted</span>
+        {% elif e.feedback_token %}
+        <input readonly style="width:170px; font-size:0.8rem" onclick="this.select()" value="{{ request.host_url.rstrip('/') }}{{ url_for('public_feedback', token=e.feedback_token) }}">
+        {% else %}
+        <form method="post" action="{{ url_for('.feedback_link_new', enrollment_id=e.id) }}" style="display:inline">
+          <button class="btn secondary" type="submit">Generate link</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No one enrolled yet.</p>
+  {% endif %}
+
+  <h3>Enroll a trainee</h3>
+  <form class="inline" method="post" action="{{ url_for('.enroll', cohort_id=cohort.id) }}">
+    <select name="contact_id">
+      <option value="">— quick-add new contact instead —</option>
+      {% for c in all_contacts %}
+      <option value="{{ c.id }}">{{ c.full_name }}</option>
+      {% endfor %}
+    </select>
+    <span class="muted">or</span>
+    <input name="new_contact_name" placeholder="New contact full name">
+    <button class="btn" type="submit">Enroll</button>
+  </form>
+  <p class="muted">Bluesky 2/Bluesky 3 prerequisites are checked automatically at enrollment.</p>
+</div>
+
+<h2>Small groups</h2>
+<div class="card">
+  {% if small_groups %}
+  <table>
+    <tr><th>Group</th><th>TAs / Small Group Leaders</th></tr>
+    {% for sg in small_groups %}
+    <tr>
+      <td>{{ sg.label }}</td>
+      <td>
+        {% for s in sg_staffing if s.label == sg.label %}{{ s.full_name }}{% if s.duty %} <span class="muted">({{ s.duty }})</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No small groups yet.</p>
+  {% endif %}
+  <form class="inline" method="post" action="{{ url_for('.small_group_new', cohort_id=cohort.id) }}">
+    <input name="label" placeholder="e.g. Group 1" required>
+    <button class="btn secondary" type="submit">Add group</button>
+  </form>
+
+  <h3>Assign a TA to a group</h3>
+  <p class="muted" style="margin-top:-4px">Everyone here is that group's Small Group Leader. Pick an extra duty only if they also cover one.</p>
+  <form class="inline" method="post" id="sg-staff-form" data-url-template="{{ url_for('.sg_staffing_new', small_group_id=999999) }}">
+    <select name="small_group_id" onchange="var f=document.getElementById('sg-staff-form'); f.action=f.dataset.urlTemplate.replace('999999', this.value)">
+      <option value="">— group —</option>
+      {% for sg in small_groups %}
+      <option value="{{ sg.id }}">{{ sg.label }}</option>
+      {% endfor %}
+    </select>
+    <select name="contact_id">
+      {% for c in all_contacts %}
+      <option value="{{ c.id }}">{{ c.full_name }}</option>
+      {% endfor %}
+    </select>
+    <select name="duty">
+      <option value="">— no extra duty —</option>
+      <option>Team Captain</option>
+      <option>Doors</option>
+      <option>Runners</option>
+      <option>Time Keeper</option>
+      <option>Microphones</option>
+      <option>Housekeeper</option>
+      <option>Lights</option>
+    </select>
+    <button class="btn secondary" type="submit">Assign TA</button>
+  </form>
+</div>
+
+<h2>Session Team</h2>
+<div class="card">
+  <p class="muted" style="margin-top:-4px">Director, Facilitators, and other whole-session roles not tied to a specific small group.</p>
+  {% if staffing %}
+  <table>
+    <tr><th>Name</th><th>Role</th><th>Duty</th></tr>
+    {% for s in staffing %}
+    <tr><td>{{ s.full_name }}</td><td>{{ s.role }}</td><td>{{ s.duty or '' }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No one assigned yet.</p>
+  {% endif %}
+  <form class="inline" method="post" action="{{ url_for('.staffing_new', cohort_id=cohort.id) }}">
+    <select name="contact_id">
+      {% for c in all_contacts %}
+      <option value="{{ c.id }}">{{ c.full_name }}</option>
+      {% endfor %}
+    </select>
+    <select name="role">
+      <option>Director</option>
+      <option>Lead Facilitator</option>
+      <option>Support Facilitator</option>
+      <option>TA</option>
+      <option>Trainee</option>
+    </select>
+    <select name="duty">
+      <option value="">— no extra duty —</option>
+      <option>Sound Equipment</option>
+      <option>Large Group Leader</option>
+    </select>
+    <button class="btn secondary" type="submit">Add</button>
+  </form>
+</div>
+{% endblock %}

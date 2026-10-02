@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}About the Team — Dallas Discovery{% endblock %}
+{% block meta_description %}The story behind Dallas Discovery — how Kent and Pamela Hafemann's own marriage and a life-changing training became a mission to help other relationships thrive.{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container" style="max-width:760px">
+    <h1>Our Story, Our Mission</h1>
+
+    <img src="{{ url_for('static', filename='team-kent-pamela.jpg') }}" alt="Kent and Pamela Hafemann"
+         style="width:100%; border-radius: var(--pub-radius-lg); box-shadow: var(--pub-shadow-md); margin-bottom:28px">
+
+    <p class="lead">
+      Most of us have heard the expression &ldquo;don&rsquo;t waste the pain.&rdquo;
+      Pamela and Kent were both raised in broken homes. In our youth, our natural
+      parents were married sixteen times to different people, and we both moved
+      from place to place many times. We suffered significant trauma, abandonment,
+      and upheaval. The impact of these life circumstances was significant beyond
+      our imagination.
+    </p>
+
+    <p class="lead">
+      I was 24 and Pamela was 23 when we started discussing the idea of marriage.
+      We both were scared spitless, since by all measures of life calculus, the
+      odds of living successfully were minimal at best. We were in college, broke,
+      and clueless about what it takes to remain in a marriage and be happy. But
+      we had stars in our eyes, lots of hope, and a mutual commitment to live life
+      differently. We were married on March 18, 1978.
+    </p>
+
+    <p class="lead">
+      Having been married about 12 years, our marriage was in trouble. We had
+      three children and lots of responsibility. I was a VP in a large real
+      estate investment firm and very active as a leader in our church. Pamela
+      was mostly a stay-at-home mom raising our children. But she too was a
+      leader in our church, and to help with the bills, she took a part-time
+      sales job working for a lighting company. We both were college graduates,
+      and most who knew us considered us to be smart, successful, and living the
+      dream. But our marriage was falling apart at the seams.
+    </p>
+
+    <p class="lead">
+      We engaged a counselor and sought help from the church and our friends.
+      Yet despite our best efforts, we could not figure out why our marriage was
+      falling apart until, in 1996, we went through a powerful life training
+      program invented by Dr. Phil and his father called Pathways/Discovery. We
+      met Max Thompson at that time, and what we three learned through
+      Pathways/Discovery changed our lives. We soon realized our God given life
+      mission was to help other marriages and relationships live successfully.
+    </p>
+
+    <p class="lead" style="margin-bottom:0">
+      Unfortunately, the Pathways/Discovery program shut down due to Covid, and
+      we feel the loss of such an important, powerful, and life-giving program in
+      our community. Dallas Discovery builds on what we gleaned from
+      Pathways, Discovery, and other trainings. Sage wisdom is hard earned and
+      takes many years to culminate. Dallas Discovery offers you a powerful,
+      safe place to search out knowledge, to find freedom from what bogs you
+      down, and invite joy into your life.
+    </p>
+  </div>
+</section>
+
+<section class="pub-section">
+  <div class="pub-container">
+    <h2>Meet the Team</h2>
+    <p class="lead">The coaches and leaders behind Dallas Discovery &mdash; this list will keep growing as we bring on more trainers and assistants.</p>
+    <div style="display:grid; gap:18px; max-width:760px">
+
+      <div class="team-card">
+        <img class="team-photo" src="{{ url_for('static', filename='team-kent.jpg') }}" alt="Kent Hafemann">
+        <div>
+          <h3>Kent Hafemann</h3>
+          <p class="team-role">Co-Founder &amp; Coach</p>
+          <p>Kent spent years as a VP in commercial real estate investment before he and Pamela
+            discovered the training that changed the course of their marriage and their lives.
+            Today he coaches couples and individuals through Bluesky's trainings, drawing on
+            decades of hard-earned, hands-on experience.</p>
+        </div>
+      </div>
+
+      <div class="team-card">
+        <div class="team-photo-placeholder">Photo coming soon</div>
+        <div>
+          <h3>Pamela Hafemann, MA, LPC, LCDC</h3>
+          <p class="team-role">Co-Founder &amp; Coach</p>
+          <p>Pamela is a Licensed Professional Counselor and Licensed Chemical Dependency
+            Counselor. Alongside Kent, she has spent years guiding couples and individuals
+            toward healthier, more honest relationships, bringing both clinical training and
+            lived experience to every training.</p>
+        </div>
+      </div>
+
+      <div class="team-card">
+        <div class="team-photo-placeholder">Photo coming soon</div>
+        <div>
+          <h3>Max Thompson</h3>
+          <p class="team-role">Co-Founder &amp; Coach</p>
+          <p>Max trained alongside Kent and Pamela through the Pathways/Discovery program and
+            has been a trusted coaching partner ever since, helping shape Bluesky Life
+            Seminars from the very beginning.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="pub-section alt">
+  <div class="pub-container">
+    <h2>Continue the story</h2>
+    <div class="card-grid">
+      <div class="program-card">
+        <h3>See how it works today</h3>
+        <p>Learn what Bluesky 1, 2, 3, and the Squeeze Relationship Training each involve.</p>
+        <p style="margin-top:12px"><a href="{{ url_for('public_programs') }}">View programs &rarr;</a></p>
+      </div>
+      <div class="program-card">
+        <h3>Ready to take the next step?</h3>
+        <p>See upcoming session dates and let us know you're interested.</p>
+        <p style="margin-top:12px"><a href="{{ url_for('public_register') }}">Upcoming sessions &rarr;</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

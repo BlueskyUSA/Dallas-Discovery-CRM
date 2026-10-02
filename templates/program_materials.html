@@ -1,0 +1,50 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ program.code }} Materials — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>{{ program.name }} &mdash; Training Materials</h1>
+<p class="muted">Handouts, worksheets, and resource sheets given to trainees during the weekend, organized by which day they're used. <a href="{{ url_for('.programs_list') }}">&larr; Back to Programs</a>
+  {% if session.staff_role == 'Leadership' %} &middot; <a href="{{ url_for('.authorized_users_area', area_key=program.code) }}">Manage who can see this ({{ program.code }}) &rarr;</a>{% endif %}
+</p>
+
+{% for day in ordered_days %}
+<h2>{{ day }}</h2>
+<div class="card">
+  <table>
+    <tr><th>Title</th><th>File</th><th>Uploaded</th><th></th></tr>
+    {% for m in by_day[day] %}
+    <tr>
+      <td>{{ m.title }}</td>
+      <td><a href="{{ url_for('.program_material_file', program_id=program.id, material_id=m.id) }}" target="_blank">{{ m.original_filename }}</a></td>
+      <td class="muted">{{ m.uploaded_at[:10] }}</td>
+      <td>
+        <form method="post" action="{{ url_for('.program_material_delete', program_id=program.id, material_id=m.id) }}"
+              onsubmit="return confirm('Delete {{ m.title }}?');" style="display:inline">
+          <button class="btn danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<p class="muted">No materials uploaded yet.</p>
+{% endfor %}
+
+<h2>Upload a material</h2>
+<div class="card">
+  <form method="post" action="{{ url_for('.program_material_new', program_id=program.id) }}" enctype="multipart/form-data">
+    <div class="grid2">
+      <div class="field"><label>Title</label><input name="title" placeholder="e.g. Rules of Engagement Exercise"></div>
+      <div class="field"><label>Day</label>
+        <select name="day_label">
+          {% for d in day_label_choices %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>File</label><input type="file" name="file" required></div>
+    </div>
+    <button class="btn" type="submit">Upload</button>
+  </form>
+</div>
+{% endblock %}

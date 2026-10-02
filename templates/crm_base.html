@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dallas Discovery CRM{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('.dashboard') }}">Dallas Discovery <span class="muted" style="color:#e6e2d0; font-weight:400; font-size:0.75rem;">CRM</span></a>
+    <nav>
+      {% if session.staff_id %}
+      <a href="{{ url_for('.dashboard') }}">Dashboard</a>
+      {% if session.staff_role == 'Leadership' or has_contacts_access %}
+      <a href="{{ url_for('.contacts_list') }}">Contacts</a>
+      {% endif %}
+      {% if session.staff_role == 'Leadership' or has_program_access %}
+      <a href="{{ url_for('.programs_list') }}">Programs</a>
+      {% endif %}
+      {% if session.staff_role == 'Leadership' or has_donations_access %}
+      <a href="{{ url_for('.donations_list') }}">Donations</a>
+      {% endif %}
+      {% if session.staff_role == 'Leadership' %}
+      <a href="{{ url_for('.staff_list') }}">Team</a>
+      {% endif %}
+      {% endif %}
+      <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
+      {% if session.staff_id %}
+      <span class="muted" style="color:#e6e2d0; font-size:0.82rem; margin-left:8px">
+        {{ session.staff_name }} ({{ session.staff_role }})
+        &middot; <a href="{{ url_for('.change_password') }}">Change password</a>
+        &middot; <a href="{{ url_for('.logout') }}">Log out</a>
+      </span>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">{% for m in messages %}<p>{{ m }}</p>{% endfor %}</div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+</body>
+</html>

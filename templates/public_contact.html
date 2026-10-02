@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Contact Us — Dallas Discovery{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container">
+    <h2>Get in touch</h2>
+    <p class="lead">
+      Have a question about a program, a session date, or anything else? Send us a message
+      and someone from our team will get back to you.
+    </p>
+  </div>
+</section>
+
+<section class="pub-section alt">
+  <div class="pub-container">
+    <form class="pub-form" method="post">
+      <div class="field"><label>First name *</label><input name="first_name" required></div>
+      <div class="field"><label>Last name</label><input name="last_name"></div>
+      <div class="field"><label>Email *</label><input type="email" name="email" required></div>
+      <div class="field"><label>Phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
+      <div class="field"><label>Message *</label><textarea name="message" rows="5" required></textarea></div>
+      <button class="pub-btn dark" type="submit">Send message</button>
+    </form>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+{% endblock %}

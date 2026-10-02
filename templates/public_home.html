@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dallas Discovery — Life & Relationship Training{% endblock %}
+{% block content %}
+<section class="hero">
+  <img src="{{ url_for('static', filename='logo-emblem.png') }}" alt="Dallas Discovery emblem" class="hero-logo">
+  <h1>This is the work that changes everything.</h1>
+  <p>Some pain you carry for years without ever understanding why. Dallas Discovery is
+     where people finally make sense of their story, break the patterns that have been
+     running their life, and build the marriage, family, and future they actually want.</p>
+  <div class="btn-row">
+    <a class="pub-btn" href="{{ url_for('public_register') }}">See upcoming sessions</a>
+    <a class="pub-btn secondary" href="{{ url_for('public_programs') }}">Explore the programs</a>
+  </div>
+</section>
+
+<section class="pub-section">
+  <div class="pub-container" style="max-width:820px; text-align:center">
+    <h2>See what's possible</h2>
+    <p class="lead" style="margin-left:auto; margin-right:auto">
+      Real transformation is hard to put into words &mdash; it's easier to see it. Below is a
+      glimpse of the kind of breakthrough this work makes possible, featuring Kent alongside
+      friends from a related men's training.
+    </p>
+    <div class="video-embed">
+      <iframe src="https://player.vimeo.com/video/899313471?color&autopause=0&loop=0&muted=0&title=0&portrait=0&byline=0"
+              title="Real stories of transformation" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    <p class="muted" style="margin-top:14px; margin-bottom:0; font-size:0.85rem">
+      Temporary placeholder from a related men's training program &mdash; we'll swap this out
+      for Bluesky's own story soon.
+    </p>
+  </div>
+</section>
+
+<section class="pub-section alt">
+  <div class="pub-container">
+    <h2>Where to start</h2>
+    <p class="lead">Ready to take the next step? Here's where to go.</p>
+    <div class="card-grid">
+      <div class="program-card">
+        <h3>New to Bluesky?</h3>
+        <p>Start with our programs page to learn what Bluesky 1, Bluesky 2, Bluesky 3, and Squeeze each involve.</p>
+        <p style="margin-top:12px"><a href="{{ url_for('public_programs') }}">View programs &rarr;</a></p>
+      </div>
+      <div class="program-card">
+        <h3>Ready to register?</h3>
+        <p>See upcoming session dates and let us know you're interested.</p>
+        <p style="margin-top:12px"><a href="{{ url_for('public_register') }}">Upcoming sessions &rarr;</a></p>
+      </div>
+      <div class="program-card">
+        <h3>Want to support the mission?</h3>
+        <p>Dallas Discovery runs on the generosity of people who believe in this work.</p>
+        <p style="margin-top:12px"><a href="{{ url_for('public_donate') }}">Give &rarr;</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

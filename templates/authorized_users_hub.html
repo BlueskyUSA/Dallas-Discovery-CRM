@@ -1,0 +1,22 @@
+{% extends "crm_base.html" %}
+{% block title %}Authorized Users — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Authorized Users</h1>
+<p class="muted">
+  Choose an area to see or change who's authorized to view it. Leadership accounts (you, and anyone else
+  you make Leadership) can always see everything &mdash; this is for authorizing specific Team accounts
+  into an otherwise-restricted area. Up to 4 people per area.
+</p>
+
+<div class="card">
+  <div class="button-list">
+    {% for key, label in areas %}
+    <a class="btn secondary" href="{{ url_for('.authorized_users_area', area_key=key) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+<style>
+  .button-list { display: flex; flex-direction: column; gap: 8px; max-width: 320px; }
+  .button-list .btn { text-align: left; }
+</style>
+{% endblock %}

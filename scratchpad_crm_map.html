@@ -1,0 +1,251 @@
+<title>Bluesky CRM Map</title>
+<style>
+  :root{
+    --paper:#F4F6F2;
+    --panel:#FFFFFF;
+    --ink:#1C2B27;
+    --ink-soft:#4B5D57;
+    --line:#DCE3D8;
+    --accent:#2D6FA3;
+    --accent-soft:#DCEAF5;
+    --live:#4F7A54;
+    --live-soft:#E4EFE1;
+    --planned:#B9862E;
+    --planned-soft:#F6ECD8;
+    --future:#8A8F86;
+    --future-soft:#ECEDE9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#141B18;
+      --panel:#1C2521;
+      --ink:#E7EFE9;
+      --ink-soft:#A8B6AE;
+      --line:#2E3A34;
+      --accent:#7FB4E0;
+      --accent-soft:#213142;
+      --live:#8FBF93;
+      --live-soft:#20301F;
+      --planned:#E0B563;
+      --planned-soft:#33291A;
+      --future:#8F958A;
+      --future-soft:#252B26;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141B18;
+    --panel:#1C2521;
+    --ink:#E7EFE9;
+    --ink-soft:#A8B6AE;
+    --line:#2E3A34;
+    --accent:#7FB4E0;
+    --accent-soft:#213142;
+    --live:#8FBF93;
+    --live-soft:#20301F;
+    --planned:#E0B563;
+    --planned-soft:#33291A;
+    --future:#8F958A;
+    --future-soft:#252B26;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Work Sans", -apple-system, sans-serif;
+    padding: 32px 20px 56px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  h1,h2,h3{
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  header.top{
+    margin-bottom: 28px;
+  }
+  header.top h1{
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.01em;
+  }
+  header.top p{
+    color: var(--ink-soft);
+    font-size: 15px;
+    max-width: 62ch;
+    margin: 10px 0 0;
+    line-height: 1.55;
+  }
+
+  .legend{
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    font-size: 13px;
+  }
+  .legend span{
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-soft);
+  }
+  .dot{
+    width: 9px; height: 9px; border-radius: 50%; flex: none;
+  }
+  .dot.live{ background: var(--live); }
+  .dot.planned{ background: var(--planned); }
+  .dot.future{ background: var(--future); }
+
+  section.lane{
+    margin-top: 30px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 20px 22px 22px;
+  }
+  .lane-head{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .lane-head h2{
+    font-size: 19px;
+  }
+  .lane-sub{
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin: 4px 0 16px;
+  }
+
+  .cards{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px;
+  }
+  .card{
+    border-radius: 10px;
+    padding: 12px 13px;
+    border: 1px solid var(--line);
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .card .name{
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .card .desc{
+    color: var(--ink-soft);
+    font-size: 12.5px;
+  }
+  .card.live{ background: var(--live-soft); border-color: color-mix(in srgb, var(--live) 35%, var(--line)); }
+  .card.planned{ background: var(--planned-soft); border-color: color-mix(in srgb, var(--planned) 35%, var(--line)); border-style: dashed; }
+  .card.future{ background: var(--future-soft); border-color: color-mix(in srgb, var(--future) 35%, var(--line)); border-style: dashed; }
+
+  .pill{
+    display: inline-block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+  .pill.live{ background: var(--live); color: white; }
+  .pill.planned{ background: var(--planned); color: white; }
+  .pill.future{ background: var(--future); color: white; }
+
+  section.future-lane .cards{
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+
+  footer.note{
+    margin-top: 26px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+</style>
+
+<header class="top">
+  <h1>Bluesky CRM Map</h1>
+  <p>What's built, what's sketched in but not finished, and what's still ahead &mdash; organized by the part of the operation it serves.</p>
+  <div class="legend">
+    <span><i class="dot live"></i>Live in the app today</span>
+    <span><i class="dot planned"></i>Started or agreed on, not built</span>
+    <span><i class="dot future"></i>On the roadmap, not started</span>
+  </div>
+</header>
+
+<section class="lane">
+  <div class="lane-head"><h2>Public site &mdash; blueskyusa.net</h2></div>
+  <p class="lane-sub">What a visitor sees before they ever become a contact.</p>
+  <div class="cards">
+    <div class="card live"><span class="pill live">live</span><span class="name">Home</span><span class="desc">Emotional hero, alumni video, "where to start"</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">About the Program</span><span class="desc">Mission, Bluesky 1&ndash;2&ndash;3 &amp; Squeeze overview</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">About the Team</span><span class="desc">Our story, bios for Kent, Pamela, Max</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Programs</span><span class="desc">Public listing of trainings</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Upcoming Sessions</span><span class="desc">Scheduled dates by program</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Donate</span><span class="desc">Public donation page</span></div>
+    <div class="card planned"><span class="pill planned">planned</span><span class="name">Client self-registration</span><span class="desc">Trainees log in and fill out their own questionnaire, instead of staff typing it in</span></div>
+    <div class="card planned"><span class="pill planned">planned</span><span class="name">Life questionnaire</span><span class="desc">Captures who referred them / which marketing channel, required before Bluesky&nbsp;1 enrollment is confirmed</span></div>
+  </div>
+</section>
+
+<section class="lane">
+  <div class="lane-head"><h2>CRM &mdash; people &amp; programs</h2></div>
+  <p class="lane-sub">The staff-side core: who's coming, to what, and who's allowed to see what.</p>
+  <div class="cards">
+    <div class="card live"><span class="pill live">live</span><span class="name">Contacts</span><span class="desc">Profiles with photo upload, imported from your Outlook address book</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Programs</span><span class="desc">Bluesky 1 &rarr; 2 &rarr; 3 prerequisite chain, plus standalone Squeeze</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Sessions</span><span class="desc">Scheduled dates per program, auto-numbered (Bluesky 1 #14, etc.)</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Staff &amp; Leadership logins</span><span class="desc">Two branded login pages, one shared account list, role-gated pages</span></div>
+    <div class="card planned"><span class="pill planned">planned</span><span class="name">Graduation tracking</span><span class="desc">Flag + date once someone completes Bluesky 1, 2 &amp; 3</span></div>
+    <div class="card planned"><span class="pill planned">planned</span><span class="name">Rename T1&ndash;T4 in the data</span><span class="desc">Programs are still stored under their old T1&ndash;T4 codes internally</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Payment + questionnaire gate</span><span class="desc">Enrollment only confirmed once both are done; staff alerted if either is still open as the date nears</span></div>
+  </div>
+</section>
+
+<section class="lane">
+  <div class="lane-head"><h2>Training delivery</h2></div>
+  <p class="lane-sub">Everything about running the actual weekend.</p>
+  <div class="cards">
+    <div class="card live"><span class="pill live">live</span><span class="name">Materials library</span><span class="desc">Handouts &amp; worksheets, grouped by Friday / Saturday / Sunday</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Feedback form</span><span class="desc">Per-session, restricted to a couple of readers</span></div>
+    <div class="card planned"><span class="pill planned">planned</span><span class="name">Facilitator run-of-show</span><span class="desc">The minute-by-minute weekend script, structured in the app rather than a loose document</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">TAs &amp; Facilitators</span><span class="desc">Tracked per session, linked to small groups &mdash; including the extra TAs brought in for Saturday's contracts work</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Feedback linked to TA/Facilitator</span><span class="desc">So small-group feedback rolls up to whoever ran that group</span></div>
+  </div>
+</section>
+
+<section class="lane">
+  <div class="lane-head"><h2>Money &amp; donors</h2></div>
+  <p class="lane-sub">Leadership-only, kept separate from day-to-day staff view.</p>
+  <div class="cards">
+    <div class="card live"><span class="pill live">live</span><span class="name">Contracts</span><span class="desc">Leadership-only records</span></div>
+    <div class="card live"><span class="pill live">live</span><span class="name">Donations</span><span class="desc">Leadership-only records</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">501(c)(3) donor structure</span><span class="desc">Once the nonprofit is formally set up</span></div>
+  </div>
+</section>
+
+<section class="lane future-lane">
+  <div class="lane-head"><h2>Not started yet</h2></div>
+  <p class="lane-sub">Part of the original vision, still ahead of us.</p>
+  <div class="cards">
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Accounting</span><span class="desc">Bookkeeping / financials, separate from donation &amp; contract tracking</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Marketing tracking</span><span class="desc">Which channels actually convert to registrations, beyond the questionnaire capture</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Production deployment</span><span class="desc">Live on Render at blueskyusa.net, CRM moved under /crm</span></div>
+    <div class="card future"><span class="pill future">roadmap</span><span class="name">Prospect list cleanup</span><span class="desc">Turning the ~4,777-contact Outlook export into a usable prospect list</span></div>
+  </div>
+</section>
+
+<footer class="note">Reflects where things stand as of today &mdash; worth regenerating as more of the roadmap gets built.</footer>

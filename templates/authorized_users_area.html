@@ -1,0 +1,81 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ area_label }} Access — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>{{ area_label }} &mdash; Authorized Users</h1>
+<p class="muted">Leadership accounts always have access. These 4 slots are for authorizing specific Team accounts.
+  The CRM never stores a readable password, so there's nothing to display here &mdash; "Reset password" generates
+  a fresh one to hand out.
+  <a href="{{ url_for('.authorized_users_hub') }}">&larr; Back to Authorized Users</a></p>
+
+<div class="card">
+  <table>
+    <tr><th>#</th><th>Name</th><th>Email</th><th>Password</th><th></th></tr>
+    {% for slot in slots %}
+    <tr>
+      <td class="muted">{{ loop.index }}</td>
+      {% if slot %}
+      <td>{{ slot.name }}</td>
+      <td class="muted">{{ slot.email }}</td>
+      <td>
+        <form method="post" action="{{ url_for('.authorized_users_reset_password', area_key=area_key, staff_id=slot.staff_id) }}"
+              onsubmit="return confirm('Generate a new password for {{ slot.name }}? Their current password will stop working.');" style="display:inline">
+          <button class="btn secondary" type="submit" style="font-size:0.82rem">Reset password&hellip;</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('.authorized_users_remove', area_key=area_key, grant_id=slot.grant_id) }}"
+              onsubmit="return confirm('Remove {{ slot.name }}\'s access to {{ area_label }}?');" style="display:inline">
+          <button class="btn danger" type="submit">Remove</button>
+        </form>
+      </td>
+      {% else %}
+      <td class="muted" colspan="3">Empty</td>
+      <td></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if not at_max %}
+<h2>Authorize someone</h2>
+<div class="card">
+  <p class="muted" style="margin-top:0">Type their name and email. If they don't have a CRM login yet, one is created for them automatically (you'll get a temporary password to pass along).</p>
+  <form class="inline" method="post" action="{{ url_for('.authorized_users_assign', area_key=area_key) }}">
+    <input name="name" placeholder="Name" style="width:180px">
+    <input name="email" type="email" placeholder="Email" required style="width:220px">
+    <button class="btn" type="submit">Authorize</button>
+  </form>
+
+  {% if available_staff or available_contacts %}
+  <p class="muted" style="margin:14px 0 6px">Or pick a contact or someone who already has a login:</p>
+  <form class="inline" method="post" action="{{ url_for('.authorized_users_assign', area_key=area_key) }}">
+    <select name="picked" required onchange="
+      var v = this.value.split(':');
+      this.form.existing_staff_id.value = v[0] === 'staff' ? v[1] : '';
+      this.form.existing_contact_id.value = v[0] === 'contact' ? v[1] : '';
+    ">
+      <option value="">Choose&hellip;</option>
+      {% if available_staff %}
+      <optgroup label="Already has a login">
+        {% for s in available_staff %}
+        <option value="staff:{{ s.id }}">{{ s.name }} ({{ s.email }}){{ ' — Leadership' if s.role == 'Leadership' else '' }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+      {% if available_contacts %}
+      <optgroup label="Contacts (no login yet — one will be created)">
+        {% for c in available_contacts %}
+        <option value="contact:{{ c.id }}">{{ c.full_name }} ({{ c.email }})</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+    </select>
+    <input type="hidden" name="existing_staff_id">
+    <input type="hidden" name="existing_contact_id">
+    <button class="btn secondary" type="submit">Grant access</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
