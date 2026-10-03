@@ -18,6 +18,8 @@ from email_templates import (
     LONGFORM_FOLLOWUP_SUBJECT,
     interested_party_welcome_content,
     INTERESTED_PARTY_WELCOME_SUBJECT,
+    excitement_blast_content,
+    EXCITEMENT_BLAST_SUBJECT,
 )
 
 app = Flask(__name__)
@@ -1141,6 +1143,38 @@ def contact_profile_link_new(contact_id):
         )
         conn.commit()
     conn.close()
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+
+@crm.route("/contacts/<int:contact_id>/send-excitement-email", methods=["POST"])
+@area_required("contacts")
+def contact_send_excitement_email(contact_id):
+    """Sends the "Excitement is Building" outreach email to this one
+    contact, on demand from their detail page -- the same copy used for
+    the bulk blast, so staff can send or re-send it to one person at a
+    time (new leads, someone who asks again, a bounced address that got
+    corrected) without needing the Web Shell."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    if not contact["email"]:
+        flash("Can't send -- this contact has no email address on file.")
+        return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+    html_content, text_content = excitement_blast_content(contact["first_name"])
+    try:
+        send_email(
+            to_email=contact["email"],
+            to_name=contact["first_name"],
+            subject=EXCITEMENT_BLAST_SUBJECT,
+            html_content=html_content,
+            text_content=text_content,
+        )
+        flash(f"Excitement email sent to {contact['first_name']} ({contact['email']}).")
+    except EmailSendError as e:
+        flash(f"Couldn't send the email: {e}")
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
