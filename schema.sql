@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     photo_filename TEXT,
     profile_token TEXT UNIQUE,  -- unguessable link letting them fill in/update their own profile, no login
     email TEXT,
+    email_2 TEXT,  -- secondary personal email, e.g. an old address they used to sign up with
+    email_3 TEXT,  -- third personal email
     cell_phone TEXT,
     home_phone TEXT,
     work_phone TEXT,

@@ -923,7 +923,7 @@ def clean_age(value):
 # commentary about the person) and are never shown on or settable from the
 # public form.
 CONTACT_PROFILE_FIELDS = [
-    "first_name", "last_name", "email", "cell_phone", "home_phone", "work_phone",
+    "first_name", "last_name", "email", "email_2", "email_3", "cell_phone", "home_phone", "work_phone",
     "partner_name", "partner_cell", "partner_email",
     "emergency_contact_name", "emergency_contact_cell", "emergency_contact_home",
     "sponsor_name", "sponsor_phone", "sponsor_email",
@@ -2522,15 +2522,33 @@ def public_discovery():
         new_status = "Volunteer" if role_lines else "Interested Party"
 
         # Many of the people filling this out are already in the CRM from
-        # past Discovery involvement -- match them by email so their
-        # existing record (photo, history, etc.) gets updated instead of a
-        # duplicate contact being created. Only a brand-new email creates a
-        # new contact.
+        # past Discovery involvement -- match them so their existing record
+        # (photo, history, etc.) gets updated instead of a duplicate contact
+        # being created. Matching requires BOTH the name (first + last,
+        # case-insensitive) AND the email to line up -- the email just has
+        # to match ANY of their three known addresses (email/email_2/
+        # email_3), since someone may sign up again under an older or
+        # different personal address than the one on file. A name match
+        # alone, or an email match alone, is treated as a different person
+        # and creates a new contact.
         existing = None
-        if email:
-            existing = conn.execute(
-                "SELECT id, notes FROM contacts WHERE email = ? ORDER BY id LIMIT 1", (email,)
-            ).fetchone()
+        submitted_email = (email or "").strip().lower()
+        submitted_first = first_name.strip().lower()
+        submitted_last = (last_name or "").strip().lower()
+        if submitted_email:
+            candidates = conn.execute(
+                """SELECT id, notes, first_name, last_name FROM contacts
+                   WHERE LOWER(email) = ? OR LOWER(email_2) = ? OR LOWER(email_3) = ?
+                   ORDER BY id""",
+                (submitted_email, submitted_email, submitted_email),
+            ).fetchall()
+            for candidate in candidates:
+                if (
+                    (candidate["first_name"] or "").strip().lower() == submitted_first
+                    and (candidate["last_name"] or "").strip().lower() == submitted_last
+                ):
+                    existing = candidate
+                    break
 
         if existing:
             new_id = existing["id"]
