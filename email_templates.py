@@ -18,20 +18,22 @@ def excitement_blast_content(first_name):
     html_content = f"""
         <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">Dallas Discovery Excitement is Growing!!!</p>
         <p>Dear {greeting},</p>
-        <p>Please forgive the intrusion, but I thought you might want to know about the
-        Discovery life training seminars discussed below. If not, please disregard this email.</p>
-        <p>In 2020 when the Dallas Discovery program closed (due to Covid), many of us
-        who gave their time and heart to the training expressed a desire to re-open the
-        program. We are in the very early stages of putting all this together, and nothing
-        is official yet, but we are working hard to put the pieces together to make this
-        happen.</p>
-        <p>Our hope is that in the next month or so we will be meeting with all interested
-        volunteers. If you were a Dallas Discovery Facilitator, TA, Trainee, Admin Assistant,
-        Sound Tech, Room/Equipment Manager, Saturday contract volunteer, or you are simply
-        interested to know more about the training, we would love to hear from you. Please
-        open the link below and complete the brief contact form so that you will be among
-        the first to know when a meeting date is set, or additional information is
-        available.</p>
+        <p>Please forgive the intrusion &mdash; you're receiving this email because you're someone
+        I've known or worked with over the years, whether through business, family, friend, or
+        just life.</p>
+        <p>Some of you are familiar with Dallas Discovery, an amazing and powerful
+        personal-growth and relationship training program that Pamela and I have been a part of
+        since 1996. Unfortunately, the program closed in 2020 due to Covid. But we are in the
+        very early stages of re-opening the program. Nothing is official yet, but we are working
+        hard to put the pieces together to make this happen. Whether or not Discovery has ever
+        been part of your story, I'd love to stay connected with you.</p>
+        <p>Our hope is that in the next month or so we will be meeting with many who attended or
+        volunteered to serve the program. If you were a Dallas Discovery Facilitator, TA,
+        Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday-only contract
+        volunteer, or if you are simply interested to know more about the training, we would
+        love to hear from you. Please open the link below and complete the brief contact form so
+        that you will be among the first to know when a meeting date is set, or additional
+        information is available.</p>
         <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
         <p>Thanks so much. Indeed, the excitement is building!!!</p>
         <p>Your support and giving hearts are much appreciated.</p>
@@ -46,11 +48,11 @@ def excitement_blast_content(first_name):
 
 Dear {greeting},
 
-Please forgive the intrusion, but I thought you might want to know about the Discovery life training seminars discussed below. If not, please disregard this email.
+Please forgive the intrusion -- you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
 
-In 2020 when the Dallas Discovery program closed (due to Covid), many of us who gave their time and heart to the training expressed a desire to re-open the program. We are in the very early stages of putting all this together, and nothing is official yet, but we are working hard to put the pieces together to make this happen.
+Some of you are familiar with Dallas Discovery, an amazing and powerful personal-growth and relationship training program that Pamela and I have been a part of since 1996. Unfortunately, the program closed in 2020 due to Covid. But we are in the very early stages of re-opening the program. Nothing is official yet, but we are working hard to put the pieces together to make this happen. Whether or not Discovery has ever been part of your story, I'd love to stay connected with you.
 
-Our hope is that in the next month or so we will be meeting with all interested volunteers. If you were a Dallas Discovery Facilitator, TA, Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday contract volunteer, or you are simply interested to know more about the training, we would love to hear from you. Please open the link below and complete the brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
+Our hope is that in the next month or so we will be meeting with many who attended or volunteered to serve the program. If you were a Dallas Discovery Facilitator, TA, Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday-only contract volunteer, or if you are simply interested to know more about the training, we would love to hear from you. Please open the link below and complete the brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
 
 {DISCOVERY_URL}
 
