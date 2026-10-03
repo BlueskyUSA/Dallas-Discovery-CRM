@@ -15,6 +15,8 @@
       <div class="field"><label>First name *</label><input name="first_name" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
       <div class="field"><label>Last name</label><input name="last_name" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
       <div class="field"><label>Email</label><input type="email" name="email" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
+      <div class="field"><label>Secondary email</label><input type="email" name="email_2" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
+      <div class="field"><label>Third email</label><input type="email" name="email_3" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
       <div class="field"><label>Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
       <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
       <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
