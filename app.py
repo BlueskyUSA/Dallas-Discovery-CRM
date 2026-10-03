@@ -28,7 +28,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # To make the site public again, just delete the SITE_PASSWORD environment
 # variable on Render and redeploy; with it unset, this check does nothing.
 SITE_PASSWORD = os.environ.get("SITE_PASSWORD")
-SITE_USERNAME = os.environ.get("SITE_USERNAME", "dallasdiscovery")
+SITE_USERNAME = os.environ.get("SITE_USERNAME", "blueskyusa")
 
 
 @app.before_request
@@ -199,6 +199,20 @@ def owner_required(view):
     def wrapped(*args, **kwargs):
         if not session.get("is_owner"):
             flash("That's restricted to the account owner.")
+            return redirect(url_for(".dashboard"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def leadership_required(view):
+    """Gates actions that need a Leadership-level account (Leadership or
+    Owner), even for a Team account that has otherwise been granted access
+    to the Contacts area -- e.g. deleting a contact. A plain Team account
+    never passes this, no matter what access_grants says."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not (session.get("is_owner") or session.get("staff_role") == "Leadership"):
+            flash("That's restricted to Leadership accounts.")
             return redirect(url_for(".dashboard"))
         return view(*args, **kwargs)
     return wrapped
@@ -1269,6 +1283,75 @@ def contact_detail(contact_id):
     )
 
 
+def _contact_delete_blockers(conn, contact_id):
+    """Returns a list of plain-English reasons this contact can't be safely
+    deleted yet -- real training/financial history that would otherwise be
+    silently destroyed. Empty list means it's safe to delete."""
+    reasons = []
+    counts = [
+        ("enrollments", "enrolled in a training cohort"),
+        ("contracts", "a saved contract (D1/D2/D6)"),
+        ("donations", "a recorded donation"),
+        ("cohort_staffing", "listed as cohort staff"),
+        ("small_group_staffing", "listed as small-group staff"),
+    ]
+    for table, phrase in counts:
+        row = conn.execute(f"SELECT COUNT(*) c FROM {table} WHERE contact_id = ?", (contact_id,)).fetchone()
+        if row["c"]:
+            reasons.append(f"has {phrase}")
+    led = conn.execute(
+        "SELECT COUNT(*) c FROM contracts WHERE led_by_contact_id = ? OR assisted_by_contact_id = ?",
+        (contact_id, contact_id),
+    ).fetchone()
+    if led["c"]:
+        reasons.append("is credited as a contract facilitator/assistant for someone else")
+    staff_row = conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone()
+    if staff_row:
+        reasons.append("is linked to a CRM staff login (unlink it from the Team page first)")
+    return reasons
+
+
+@crm.route("/contacts/<int:contact_id>/delete", methods=["GET"])
+@area_required("contacts")
+@leadership_required
+def contact_delete_confirm(contact_id):
+    conn = get_db()
+    contact = conn.execute(
+        f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)
+    ).fetchone()
+    if not contact:
+        conn.close()
+        flash("Couldn't find that contact.")
+        return redirect(url_for(".contacts_list"))
+    blockers = _contact_delete_blockers(conn, contact_id)
+    conn.close()
+    return render_template("contact_delete_confirm.html", contact=contact, blockers=blockers)
+
+
+@crm.route("/contacts/<int:contact_id>/delete", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_delete(contact_id):
+    conn = get_db()
+    contact = conn.execute(f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    if not contact:
+        conn.close()
+        flash("Couldn't find that contact.")
+        return redirect(url_for(".contacts_list"))
+    blockers = _contact_delete_blockers(conn, contact_id)
+    if blockers:
+        conn.close()
+        flash("Couldn't delete -- this contact " + "; and ".join(blockers) + ". Remove that first, or ask for help.")
+        return redirect(url_for(".contact_detail", contact_id=contact_id))
+    name = contact["full_name"]
+    conn.execute("DELETE FROM contact_photos WHERE contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Deleted {name}.")
+    return redirect(url_for(".contacts_list"))
+
+
 @crm.route("/contacts/<int:contact_id>/sponsor", methods=["POST"])
 @area_required("contacts")
 def set_sponsor_name(contact_id):
@@ -2306,7 +2389,7 @@ def public_discovery():
             when = " ".join(part for part in [month, year] if part)
             role_lines.append(f"{role_type} ({when})" if when else role_type)
 
-        note_parts = ["Dallas Discovery Volunteer sign-up submitted via website"]
+        note_parts = ["Bluesky Life Training Seminar Volunteer sign-up submitted via website"]
         if role_lines:
             note_parts.append("Roles: " + "; ".join(role_lines))
         if message:
@@ -2343,7 +2426,7 @@ def public_discovery():
                     last_name,
                     phone,
                     combined_notes,
-                    "Dallas Discovery Volunteer",
+                    "Bluesky Life Training Seminar Volunteer",
                     "Interested Party",
                     new_id,
                 ),
@@ -2358,7 +2441,7 @@ def public_discovery():
                     email,
                     phone,
                     new_notes,
-                    "Dallas Discovery Volunteer",
+                    "Bluesky Life Training Seminar Volunteer",
                     "Interested Party",
                 ),
             )
@@ -2508,4 +2591,3 @@ app.register_blueprint(crm)
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5050, debug=True)
-
