@@ -35,6 +35,12 @@ SITE_USERNAME = os.environ.get("SITE_USERNAME", "blueskyusa")
 def _require_site_password():
     if not SITE_PASSWORD:
         return  # gate is off -- site is public
+    if request.path.startswith("/static/"):
+        # CSS/JS/images only -- nothing sensitive in them. Some browsers
+        # (Safari in particular) don't reliably resend Basic Auth
+        # credentials for these background requests, which otherwise makes
+        # a fully-authenticated page render with no styling at all.
+        return
     auth = request.authorization
     if not auth or auth.username != SITE_USERNAME or auth.password != SITE_PASSWORD:
         return make_response(
