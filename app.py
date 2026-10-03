@@ -2452,9 +2452,13 @@ def public_discovery():
             when = " ".join(part for part in [month, year] if part)
             role_lines.append(f"{role_type} ({when})" if when else role_type)
 
+        checked_interested_party = bool(request.form.get("interested_party"))
+
         note_parts = ["Dallas Discovery Volunteer sign-up submitted via website"]
         if role_lines:
             note_parts.append("Roles: " + "; ".join(role_lines))
+        elif checked_interested_party:
+            note_parts.append("Checked \"Interested Party\" -- no past role with Discovery")
         if message:
             note_parts.append(message)
 
@@ -2464,6 +2468,13 @@ def public_discovery():
         phone = request.form.get("phone", "").strip() or None
         wants_longform = bool(request.form.get("wants_longform"))
         new_notes = "\n".join(note_parts)
+
+        # A real past role (Facilitator, TA, Sound Tech, etc.) makes them a
+        # Volunteer; checking "Interested Party" (or leaving both blank)
+        # makes them an Interested Party -- so the two groups can be emailed
+        # separately later, instead of every /discovery signup landing in
+        # the same bucket regardless of history.
+        new_status = "Volunteer" if role_lines else "Interested Party"
 
         # Many of the people filling this out are already in the CRM from
         # past Discovery involvement -- match them by email so their
@@ -2490,7 +2501,7 @@ def public_discovery():
                     phone,
                     combined_notes,
                     "Dallas Discovery Volunteer",
-                    "Interested Party",
+                    new_status,
                     new_id,
                 ),
             )
@@ -2505,7 +2516,7 @@ def public_discovery():
                     phone,
                     new_notes,
                     "Dallas Discovery Volunteer",
-                    "Interested Party",
+                    new_status,
                 ),
             )
             new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
