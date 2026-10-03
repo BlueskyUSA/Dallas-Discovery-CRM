@@ -129,14 +129,15 @@
   });
 })();
 
-// On the contact detail page (Leadership view only), the D1/D2/D3/Refocus/
-// Contract section should disappear as soon as Discovery attendance is set
-// to "No" and every discovery date field is empty -- live, without needing
-// to hit Save first. It stays visible if attendance is "Yes" OR any one of
-// the discovery date fields still has something typed into it (a
-// grandfathered contact who has dates on file but was marked "No").
-// No-ops on any page that doesn't have this section (i.e. non-Leadership
-// staff, or contacts with no Discovery attendance field at all).
+// On the contact detail page (Leadership view) and the public long form
+// alike, the D1/D2/D3/Refocus/Contract section should disappear as soon as
+// Discovery attendance is set to "No" and every discovery date field is
+// empty -- live, without needing to hit Save first. It stays visible if
+// attendance is "Yes" OR any one of the discovery date fields still has
+// something typed into it (a grandfathered contact who has dates on file
+// but was marked "No"). No-ops on any page that doesn't have this section
+// (i.e. non-Leadership staff, or contacts with no Discovery attendance
+// field at all).
 (function () {
   function sync() {
     const section = document.getElementById("contract_fields_section");
@@ -148,7 +149,16 @@
       function (input) { return input.value.trim() !== ""; }
     );
     const isYes = !!select && select.value === "Yes";
-    section.style.display = (isYes || hasDates) ? "" : "none";
+    const showsSection = isYes || hasDates;
+    section.style.display = showsSection ? "" : "none";
+
+    // On the public long form, the Finish button lives above this section by
+    // default, but moves to the bottom (after the contract fields) as soon as
+    // the section itself becomes visible -- so someone who says Yes fills in
+    // their contract before finishing, while someone who says No never sees
+    // this section at all and Finish stays right where it's always been.
+    const finishTop = document.getElementById("finish_block_top");
+    if (finishTop) finishTop.style.display = showsSection ? "none" : "";
   }
 
   document.addEventListener("DOMContentLoaded", function () {
