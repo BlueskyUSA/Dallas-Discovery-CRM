@@ -1,22 +1,29 @@
 """
-One-time migration: renames the display names of Discovery's B4, B5, and B6
-program slots so the dashboard and Authorized Users hub stop showing
-leftover Bluesky-style names.
+One-time migration: fixes Discovery's program codes and names so the
+dashboard and Authorized Users hub stop showing leftover Bluesky text.
 
-What it does:
-  - For each program currently stored under code B4, B5, or B6, updates its
-    name in place -- same row, same id, same code, so every cohort,
-    enrollment, contract, donation, and training-material record already
-    linked to that program stays linked. Nothing else changes (description
-    is left as-is).
-  - If a program code doesn't exist yet (e.g. B5/B6 haven't been created
-    yet), it's skipped -- safe to run more than once, and safe to run
-    before those slots are actually used.
+Background: these 6 programs were created with the literal strings
+"Bluesky 1".."Bluesky 6" typed into the *code* column (instead of a short
+code like "B1"), which is what shows as the big number on the dashboard.
+It's also why the app's internal "is this the Squeeze/couples program?"
+check (which compares a program's code to the string "B4") was silently
+never matching -- the real code was "Bluesky 4", not "B4".
 
-Renames applied:
-  B4 -> "Relationship Training"
-  B5 -> "Renewal"
-  B6 -> "Spiritual"
+What it does, for each program below:
+  - Updates its code (e.g. "Bluesky 4" -> "B4") and, where given, its name
+    -- same row, same id, so every cohort, enrollment, contract, donation,
+    and training-material record already linked to that program stays
+    linked. Nothing else changes.
+  - If a program isn't found under its expected old code, it's skipped --
+    safe to run more than once.
+
+Changes applied:
+  code "Bluesky 1" -> "B1"   (name left as-is: "Freedom")
+  code "Bluesky 2" -> "B2"   (name left as-is: "Genesis")
+  code "Bluesky 3" -> "B3"   (name left as-is: "Powerful Living")
+  code "Bluesky 4" -> "B4"   name -> "Relationship Training"
+  code "Bluesky 5" -> "B5"   (name left as-is: "Renewal")
+  code "Bluesky 6" -> "B6"   (name left as-is: "Spiritual")
 
 Run this ONCE against your Postgres database, with the app stopped:
 
@@ -24,10 +31,14 @@ Run this ONCE against your Postgres database, with the app stopped:
 """
 from db import get_db
 
+# (old_code, new_code, new_name_or_None)
 RENAMES = [
-    ("B4", "Relationship Training"),
-    ("B5", "Renewal"),
-    ("B6", "Spiritual"),
+    ("Bluesky 1", "B1", None),
+    ("Bluesky 2", "B2", None),
+    ("Bluesky 3", "B3", None),
+    ("Bluesky 4", "B4", "Relationship Training"),
+    ("Bluesky 5", "B5", None),
+    ("Bluesky 6", "B6", None),
 ]
 
 
@@ -36,16 +47,19 @@ def migrate():
     cur = conn.cursor()
 
     renamed, skipped = 0, 0
-    for code, new_name in RENAMES:
-        row = cur.execute("SELECT id, name FROM programs WHERE code = ?", (code,)).fetchone()
+    for old_code, new_code, new_name in RENAMES:
+        row = cur.execute("SELECT id, name FROM programs WHERE code = ?", (old_code,)).fetchone()
         if not row:
             skipped += 1
-            print(f"No program found with code '{code}' -- skipping (not created yet).")
+            print(f"No program found with code '{old_code}' -- skipping (already renamed, or not created yet).")
             continue
-        old_name = row["name"]
-        cur.execute("UPDATE programs SET name = ? WHERE id = ?", (new_name, row["id"]))
+        final_name = new_name if new_name is not None else row["name"]
+        cur.execute(
+            "UPDATE programs SET code = ?, name = ? WHERE id = ?",
+            (new_code, final_name, row["id"]),
+        )
         renamed += 1
-        print(f"Renamed {code}: '{old_name}' -> '{new_name}'.")
+        print(f"Renamed '{old_code}' -> '{new_code}' ({final_name}).")
 
     conn.commit()
     conn.close()
