@@ -149,18 +149,12 @@
           <div class="field"><label>Email *</label><input type="email" name="email" required></div>
           <div class="field"><label>Phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
           <div class="field">
-            <label>What did you do? <span class="muted" style="font-weight:400;">(skip this if you weren't a past volunteer -- just check "Interested Party" below)</span></label>
+            <label>What did you do? <span class="muted" style="font-weight:400;">(select "Interested Party" if you don't have a past role but would like to stay connected)</span></label>
             <div id="role-rows"></div>
             <button type="button" id="add-role-btn" class="pub-btn secondary" style="margin-top:6px; padding:9px 18px; font-size:0.98rem;">+ Add another role</button>
           </div>
           <div class="field"><label>Anything you'd like us to know?</label>
             <textarea name="message" rows="4" placeholder="Your past role (volunteer, TA, facilitator), years involved, etc. -- totally optional"></textarea>
-          </div>
-          <div class="field" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:18px;">
-            <input type="checkbox" name="interested_party" id="interested_party" style="width:22px; height:22px; margin-top:4px; flex-shrink:0;">
-            <label for="interested_party" style="font-weight:600; margin:0; font-size:1.1rem; line-height:1.4;">
-              Interested Party &mdash; I don't have a specific past role with Discovery, but I'd like to stay connected.
-            </label>
           </div>
           <div class="field" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:22px;">
             <input type="checkbox" name="wants_longform" id="wants_longform" style="width:22px; height:22px; margin-top:4px; flex-shrink:0;">
@@ -177,7 +171,7 @@
 
   <template id="role-row-template">
     <div class="role-row">
-      <select name="volunteer_type[]">
+      <select name="volunteer_type[]" required>
         <option value="">What did you do? *</option>
         <option>Facilitator</option>
         <option>TA</option>
@@ -188,6 +182,7 @@
         <option>Team Captain</option>
         <option>Large Group Leader</option>
         <option>Saturday Only</option>
+        <option>Interested Party</option>
         <option>Other</option>
       </select>
       <select name="volunteer_month[]">
@@ -216,9 +211,11 @@
         var clone = template.content.cloneNode(true);
         var removeBtn = clone.querySelector('.role-row-remove');
         removeBtn.addEventListener('click', function (e) {
-          // No minimum row count -- someone with no past role at all (see the
-          // "Interested Party" checkbox below) can remove every row.
-          e.target.closest('.role-row').remove();
+          // Always keep at least one row, since the dropdown is required --
+          // everyone picks either a real past role or "Interested Party".
+          if (container.children.length > 1) {
+            e.target.closest('.role-row').remove();
+          }
         });
         container.appendChild(clone);
       }
