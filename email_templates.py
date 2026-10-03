@@ -10,10 +10,29 @@ EXCITEMENT_BLAST_SUBJECT = "Dallas Discovery Excitement is Growing"
 DISCOVERY_URL = "https://dallas-discovery-crm.onrender.com/discovery"
 
 
-def excitement_blast_content(first_name):
+def excitement_blast_content(first_name, connect_url=None):
     """Returns (html_content, text_content) for the initial blast email,
-    personalized with the contact's first name."""
+    personalized with the contact's first name. connect_url, if given, is
+    that contact's personal link to the "reach out to me" page -- lets
+    someone ask Kent to personally follow up (by email or phone) without
+    emailing him directly, so replies don't just pile up in his inbox."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    connect_html = ""
+    connect_text = ""
+    if connect_url:
+        connect_html = f"""
+        <p>Want me to personally follow up with you? <a href="{connect_url}">Click here</a> and
+        let me know the best way to reach you &mdash; email or a call &mdash; and I'll get to you
+        as soon as I possibly can. So many of you have already reached out, and every single one
+        of you matters to me, even though I'm just one guy trying to keep up!</p>
+        """
+        connect_text = (
+            f"Want me to personally follow up with you? Click here and let me know the best way "
+            f"to reach you -- email or a call -- and I'll get to you as soon as I possibly can. So "
+            f"many of you have already reached out, and every single one of you matters to me, "
+            f"even though I'm just one guy trying to keep up!\n{connect_url}\n\n"
+        )
 
     html_content = f"""
         <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">Dallas Discovery Excitement is Growing!!!</p>
@@ -36,6 +55,7 @@ def excitement_blast_content(first_name):
         below and complete the brief contact form so that you will be among the first to know
         when a meeting date is set, or additional information is available.</span></p>
         <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
+        {connect_html}
         <p>Thanks so much. Indeed, the excitement is building!!!</p>
         <p>Your support and giving hearts are much appreciated.</p>
         <p>We look forward to seeing you soon.</p>
@@ -57,7 +77,7 @@ Our hope is that in the next month or so we will be meeting with many who attend
 
 {DISCOVERY_URL}
 
-Thanks so much. Indeed, the excitement is building!!!
+{connect_text}Thanks so much. Indeed, the excitement is building!!!
 
 Your support and giving hearts are much appreciated.
 
@@ -69,6 +89,46 @@ Kent Hafemann
 PS...Please text or email this link to anyone who you think would be interested and invite them to sign up.
 {DISCOVERY_URL}
 """
+
+    return html_content, text_content
+
+
+CONNECT_REQUEST_SUBJECT = "I got your message -- thank you"
+
+
+def connect_request_confirmation_content(first_name, method):
+    """Returns (html_content, text_content) for the auto-reply sent right
+    after someone submits the "please reach out to me personally" request
+    on the /connect/<token> page -- a personal note from Kent explaining
+    that many people have reached out, that they matter to him, and that
+    he'll get to them as soon as he can (he's one person, not a team)."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    how = "give you a call" if method == "Phone" else "email you personally"
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>Thank you so much for letting me know you'd like me to {how} &mdash; I got your
+        message, and I wanted to write back right away so you know it didn't just disappear into
+        the void.</p>
+        <p>So many of you have reached out already, and I want you to know that every single one
+        of you matters to me. I'm doing my best to personally get back to each person, but I'm
+        just one guy right now, so it may take me a little time. Please bear with me &mdash; I
+        promise I will get to you as soon as I possibly can.</p>
+        <p>Thank you again for your patience, and for being part of this with me.</p>
+        <p>Blessings on you,<br>Kent Hafemann</p>
+    """
+
+    text_content = (
+        f"Dear {greeting},\n\n"
+        f"Thank you so much for letting me know you'd like me to {how} -- I got your message, "
+        "and I wanted to write back right away so you know it didn't just disappear into the void.\n\n"
+        "So many of you have reached out already, and I want you to know that every single one of "
+        "you matters to me. I'm doing my best to personally get back to each person, but I'm just "
+        "one guy right now, so it may take me a little time. Please bear with me -- I promise I "
+        "will get to you as soon as I possibly can.\n\n"
+        "Thank you again for your patience, and for being part of this with me.\n\n"
+        "Blessings on you,\nKent Hafemann"
+    )
 
     return html_content, text_content
 

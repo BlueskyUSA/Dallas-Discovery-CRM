@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS contacts (
     last_name TEXT,
     photo_filename TEXT,
     profile_token TEXT UNIQUE,  -- unguessable link letting them fill in/update their own profile, no login
+    contact_request_method TEXT,     -- 'Email' or 'Phone' -- set when they ask Kent to personally reach out
+    contact_request_phone TEXT,      -- optional callback number, if different from cell_phone
+    contact_request_note TEXT,       -- optional note they left with the request
+    contact_requested_at TEXT,       -- when they asked; cleared once staff have followed up
     email TEXT,
     email_2 TEXT,  -- secondary personal email, e.g. an old address they used to sign up with
     email_3 TEXT,  -- third personal email

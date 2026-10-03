@@ -20,6 +20,8 @@ from email_templates import (
     INTERESTED_PARTY_WELCOME_SUBJECT,
     excitement_blast_content,
     EXCITEMENT_BLAST_SUBJECT,
+    connect_request_confirmation_content,
+    CONNECT_REQUEST_SUBJECT,
 )
 
 app = Flask(__name__)
@@ -1156,14 +1158,26 @@ def contact_send_excitement_email(contact_id):
     corrected) without needing the Web Shell."""
     conn = get_db()
     contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
-    conn.close()
     if not contact:
+        conn.close()
         abort(404)
     if not contact["email"]:
+        conn.close()
         flash("Can't send -- this contact has no email address on file.")
         return redirect(url_for(".contact_detail", contact_id=contact_id))
 
-    html_content, text_content = excitement_blast_content(contact["first_name"])
+    # Needs a profile_token so the email's "reach out to me personally"
+    # link (/connect/<token>) has somewhere to go -- generate one now if
+    # they don't already have one, same as the long-form link does.
+    token = contact["profile_token"]
+    if not token:
+        token = secrets.token_urlsafe(24)
+        conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, contact_id))
+        conn.commit()
+    conn.close()
+    connect_url = url_for("public_connect_request", token=token, _external=True)
+
+    html_content, text_content = excitement_blast_content(contact["first_name"], connect_url=connect_url)
     try:
         send_email(
             to_email=contact["email"],
@@ -1317,6 +1331,94 @@ def public_contract_upsert(token):
     resp = make_response(("", 204))
     resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
     return resp
+
+
+@app.route("/connect/<token>", methods=["GET", "POST"])
+def public_connect_request(token):
+    """Public, no-login page linked from the Excitement email: lets someone
+    ask Kent to personally follow up with them (by email or phone) instead
+    of replying to the email itself -- so those requests land in a simple
+    CRM queue (see contact_requests below) rather than piling up in his
+    personal inbox. Sends them an immediate personal auto-reply too, so
+    they know it didn't just disappear."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE profile_token = ?", (token,)).fetchone()
+    if not contact:
+        conn.close()
+        return render_template("connect.html", contact=None), 404
+
+    if request.method == "POST":
+        method = request.form.get("method")
+        if method not in ("Email", "Phone"):
+            conn.close()
+            abort(400)
+        phone = request.form.get("phone", "").strip() or None
+        note = request.form.get("note", "").strip() or None
+        conn.execute(
+            """UPDATE contacts
+               SET contact_request_method = ?, contact_request_phone = ?,
+                   contact_request_note = ?, contact_requested_at = ?
+               WHERE id = ?""",
+            (method, phone, note, datetime.utcnow().isoformat(), contact["id"]),
+        )
+        conn.commit()
+
+        if contact["email"]:
+            html_content, text_content = connect_request_confirmation_content(contact["first_name"], method)
+            try:
+                send_email(
+                    to_email=contact["email"],
+                    to_name=contact["first_name"],
+                    subject=CONNECT_REQUEST_SUBJECT,
+                    html_content=html_content,
+                    text_content=text_content,
+                )
+            except EmailSendError:
+                pass
+        conn.close()
+        return redirect(url_for("public_connect_request", token=token, submitted="1"))
+
+    conn.close()
+    submitted = request.args.get("submitted") == "1"
+    return render_template("connect.html", contact=contact, submitted=submitted)
+
+
+@crm.route("/contact-requests")
+@area_required("contacts")
+def contact_requests_list():
+    """Simple queue of everyone who's asked Kent to personally reach out
+    via the /connect page -- oldest request first, so it reads like a
+    to-do list. Clearing one (see contact_request_resolve) just removes it
+    from this list; the fact that they asked stays out of the contact's
+    permanent notes unless staff add it themselves."""
+    conn = get_db()
+    rows = conn.execute(
+        f"""SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts
+            WHERE contact_requested_at IS NOT NULL
+            ORDER BY contact_requested_at ASC"""
+    ).fetchall()
+    conn.close()
+    return render_template("contact_requests.html", contacts=rows)
+
+
+@crm.route("/contacts/<int:contact_id>/contact-request/resolve", methods=["POST"])
+@area_required("contacts")
+def contact_request_resolve(contact_id):
+    """Marks a "please reach out to me" request as handled -- just clears
+    the request fields so it drops off the queue; it doesn't touch
+    anything else on the contact."""
+    conn = get_db()
+    conn.execute(
+        """UPDATE contacts
+           SET contact_request_method = NULL, contact_request_phone = NULL,
+               contact_request_note = NULL, contact_requested_at = NULL
+           WHERE id = ?""",
+        (contact_id,),
+    )
+    conn.commit()
+    conn.close()
+    flash("Marked as followed up.")
+    return redirect(request.referrer or url_for(".contact_requests_list"))
 
 
 @crm.route("/contacts/<int:contact_id>")
