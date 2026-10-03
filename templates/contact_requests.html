@@ -1,0 +1,38 @@
+{% extends "crm_base.html" %}
+{% block title %}Contact requests — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Contact requests</h1>
+<p class="muted">
+  Everyone who's asked, from the Excitement email's "reach out to me" link, to be personally
+  contacted by email or phone &mdash; oldest first. Marking one followed up just clears it from
+  this list; it doesn't touch anything else on the contact.
+</p>
+
+<div class="card">
+  <table>
+    <tr><th>Name</th><th>Wants</th><th>Contact info</th><th>Note</th><th>Requested</th><th></th></tr>
+    {% for c in contacts %}
+    <tr>
+      <td><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a></td>
+      <td><span class="badge">{{ c.contact_request_method }}</span></td>
+      <td>
+        {% if c.contact_request_method == 'Phone' %}
+          {{ c.contact_request_phone or c.cell_phone or 'no number on file' }}
+        {% else %}
+          {{ c.email or 'no email on file' }}
+        {% endif %}
+      </td>
+      <td class="muted">{{ c.contact_request_note or '' }}</td>
+      <td class="muted">{{ c.contact_requested_at[:10] if c.contact_requested_at else '' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('.contact_request_resolve', contact_id=c.id) }}" class="inline">
+          <button class="btn secondary" type="submit">Mark followed up</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="muted">No open requests right now.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

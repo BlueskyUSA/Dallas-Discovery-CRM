@@ -14,6 +14,7 @@
       <a href="{{ url_for('.dashboard') }}">Dashboard</a>
       {% if session.staff_role == 'Leadership' or has_contacts_access %}
       <a href="{{ url_for('.contacts_list') }}">Contacts</a>
+      <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
       {% endif %}
       {% if session.staff_role == 'Leadership' or has_program_access %}
       <a href="{{ url_for('.programs_list') }}">Programs</a>

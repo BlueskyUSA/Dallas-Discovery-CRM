@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Let's connect — Dallas Discovery</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='public.css') }}">
+  <style>
+    .connect-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+    .connect-card { max-width: 560px; width: 100%; text-align: center; }
+    .connect-card h1 {
+      font-family: var(--pub-font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0 0 18px;
+      color: var(--pub-text);
+    }
+    .connect-card .lead {
+      color: var(--pub-text);
+      line-height: 1.75;
+      margin: 0 auto 28px;
+      font-size: 1.1rem;
+      text-align: left;
+    }
+    .connect-form-card {
+      background: var(--pub-surface);
+      border: 1px solid var(--pub-border);
+      border-radius: var(--pub-radius-lg);
+      box-shadow: var(--pub-shadow-md);
+      padding: 32px;
+      text-align: left;
+    }
+    .method-choice {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .method-choice label {
+      flex: 1;
+      display: block;
+      border: 2px solid var(--pub-border);
+      border-radius: var(--pub-radius-md);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .method-choice input { display: none; }
+    .method-choice input:checked + span { color: var(--pub-primary); }
+    .method-choice label:has(input:checked) {
+      border-color: var(--pub-primary);
+      background: var(--pub-primary-highlight);
+    }
+    .connect-success {
+      background: var(--pub-surface);
+      border: 1px solid var(--pub-border);
+      border-radius: var(--pub-radius-lg);
+      box-shadow: var(--pub-shadow-md);
+      padding: 36px;
+      text-align: left;
+    }
+    .connect-success h2 { margin: 0 0 14px; font-family: var(--pub-font-display); }
+    .connect-success p { line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <main class="connect-wrap">
+    <div class="connect-card">
+      {% if contact is none %}
+      <h1>Link not found</h1>
+      <p class="lead">This link isn't valid or has expired. Please reach out to us directly and we'll make sure to connect.</p>
+      {% elif submitted %}
+      <div class="connect-success">
+        <h2>Thank you, {{ contact.first_name }} &mdash; I got it.</h2>
+        <p>So many of you have reached out already, and I want you to know that every single one
+        of you matters to me. I'm doing my best to personally get back to each person, but I'm
+        just one guy right now, so it may take a little time. Please bear with me &mdash; I
+        promise I will get to you as soon as I possibly can.</p>
+        <p>Thank you for your patience, and for being part of this with me.</p>
+        <p>Blessings on you,<br>Kent</p>
+      </div>
+      {% else %}
+      <h1>Let's connect</h1>
+      <p class="lead">
+        Thanks for letting me know you're interested, {{ contact.first_name }}. If you'd like me
+        to personally follow up with you, let me know the best way to reach you below, and I'll
+        do my best to get to you as soon as I can.
+      </p>
+      <div class="connect-form-card">
+        <form class="pub-form" method="post">
+          <div class="method-choice">
+            <label><input type="radio" name="method" value="Email" checked><span>Email me</span></label>
+            <label><input type="radio" name="method" value="Phone"><span>Call me</span></label>
+          </div>
+          <div class="field">
+            <label>Phone number <span class="muted" style="font-weight:400;">(only needed if you'd like a call)</span></label>
+            <input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"
+                   value="{{ contact.cell_phone or '' }}">
+          </div>
+          <div class="field">
+            <label>Anything you'd like me to know? <span class="muted" style="font-weight:400;">(optional)</span></label>
+            <textarea name="note" rows="3"></textarea>
+          </div>
+          <button class="pub-btn dark" type="submit" style="width:100%">Send my request &rarr;</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+  <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+</body>
+</html>

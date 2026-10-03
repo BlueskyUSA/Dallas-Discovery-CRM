@@ -21,6 +21,20 @@
     </form>
   </div>
 </div>
+{% if contact.contact_requested_at %}
+<div class="card" style="border-color:#c0392b; background:#fdf2f0;">
+  <strong style="color:#c0392b;">Asked to be personally contacted</strong> &mdash;
+  wants a {{ contact.contact_request_method }}
+  {%- if contact.contact_request_method == 'Phone' and (contact.contact_request_phone or contact.cell_phone) %}
+    at {{ contact.contact_request_phone or contact.cell_phone }}
+  {%- endif %}.
+  {% if contact.contact_request_note %}<br>Note: {{ contact.contact_request_note }}{% endif %}
+  <br><span class="muted">Requested {{ contact.contact_requested_at[:10] }}</span>
+  <form method="post" action="{{ url_for('.contact_request_resolve', contact_id=contact.id) }}" class="inline" style="margin-top:8px">
+    <button class="btn secondary" type="submit">Mark followed up</button>
+  </form>
+</div>
+{% endif %}
 <p class="muted">
   {{ contact.email or 'no email' }}
   {% if contact.cell_phone %} &middot; Cell: {{ contact.cell_phone }}{% endif %}
