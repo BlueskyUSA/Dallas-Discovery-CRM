@@ -232,6 +232,31 @@
     </div>
   </form>
 </div>
+
+{% set has_discovery_dates = contact.d1_month_year or contact.d2_month_year or contact.d3_month_year or contact.refocus_month_year or contact.relationship_training_month_year %}
+<div id="contract_fields_section" style="display: {{ '' if (contact.discovery_attendance == 'Yes' or has_discovery_dates) else 'none' }}">
+{% for kind, label in contract_kinds.items() %}
+{% set entry = contracts_by_kind[kind] %}
+<h2>{{ kind }}: {{ label }}</h2>
+<div class="card">
+  <form method="post" class="contract-autosave-form" action="{{ url_for('public_contract_upsert', token=contact.profile_token) }}">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <div class="field">
+      {% if kind in contract_single_line_kinds %}
+      <input name="text" style="width:100%"
+        placeholder="{{ 'e.g. ' ~ contract_examples[kind] if kind in contract_examples else '' }}"
+        value="{{ entry.contract.current_text if entry.contract else '' }}">
+      {% else %}
+      <textarea name="text" rows="6" style="width:100%"
+        placeholder="{{ 'e.g. ' ~ contract_examples[kind] if kind in contract_examples else '' }}"
+      >{{ entry.contract.current_text if entry.contract else '' }}</textarea>
+      {% endif %}
+    </div>
+    <p class="muted contract-save-status" style="min-height:1.2em; margin:0"></p>
+  </form>
+</div>
+{% endfor %}
+</div>
 {% endif %}
 </div>
 <script>
