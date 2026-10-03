@@ -72,6 +72,55 @@ PS...Please text or email this link to anyone who you think would be interested 
     return html_content, text_content
 
 
+INTERESTED_PARTY_WELCOME_SUBJECT = "Thank you for your interest in Dallas Discovery"
+
+
+def interested_party_welcome_content(first_name):
+    """Returns (html_content, text_content) for the welcome email sent when
+    someone selects "Interested Party" (rather than a past volunteer role)
+    on the /discovery short form -- thanks them for their interest and
+    shares a bit of the personal story and heart behind the program."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>Thank you so much for letting us know you're interested in Dallas Discovery &mdash;
+        it truly means a lot to us.</p>
+        <p>Pamela and I have been part of this personal-growth and relationship training program
+        since 1996, and it's hard to put into words just how much it has shaped our lives and our
+        marriage over the years. Discovery has a way of helping people find more freedom, more
+        honesty, and more connection &mdash; with themselves and with the people they love.</p>
+        <p>The program closed in 2020 because of Covid, but we are now in the early stages of
+        working to bring it back. Nothing is official yet, and there are still a lot of pieces to
+        put together, but knowing there are people like you who are curious and open to it gives
+        us so much encouragement.</p>
+        <p>We'll keep you in the loop as things develop, including when there's a meeting date or
+        more information to share. In the meantime, if you ever want to hear more about the
+        program or our own story with Discovery, just reply to this email &mdash; we'd love to
+        talk with you.</p>
+        <p>Thank you again for your interest and for taking the time to reach out.</p>
+        <p>Blessings on you,<br>Kent Hafemann</p>
+    """
+
+    text_content = f"""Dear {greeting},
+
+Thank you so much for letting us know you're interested in Dallas Discovery -- it truly means a lot to us.
+
+Pamela and I have been part of this personal-growth and relationship training program since 1996, and it's hard to put into words just how much it has shaped our lives and our marriage over the years. Discovery has a way of helping people find more freedom, more honesty, and more connection -- with themselves and with the people they love.
+
+The program closed in 2020 because of Covid, but we are now in the early stages of working to bring it back. Nothing is official yet, and there are still a lot of pieces to put together, but knowing there are people like you who are curious and open to it gives us so much encouragement.
+
+We'll keep you in the loop as things develop, including when there's a meeting date or more information to share. In the meantime, if you ever want to hear more about the program or our own story with Discovery, just reply to this email -- we'd love to talk with you.
+
+Thank you again for your interest and for taking the time to reach out.
+
+Blessings on you,
+Kent Hafemann
+"""
+
+    return html_content, text_content
+
+
 LONGFORM_FOLLOWUP_SUBJECT = "Thank you! One more quick step for our volunteer teams"
 
 

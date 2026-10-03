@@ -13,7 +13,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db, init_db
 from seed import seed
 from email_utils import send_email, EmailSendError
-from email_templates import longform_followup_content, LONGFORM_FOLLOWUP_SUBJECT
+from email_templates import (
+    longform_followup_content,
+    LONGFORM_FOLLOWUP_SUBJECT,
+    interested_party_welcome_content,
+    INTERESTED_PARTY_WELCOME_SUBJECT,
+)
 
 app = Flask(__name__)
 # In production (Render), set a SECRET_KEY environment variable to a long random
@@ -2442,23 +2447,29 @@ def public_discovery():
         months = request.form.getlist("volunteer_month[]")
         years_in = request.form.getlist("volunteer_year[]")
 
+        # "Interested Party" is one of the choices in the role dropdown, but
+        # it isn't a real past role -- pull it out on its own so it never
+        # ends up listed alongside Facilitator/TA/etc. in the notes, and so
+        # it doesn't count toward making someone a "Volunteer" below.
         role_lines = []
+        selected_interested_party = False
         for i, role_type in enumerate(types):
             role_type = (role_type or "").strip()
             if not role_type:
+                continue
+            if role_type == "Interested Party":
+                selected_interested_party = True
                 continue
             month = months[i].strip() if i < len(months) else ""
             year = years_in[i].strip() if i < len(years_in) else ""
             when = " ".join(part for part in [month, year] if part)
             role_lines.append(f"{role_type} ({when})" if when else role_type)
 
-        checked_interested_party = bool(request.form.get("interested_party"))
-
         note_parts = ["Dallas Discovery Volunteer sign-up submitted via website"]
         if role_lines:
             note_parts.append("Roles: " + "; ".join(role_lines))
-        elif checked_interested_party:
-            note_parts.append("Checked \"Interested Party\" -- no past role with Discovery")
+        elif selected_interested_party:
+            note_parts.append("Selected \"Interested Party\" -- no past role with Discovery")
         if message:
             note_parts.append(message)
 
@@ -2538,6 +2549,25 @@ def public_discovery():
                     to_email=email,
                     to_name=first_name,
                     subject=LONGFORM_FOLLOWUP_SUBJECT,
+                    html_content=html_content,
+                    text_content=text_content,
+                )
+            except EmailSendError:
+                pass
+
+        # They picked "Interested Party" rather than a past role -- send a
+        # short welcome email thanking them and sharing a bit of our
+        # personal story and the heart behind the program. Separate from
+        # the volunteer long-form follow-up above, and only sent when they
+        # have no real past role (someone who's both a past volunteer and
+        # curious just gets treated as a Volunteer).
+        if selected_interested_party and not role_lines and email:
+            html_content, text_content = interested_party_welcome_content(first_name)
+            try:
+                send_email(
+                    to_email=email,
+                    to_name=first_name,
+                    subject=INTERESTED_PARTY_WELCOME_SUBJECT,
                     html_content=html_content,
                     text_content=text_content,
                 )
