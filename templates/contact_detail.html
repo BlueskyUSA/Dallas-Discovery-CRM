@@ -58,6 +58,21 @@
 </div>
 
 <div class="card">
+  <h3 style="margin-top:0">Excitement email</h3>
+  <p class="muted" style="margin-top:0">
+    Sends {{ contact.full_name }} the "Excitement Is Building" outreach email -- same copy as the
+    full blast, just to this one contact.
+  </p>
+  {% if contact.email %}
+  <form method="post" action="{{ url_for('.contact_send_excitement_email', contact_id=contact.id) }}">
+    <button class="btn secondary" type="submit">Send excitement email</button>
+  </form>
+  {% else %}
+  <p class="muted" style="margin:0">No email on file for this contact.</p>
+  {% endif %}
+</div>
+
+<div class="card">
   <h3 style="margin-top:0">Training path</h3>
   <p>
     {% for field, label in [('d1_month_year','D1'), ('d2_month_year','D2'), ('d3_month_year','D3')] %}
