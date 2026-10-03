@@ -28,7 +28,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # To make the site public again, just delete the SITE_PASSWORD environment
 # variable on Render and redeploy; with it unset, this check does nothing.
 SITE_PASSWORD = os.environ.get("SITE_PASSWORD")
-SITE_USERNAME = os.environ.get("SITE_USERNAME", "blueskyusa")
+SITE_USERNAME = os.environ.get("SITE_USERNAME", "dallasdiscovery")
 
 
 @app.before_request
@@ -226,7 +226,7 @@ def leadership_required(view):
 
 # ---------- authorized users (confidential-area access control) ----------
 # A small, fixed set of "areas" -- three fixed areas plus one per training
-# program (keyed by that program's code, e.g. "B1"). Each area can have up
+# program (keyed by that program's code, e.g. "D1"). Each area can have up
 # to 4 authorized Team accounts. Only the account Owner (is_owner=1, one
 # person by default) automatically has access to every area -- Leadership
 # accounts run the CRM day-to-day but see confidential areas only once
@@ -242,7 +242,7 @@ FIXED_ACCESS_AREAS = [
 ]
 # Reserved program-code slots shown in the hub even before that program
 # exists yet (B1-B4 are today's real programs; B5/B6 are room to grow).
-RESERVED_PROGRAM_AREA_CODES = ["B1", "B2", "B3", "B4", "B5", "B6"]
+RESERVED_PROGRAM_AREA_CODES = ["D1", "D2", "D3", "D4", "D5", "D6"]
 
 
 def _area_labels_map(conn):
@@ -311,7 +311,7 @@ def program_area_required(view):
     """Gates a program's confidential content (training materials, music
     playlists) to the Owner, plus any Team/Leadership account authorized
     for that program's area (looked up by the program's own code, e.g.
-    "B1"). Every wrapped route must take program_id as a URL argument."""
+    "D1"). Every wrapped route must take program_id as a URL argument."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         program_id = kwargs.get("program_id")
@@ -1001,7 +1001,7 @@ def training_path(conn, contact_id):
     by_code = {}
     for r in rows:
         by_code[r["code"]] = r  # keep latest
-    graduation_date = by_code["B3"]["session_date"] if "B3" in by_code else None
+    graduation_date = by_code["D3"]["session_date"] if "D3" in by_code else None
     return by_code, graduation_date
 
 
@@ -2144,7 +2144,7 @@ def relationship_profile(enrollment_id):
         flash("Enrollment not found.")
         return redirect(url_for(".contacts_list"))
 
-    is_couples = enr["code"] == "B4"
+    is_couples = enr["code"] == "D4"
     active_fields = RELATIONSHIP_PROFILE_FIELDS if is_couples else COMMON_PROFILE_FIELDS
 
     if request.method == "POST":
@@ -2395,7 +2395,7 @@ def public_discovery():
             when = " ".join(part for part in [month, year] if part)
             role_lines.append(f"{role_type} ({when})" if when else role_type)
 
-        note_parts = ["Bluesky Life Training Seminar Volunteer sign-up submitted via website"]
+        note_parts = ["Dallas Discovery Volunteer sign-up submitted via website"]
         if role_lines:
             note_parts.append("Roles: " + "; ".join(role_lines))
         if message:
@@ -2432,7 +2432,7 @@ def public_discovery():
                     last_name,
                     phone,
                     combined_notes,
-                    "Bluesky Life Training Seminar Volunteer",
+                    "Dallas Discovery Volunteer",
                     "Interested Party",
                     new_id,
                 ),
@@ -2447,7 +2447,7 @@ def public_discovery():
                     email,
                     phone,
                     new_notes,
-                    "Bluesky Life Training Seminar Volunteer",
+                    "Dallas Discovery Volunteer",
                     "Interested Party",
                 ),
             )

@@ -215,7 +215,7 @@ ASSIGNMENT_SHEET = (
 
 
 def import_playlists(conn):
-    program = conn.execute("SELECT * FROM programs WHERE code = 'B4'").fetchone()
+    program = conn.execute("SELECT * FROM programs WHERE code = 'D4'").fetchone()
     if not program:
         print("Couldn't find the Squeeze program -- nothing imported.")
         return
