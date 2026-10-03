@@ -2612,7 +2612,10 @@ def public_discovery():
         return redirect(url_for("public_discovery", submitted="1"))
     submitted = request.args.get("submitted") == "1"
     current_year = date.today().year
-    years = list(range(current_year, 1999, -1))
+    # Goes back to 1990 -- the program had been running for a while before
+    # Kent and Pamela got involved in 1996, so past volunteers from those
+    # earlier years need to be able to pick their actual year too.
+    years = list(range(current_year, 1989, -1))
     return render_template("public_discovery.html", submitted=submitted, years=years)
 
 
