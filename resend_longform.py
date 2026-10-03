@@ -21,7 +21,7 @@ from db import get_db
 from email_templates import longform_followup_content, LONGFORM_FOLLOWUP_SUBJECT
 from email_utils import send_email, EmailSendError
 
-DISCOVERY_URL_BASE = "https://www.blueskyusa.net"
+DISCOVERY_URL_BASE = "https://dallas-discovery-crm.onrender.com"
 
 
 def resend(to_email, force_new_link):

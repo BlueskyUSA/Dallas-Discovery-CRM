@@ -7,7 +7,7 @@ reused identically by the one-off test send and the eventual full blast.
 
 EXCITEMENT_BLAST_SUBJECT = "Dallas Discovery Excitement is Growing"
 
-DISCOVERY_URL = "https://www.blueskyusa.net/discovery"
+DISCOVERY_URL = "https://dallas-discovery-crm.onrender.com/discovery"
 
 
 def excitement_blast_content(first_name):
