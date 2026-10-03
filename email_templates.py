@@ -31,9 +31,10 @@ def excitement_blast_content(first_name):
         volunteered to serve the program. If you were a Dallas Discovery Facilitator, TA,
         Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday-only contract
         volunteer, or if you are simply interested to know more about the training, we would
-        love to hear from you. Please open the link below and complete the brief contact form so
-        that you will be among the first to know when a meeting date is set, or additional
-        information is available.</p>
+        love to hear from you.
+        <span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
+        below and complete the brief contact form so that you will be among the first to know
+        when a meeting date is set, or additional information is available.</span></p>
         <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
         <p>Thanks so much. Indeed, the excitement is building!!!</p>
         <p>Your support and giving hearts are much appreciated.</p>
