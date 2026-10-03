@@ -208,22 +208,6 @@
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       <div class="field">
-        <div class="field"><label>Bluesky Seminar Attendance (if applicable)</label>
-          <select name="bluesky_attendance" class="yesno-toggle" data-show-target="bluesky_dates_box">
-            <option value="" {% if contact and contact.bluesky_attendance == '' %}selected{% endif %}>—</option>
-            <option {% if contact and contact.bluesky_attendance == 'Yes' %}selected{% endif %}>Yes</option>
-            <option {% if contact and contact.bluesky_attendance == 'No' %}selected{% endif %}>No</option>
-          </select>
-        </div>
-        <div id="bluesky_dates_box" style="display:none">
-          <div class="field"><label>Bluesky 1 month &amp; year</label><input name="t1_month_year" placeholder="e.g. March 2024" value="{{ contact.t1_month_year if contact and contact.t1_month_year else '' }}"></div>
-          <div class="field"><label>Bluesky 2 month &amp; year</label><input name="t2_month_year" placeholder="e.g. April 2024" value="{{ contact.t2_month_year if contact and contact.t2_month_year else '' }}"></div>
-          <div class="field"><label>Bluesky 3 month &amp; year</label><input name="t3_month_year" placeholder="e.g. May 2024" value="{{ contact.t3_month_year if contact and contact.t3_month_year else '' }}"></div>
-          <div class="field"><label>Bluesky Refocus</label><input name="bluesky_refocus_month_year" placeholder="e.g. June 2024" value="{{ contact.bluesky_refocus_month_year if contact and contact.bluesky_refocus_month_year else '' }}"></div>
-          <div class="field" style="margin-bottom:0"><label>Bluesky Relationship Training</label><input name="bluesky_relationship_training_month_year" placeholder="e.g. July 2024" value="{{ contact.bluesky_relationship_training_month_year if contact and contact.bluesky_relationship_training_month_year else '' }}"></div>
-        </div>
-      </div>
-      <div class="field">
         <div class="field"><label>Discovery attendance (if applicable)</label>
           <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box">
             <option value="" {% if contact and contact.discovery_attendance == '' %}selected{% endif %}>—</option>
