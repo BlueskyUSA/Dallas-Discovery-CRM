@@ -1,0 +1,26 @@
+{% extends "crm_base.html" %}
+{% block title %}Delete {{ contact.full_name }} — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Delete {{ contact.full_name }}?</h1>
+
+{% if blockers %}
+<div class="card" style="border-color:#c0392b">
+  <p><strong>This contact can't be deleted yet.</strong> It:</p>
+  <ul>
+    {% for reason in blockers %}
+    <li>{{ reason }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted">Removing a contact with real training or financial history attached could destroy records you need -- that has to be cleaned up first, or ask for help.</p>
+  <a class="btn secondary" href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a>
+</div>
+{% else %}
+<div class="card">
+  <p>This permanently removes <strong>{{ contact.full_name }}</strong> ({{ contact.email or 'no email' }}) and their photo, if any. This can't be undone.</p>
+  <form method="post">
+    <button class="btn" type="submit" style="background:#c0392b; border-color:#c0392b">Yes, delete this contact</button>
+    <a class="btn secondary" href="{{ url_for('.contact_detail', contact_id=contact.id) }}">Cancel</a>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
