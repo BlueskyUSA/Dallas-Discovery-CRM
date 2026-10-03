@@ -21,6 +21,33 @@ app = Flask(__name__)
 # value so this still runs locally without extra setup.
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
+# ---------- site-wide "coming soon" password gate ----------
+# When a SITE_PASSWORD environment variable is set on Render, every page on
+# this site (public pages and the CRM alike) requires a username/password
+# before showing anything -- the browser pops up its own plain login box.
+# To make the site public again, just delete the SITE_PASSWORD environment
+# variable on Render and redeploy; with it unset, this check does nothing.
+SITE_PASSWORD = os.environ.get("SITE_PASSWORD")
+SITE_USERNAME = os.environ.get("SITE_USERNAME", "dallasdiscovery")
+
+
+@app.before_request
+def _require_site_password():
+    if not SITE_PASSWORD:
+        return  # gate is off -- site is public
+    auth = request.authorization
+    if not auth or auth.username != SITE_USERNAME or auth.password != SITE_PASSWORD:
+        return make_response(
+            "<!doctype html><html><head><title>Site under development</title>"
+            "<style>body{font-family:sans-serif;max-width:32rem;margin:4rem auto;"
+            "padding:0 1.5rem;text-align:center;color:#333}</style></head>"
+            "<body><h1>This site is under development</h1>"
+            "<p>We're not quite ready to open to the public yet -- please check back soon.</p>"
+            "</body></html>",
+            401,
+            {"WWW-Authenticate": 'Basic realm="This site is not open to the public yet."'},
+        )
+
 # ---------- contact photo uploads ----------
 # Stored as bytes in the database (contacts.photo_data), not on local disk --
 # Render's web server filesystem is wiped on every deploy, so anything saved
@@ -2481,3 +2508,4 @@ app.register_blueprint(crm)
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5050, debug=True)
+
