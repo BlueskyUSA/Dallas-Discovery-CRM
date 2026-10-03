@@ -60,11 +60,9 @@
 <div class="card">
   <h3 style="margin-top:0">Training path</h3>
   <p>
-    {% for code, label in [('B1','Bluesky 1'), ('B2','Bluesky 2'), ('B3','Bluesky 3')] %}
-      <span class="badge {{ 'good' if code in path else '' }}">{{ label }}{{ ' ✓' if code in path else '' }}</span>
+    {% for field, label in [('d1_month_year','D1'), ('d2_month_year','D2'), ('d3_month_year','D3')] %}
+      <span class="badge {{ 'good' if contact[field] else '' }}">{{ label }}{{ ' ✓' if contact[field] else '' }}</span>
     {% endfor %}
-    {% if grad_date %}<span class="badge good">Graduated {{ grad_date }}</span>{% endif %}
-    {% if 'B4' in path %}<span class="badge good">Squeeze attended</span>{% endif %}
   </p>
 
   <h3>Sponsor</h3>
@@ -208,22 +206,6 @@
         </select>
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health or '' }}</textarea></div>
-      <div class="field">
-        <div class="field"><label>Bluesky Seminar Attendance (if applicable)</label>
-          <select name="bluesky_attendance" class="yesno-toggle" data-show-target="bluesky_dates_box">
-            <option value="">—</option>
-            <option {{ 'selected' if contact.bluesky_attendance == 'Yes' else '' }}>Yes</option>
-            <option {{ 'selected' if contact.bluesky_attendance == 'No' else '' }}>No</option>
-          </select>
-        </div>
-        <div id="bluesky_dates_box">
-          <div class="field"><label>Bluesky 1 month &amp; year</label><input name="t1_month_year" value="{{ contact.t1_month_year or '' }}" placeholder="e.g. March 2024"></div>
-          <div class="field"><label>Bluesky 2 month &amp; year</label><input name="t2_month_year" value="{{ contact.t2_month_year or '' }}" placeholder="e.g. April 2024"></div>
-          <div class="field"><label>Bluesky 3 month &amp; year</label><input name="t3_month_year" value="{{ contact.t3_month_year or '' }}" placeholder="e.g. May 2024"></div>
-          <div class="field"><label>Bluesky Refocus</label><input name="bluesky_refocus_month_year" value="{{ contact.bluesky_refocus_month_year or '' }}" placeholder="e.g. June 2024"></div>
-          <div class="field" style="margin-bottom:0"><label>Bluesky Relationship Training</label><input name="bluesky_relationship_training_month_year" value="{{ contact.bluesky_relationship_training_month_year or '' }}" placeholder="e.g. July 2024"></div>
-        </div>
-      </div>
       <div class="field">
         <div class="field"><label>Discovery attendance (if applicable)</label>
           <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box">
