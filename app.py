@@ -1217,8 +1217,65 @@ def public_complete_profile(token):
         resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
         return resp
 
+    contracts_by_kind = {}
+    for kind in CONTRACT_KINDS:
+        row = conn.execute(
+            "SELECT * FROM contracts WHERE contact_id = ? AND kind = ?", (contact["id"], kind)
+        ).fetchone()
+        contracts_by_kind[kind] = {"contract": row}
     conn.close()
-    resp = make_response(render_template("public_complete_profile.html", contact=contact))
+    resp = make_response(render_template(
+        "public_complete_profile.html",
+        contact=contact,
+        contract_kinds=CONTRACT_KINDS,
+        contract_examples=CONTRACT_EXAMPLES,
+        contract_single_line_kinds=CONTRACT_SINGLE_LINE_KINDS,
+        contracts_by_kind=contracts_by_kind,
+    ))
+    resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
+    return resp
+
+
+@app.route("/complete-profile/<token>/contract", methods=["POST"])
+def public_contract_upsert(token):
+    """Public, no-login counterpart to the staff-only contract_upsert --
+    lets the token-holder save their own D1/D1S/D2/D3/D5/D6/D6S contract
+    text (their personal statement, poem, song choice, etc.) directly from
+    the long form, the same autosave-as-you-type way the rest of that form
+    already works. Scoped strictly to the contact that owns this token --
+    there's no contact_id in the URL, so there's nothing to guess at."""
+    conn = get_db()
+    contact = conn.execute("SELECT id FROM contacts WHERE profile_token = ?", (token,)).fetchone()
+    if not contact:
+        conn.close()
+        abort(404)
+
+    kind = request.form.get("kind", "D1")
+    if kind not in CONTRACT_KINDS:
+        conn.close()
+        abort(404)
+
+    contact_id = contact["id"]
+    existing = conn.execute(
+        "SELECT * FROM contracts WHERE contact_id = ? AND kind = ?", (contact_id, kind)
+    ).fetchone()
+    text = request.form.get("text", "")
+    if existing:
+        if text != (existing["current_text"] or ""):
+            conn.execute(
+                "INSERT INTO contract_revisions (contract_id, text, context) VALUES (?, ?, ?)",
+                (existing["id"], text, "Submitted via the public long form"),
+            )
+            conn.execute("UPDATE contracts SET current_text = ? WHERE id = ?", (text, existing["id"]))
+    else:
+        conn.execute(
+            "INSERT INTO contracts (contact_id, kind, current_text) VALUES (?, ?, ?)",
+            (contact_id, kind, text),
+        )
+    conn.commit()
+    conn.close()
+
+    resp = make_response(("", 204))
     resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
     return resp
 
