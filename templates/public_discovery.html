@@ -73,7 +73,7 @@
     .discovery-success h2 { margin: 0 0 10px; font-family: var(--pub-font-display); }
     .role-row {
       display: grid;
-      grid-template-columns: 1.4fr 1fr 0.8fr auto;
+      grid-template-columns: 1.4fr 1fr 0.8fr;
       gap: 8px;
       align-items: center;
       margin-bottom: 8px;
@@ -88,16 +88,6 @@
       font-family: var(--pub-font-body);
       font-size: 0.92rem;
     }
-    .role-row-remove {
-      background: none;
-      border: none;
-      color: var(--pub-muted);
-      cursor: pointer;
-      font-size: 1.1rem;
-      line-height: 1;
-      padding: 6px;
-    }
-    .role-row-remove:hover { color: var(--pub-text); }
     @media (max-width: 560px) {
       .role-row { grid-template-columns: 1fr 1fr; }
       .role-row select:first-child { grid-column: 1 / -1; }
@@ -143,9 +133,8 @@
           <div class="field"><label>Email *</label><input type="email" name="email" required></div>
           <div class="field"><label>Phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
           <div class="field">
-            <label>What did you do? <span class="muted" style="font-weight:400;">(select "Interested Party" if you don't have a past role but would like to stay connected)</span></label>
+            <label>Select your Discovery Role <span class="muted" style="font-weight:400;">(select "Interested Party" if you don't have a past volunteer role in Discovery, but would like to know more or stay in touch)</span></label>
             <div id="role-rows"></div>
-            <button type="button" id="add-role-btn" class="pub-btn secondary" style="margin-top:6px; padding:9px 18px; font-size:0.98rem;">+ Add another role</button>
           </div>
           <div class="field"><label>Anything you'd like us to know?</label>
             <textarea name="message" rows="4" placeholder="Your past role (volunteer, TA, facilitator), years involved, etc. -- totally optional"></textarea>
@@ -153,7 +142,7 @@
           <div class="field" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:22px;">
             <input type="checkbox" name="wants_longform" id="wants_longform" style="width:22px; height:22px; margin-top:4px; flex-shrink:0;">
             <label for="wants_longform" style="font-weight:700; margin:0; font-size:1.35rem; line-height:1.4; color:#c0392b;">
-              Volunteer &mdash; Yes, please send me the &ldquo;Additional Information&rdquo; email.
+              Volunteer &mdash; Yes, please send me the &ldquo;Additional Information Request&rdquo; email.
             </label>
           </div>
           <button class="pub-btn dark" type="submit" style="width:100%">Submit</button>
@@ -166,7 +155,7 @@
   <template id="role-row-template">
     <div class="role-row">
       <select name="volunteer_type[]" required>
-        <option value="">What did you do? *</option>
+        <option value="">Select your Discovery Role *</option>
         <option>Facilitator</option>
         <option>TA</option>
         <option>Trainee</option>
@@ -191,32 +180,19 @@
         <option>{{ y }}</option>
         {% endfor %}
       </select>
-      <button type="button" class="role-row-remove" title="Remove this role" aria-label="Remove this role">&times;</button>
     </div>
   </template>
 
   <script>
     (function () {
+      // Only one role is collected now (no "add another role" button), but
+      // the row still comes from this <template> + clone so the month/year
+      // dropdowns don't need to be duplicated by hand in the HTML.
       var container = document.getElementById('role-rows');
       var template = document.getElementById('role-row-template');
-      var addBtn = document.getElementById('add-role-btn');
 
-      function addRow() {
-        var clone = template.content.cloneNode(true);
-        var removeBtn = clone.querySelector('.role-row-remove');
-        removeBtn.addEventListener('click', function (e) {
-          // Always keep at least one row, since the dropdown is required --
-          // everyone picks either a real past role or "Interested Party".
-          if (container.children.length > 1) {
-            e.target.closest('.role-row').remove();
-          }
-        });
-        container.appendChild(clone);
-      }
-
-      if (container && template && addBtn) {
-        addRow(); // always start with one row
-        addBtn.addEventListener('click', addRow);
+      if (container && template) {
+        container.appendChild(template.content.cloneNode(true));
       }
     })();
   </script>
