@@ -22,6 +22,8 @@ from email_templates import (
     EXCITEMENT_BLAST_SUBJECT,
     connect_request_confirmation_content,
     CONNECT_REQUEST_SUBJECT,
+    longform_thankyou_content,
+    LONGFORM_THANKYOU_SUBJECT,
 )
 
 app = Flask(__name__)
@@ -1262,6 +1264,24 @@ def public_complete_profile(token):
             # just a quiet 204 so the form isn't disturbed while they're typing.
             resp = make_response(("", 204))
         else:
+            # The real "I'm done" click (not an autosave) -- thank them for
+            # taking the time, and give them their personal /connect link
+            # in case they'd like Kent to follow up directly. Best-effort:
+            # their info is already saved either way.
+            thankyou_email = values["email"] or contact["email"]
+            if thankyou_email:
+                connect_url = url_for("public_connect_request", token=token, _external=True)
+                html_content, text_content = longform_thankyou_content(values["first_name"], connect_url)
+                try:
+                    send_email(
+                        to_email=thankyou_email,
+                        to_name=values["first_name"],
+                        subject=LONGFORM_THANKYOU_SUBJECT,
+                        html_content=html_content,
+                        text_content=text_content,
+                    )
+                except EmailSendError:
+                    pass
             flash("Thank you -- your information has been saved.")
             resp = make_response(redirect(url_for("public_complete_profile", token=token)))
         resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")

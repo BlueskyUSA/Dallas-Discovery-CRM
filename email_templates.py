@@ -207,3 +207,41 @@ def longform_followup_content(first_name, longform_url):
         "Thanks again for your support and your giving heart.\n\nBlessings,\nKent Hafemann"
     )
     return html_content, text_content
+
+
+LONGFORM_THANKYOU_SUBJECT = "Thank you for taking the time"
+
+
+def longform_thankyou_content(first_name, connect_url):
+    """Returns (html_content, text_content) for the thank-you email sent
+    when someone clicks Submit on the public long form (complete-profile)
+    -- not every autosave, just that final submit. Includes their personal
+    /connect link so they can ask Kent to follow up directly if they'd
+    like, without needing to reply to this email."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>Thank you for taking the time to complete the full contact form &mdash; I know
+        that's not quick, and it means a lot to me that you did.</p>
+        <p>What you shared helps us as we work to bring Discovery back to life, and it tells me
+        you still care about what this program stood for.</p>
+        <p>If you'd like me to personally reach out &mdash; by email or a call &mdash; just
+        <a href="{connect_url}">click here</a> and let me know the best way, and I'll get to you
+        as soon as I can.</p>
+        <p>Thank you again for your time, your heart, and your support.</p>
+        <p>Blessings on you,<br>Kent Hafemann</p>
+    """
+
+    text_content = (
+        f"Dear {greeting},\n\n"
+        "Thank you for taking the time to complete the full contact form -- I know that's not "
+        "quick, and it means a lot to me that you did.\n\n"
+        "What you shared helps us as we work to bring Discovery back to life, and it tells me "
+        "you still care about what this program stood for.\n\n"
+        "If you'd like me to personally reach out -- by email or a call -- just click the link "
+        f"below and let me know the best way, and I'll get to you as soon as I can.\n{connect_url}\n\n"
+        "Thank you again for your time, your heart, and your support.\n\n"
+        "Blessings on you,\nKent Hafemann"
+    )
+    return html_content, text_content
