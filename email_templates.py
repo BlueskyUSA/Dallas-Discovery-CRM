@@ -40,29 +40,24 @@ def excitement_blast_content(first_name, connect_url=None):
         <p>Please forgive the intrusion &mdash; you're receiving this email because you're someone
         I've known or worked with over the years, whether through business, family, friend, or
         just life.</p>
-        <p>Some of you are familiar with Dallas Discovery, an amazing and powerful
-        personal-growth and relationship training program that Pamela and I have been a part of
-        since 1996. Unfortunately, the program closed in 2020 due to Covid. But we are in the
-        very early stages of re-opening the program. Nothing is official yet, but we are working
-        hard to put the pieces together to make this happen. Whether or not Discovery has ever
-        been part of your story, I'd love to stay connected with you.</p>
-        <p>Our hope is that in the next month or so we will be meeting with many who attended or
-        volunteered to serve the program. If you were a Dallas Discovery Facilitator, TA,
-        Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday-only contract
-        volunteer, or if you are simply interested to know more about the training, we would
-        love to hear from you.
-        <span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
-        below and complete the brief contact form so that you will be among the first to know
-        when a meeting date is set, or additional information is available.</span></p>
+        <p>Some of you are aware of Dallas Discovery, a powerful and life-changing
+        personal-growth and relationship training that Pamela and I have been involved with
+        since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have
+        expressed a strong desire to reopen the program. Nothing is official yet, but we're
+        working hard to make that happen.</p>
+        <p>Our hope is in the next few months we will be meeting with those who attended or
+        volunteered in the training. If you were a Discovery volunteer, or if you are interested
+        to know more about this program, we would love to hear from you.</p>
+        <p><span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
+        below and complete a brief contact form so that you will be among the first to know when
+        a meeting date is set, or additional information is available.</span></p>
         <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
         {connect_html}
+        <p>Please share this link and help us get the word out.</p>
         <p>Thanks so much. Indeed, the excitement is building!!!</p>
         <p>Your support and giving hearts are much appreciated.</p>
         <p>We look forward to seeing you soon.</p>
         <p>Blessings on you,<br>Kent Hafemann</p>
-        <p style="color:#666; font-size:0.9em;">PS...Please text or email this link to anyone
-        who you think would be interested and invite them to sign up.<br>
-        <a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
     """
 
     text_content = f"""DALLAS DISCOVERY EXCITEMENT IS GROWING!!!
@@ -71,13 +66,17 @@ Dear {greeting},
 
 Please forgive the intrusion -- you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
 
-Some of you are familiar with Dallas Discovery, an amazing and powerful personal-growth and relationship training program that Pamela and I have been a part of since 1996. Unfortunately, the program closed in 2020 due to Covid. But we are in the very early stages of re-opening the program. Nothing is official yet, but we are working hard to put the pieces together to make this happen. Whether or not Discovery has ever been part of your story, I'd love to stay connected with you.
+Some of you are aware of Dallas Discovery, a powerful and life-changing personal-growth and relationship training that Pamela and I have been involved with since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
 
-Our hope is that in the next month or so we will be meeting with many who attended or volunteered to serve the program. If you were a Dallas Discovery Facilitator, TA, Trainee, Admin Assistant, Sound Tech, Room/Equipment Manager, Saturday-only contract volunteer, or if you are simply interested to know more about the training, we would love to hear from you. Please open the link below and complete the brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
+Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
+
+Please open the link below and complete a brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
 
 {DISCOVERY_URL}
 
-{connect_text}Thanks so much. Indeed, the excitement is building!!!
+{connect_text}Please share this link and help us get the word out.
+
+Thanks so much. Indeed, the excitement is building!!!
 
 Your support and giving hearts are much appreciated.
 
@@ -85,9 +84,6 @@ We look forward to seeing you soon.
 
 Blessings on you,
 Kent Hafemann
-
-PS...Please text or email this link to anyone who you think would be interested and invite them to sign up.
-{DISCOVERY_URL}
 """
 
     return html_content, text_content

@@ -1166,18 +1166,15 @@ def contact_send_excitement_email(contact_id):
         flash("Can't send -- this contact has no email address on file.")
         return redirect(url_for(".contact_detail", contact_id=contact_id))
 
-    # Needs a profile_token so the email's "reach out to me personally"
-    # link (/connect/<token>) has somewhere to go -- generate one now if
-    # they don't already have one, same as the long-form link does.
-    token = contact["profile_token"]
-    if not token:
-        token = secrets.token_urlsafe(24)
-        conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, contact_id))
-        conn.commit()
     conn.close()
-    connect_url = url_for("public_connect_request", token=token, _external=True)
 
-    html_content, text_content = excitement_blast_content(contact["first_name"], connect_url=connect_url)
+    # The "reach out to me personally" link (/connect/<token>) is left out
+    # of this email for now -- Kent's shortening the letter and may want
+    # to surface that request instead through the short form later. The
+    # connect_url param on excitement_blast_content still works, so it's a
+    # one-line change to turn back on: generate/reuse a profile_token and
+    # pass connect_url=url_for("public_connect_request", token=token, _external=True).
+    html_content, text_content = excitement_blast_content(contact["first_name"])
     try:
         send_email(
             to_email=contact["email"],
