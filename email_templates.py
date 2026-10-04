@@ -233,39 +233,196 @@ def longform_followup_content(first_name, longform_url):
     return html_content, text_content
 
 
-LONGFORM_THANKYOU_SUBJECT = "Thank you for taking the time"
+LONGFORM_THANKYOU_SUBJECT = "Thank you!"
 
 
-def longform_thankyou_content(first_name, connect_url):
+def longform_thankyou_content(first_name, connect_url, plan_url):
     """Returns (html_content, text_content) for the thank-you email sent
     when someone clicks Submit on the public long form (complete-profile)
-    -- not every autosave, just that final submit. Includes their personal
-    /connect link so they can ask Kent to follow up directly if they'd
-    like, without needing to reply to this email."""
+    -- not every autosave, just that final submit. Offers two separate
+    opt-ins: plan_url is a button that sends them the (much longer)
+    Preliminary Discovery Plan email (see preliminary_plan_content below)
+    -- it's only sent if they click through, not automatically. connect_url
+    is their personal /connect link so they can ask Kent to follow up
+    directly if they'd like, without needing to reply to this email."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thank you for taking the time to complete the full contact form &mdash; I know
-        that's not quick, and it means a lot to me that you did.</p>
+        <p>Thank you for taking the time to complete the &ldquo;Additional Information&rdquo;
+        form &mdash; we appreciate your effort and your energy.</p>
         <p>What you shared helps us as we work to bring Discovery back to life, and it tells me
-        you still care about what this program stood for.</p>
-        <p>If you'd like me to personally reach out &mdash; by email or a call &mdash; just
-        <a href="{connect_url}">click here</a> and let me know the best way, and I'll get to you
-        as soon as I can.</p>
+        you still care about what this program stands for.</p>
+        <p>I've put together a preliminary outline of where things stand, including our mission
+        and goals, the tasks involved with getting this training running again, and where there
+        might be a place for you.</p>
+        <p>In short&hellip; we need an army of serious volunteers willing to dig deep and take on
+        responsibility. If you wish, we'll send you the plan outline.</p>
+        <p><a href="{plan_url}" style="display:inline-block; background:#1f6fb2; color:#ffffff;
+        text-decoration:none; font-weight:700; padding:12px 22px; border-radius:8px;">Send me the
+        Preliminary Discovery Plan</a></p>
+        <p>Thanks again for all that you have done in years past, and for perhaps all that you
+        will be doing for Discovery in the future.</p>
+        <p>If you'd like for me to personally reach out to you &mdash; just
+        <a href="{connect_url}">click here</a> and I'll get to you as soon as I can.</p>
         <p>Thank you again for your time, your heart, and your support.</p>
         <p>Blessings on you,<br>Kent Hafemann</p>
     """
 
     text_content = (
         f"Dear {greeting},\n\n"
-        "Thank you for taking the time to complete the full contact form -- I know that's not "
-        "quick, and it means a lot to me that you did.\n\n"
+        "Thank you for taking the time to complete the \"Additional Information\" form -- we "
+        "appreciate your effort and your energy.\n\n"
         "What you shared helps us as we work to bring Discovery back to life, and it tells me "
-        "you still care about what this program stood for.\n\n"
-        "If you'd like me to personally reach out -- by email or a call -- just click the link "
-        f"below and let me know the best way, and I'll get to you as soon as I can.\n{connect_url}\n\n"
+        "you still care about what this program stands for.\n\n"
+        "I've put together a preliminary outline of where things stand, including our mission "
+        "and goals, the tasks involved with getting this training running again, and where "
+        "there might be a place for you.\n\n"
+        "In short... we need an army of serious volunteers willing to dig deep and take on "
+        "responsibility. If you wish, we'll send you the plan outline:\n"
+        f"{plan_url}\n\n"
+        "Thanks again for all that you have done in years past, and for perhaps all that you "
+        "will be doing for Discovery in the future.\n\n"
+        "If you'd like for me to personally reach out to you -- just click the link below and "
+        f"I'll get to you as soon as I can.\n{connect_url}\n\n"
         "Thank you again for your time, your heart, and your support.\n\n"
         "Blessings on you,\nKent Hafemann"
     )
+    return html_content, text_content
+
+
+PRELIMINARY_PLAN_SUBJECT = "Preliminary business plan for Discovery"
+
+
+def preliminary_plan_content(first_name):
+    """Returns (html_content, text_content) for the Preliminary Discovery
+    Plan email -- only sent when someone clicks the "Send me the
+    Preliminary Discovery Plan" button in the long-form thank-you email
+    (see longform_thankyou_content above), never automatically. Lays out
+    Kent's mission/goals for relaunching Discovery and the concrete help
+    still needed, so interested volunteers know where they might fit."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>Thanks for your continued interest in the Dallas Discovery launch.</p>
+        <p>So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on
+        this question &mdash; but here's a start:</p>
+        <ol>
+            <li>To reflect the love of God by creating an effective, powerful, and emotionally
+            safe environment for trainees to evaluate and overcome the broken parts of their
+            lives, so that freedom, joy, peace, and love become the cornerstones of their
+            lives.</li>
+            <li>Create an enduring training that outlasts any one key leader by:
+                <ol type="a">
+                    <li>Finding young leadership capable and willing to lead the training as
+                    older leaders relinquish their roles;</li>
+                    <li>Operating Dallas Discovery with margin, so the program endures
+                    financially and can be passed on to the next operating team without needing
+                    additional capital to keep it running;</li>
+                    <li>Passing on, in perpetuity and free of charge, the intellectual property,
+                    licenses, software, and equipment used to operate the program.</li>
+                </ol>
+            </li>
+        </ol>
+        <p>So how will we accomplish this mission and these goals?</p>
+        <ol type="a">
+            <li>First, we'll begin hosting Discovery social gatherings to build excitement and
+            renew friendships. We need someone to help organize and pull these events
+            together.</li>
+            <li>Start a marketing campaign to host our first Relationship Training within the
+            next six months, and to kick off D1. Our goal is forty couples in the training room
+            for that first Relationship Training. The need for relationship coaching is
+            significant &mdash; with the right marketing campaign, we believe we can fill the
+            room and use the energy (and proceeds) from that training to help launch D1.</li>
+            <li>Reach out to supporters for donations, apply for grants, and appeal to
+            GoFundMe-type organizations to raise capital. Based on early budget conversations,
+            we estimate needing roughly $100,000 in cash reserves to responsibly host Dallas
+            Discovery training.</li>
+        </ol>
+        <p>In addition to cash, what are the strategic short-term needs of Discovery?</p>
+        <ol type="a">
+            <li>We need help compiling a Discovery budget, including the cost of a hotel and
+            food for the first Relationship Training. I'd like to find a hotel close to Coppell
+            and DFW.</li>
+            <li>We need video and photography experts willing to work for free to help us put
+            together an effective marketing campaign &mdash; testimonials of enthusiastic
+            trainees whose lives have been changed by the training. Relationship Training videos
+            and photography are needed first, then D1, D2, and D3 content.</li>
+            <li>We need a professional to rebuild the Discovery website, connecting it to our
+            CRM.</li>
+            <li>We'll refresh the color scheme, the Discovery logo, and the website content.</li>
+            <li>We need admin volunteers to field phone calls, help speak with others about the
+            training, and guide trainees through registration.</li>
+            <li>We need Facilitators for D1, D2, D3, and Refocus. Initially, Max and I will be
+            the lead facilitators in D1, but we'd like to share that role with others who are
+            qualified in the near future. We hope to run a Relationship Training three times a
+            year &mdash; Pamela, Max, and I will lead these, though again, we want to share the
+            facilitator role as qualified people step forward. Facilitation of the Spiritual
+            program is yet to be defined.</li>
+            <li>The Discovery program is a 501(c)(3) entity and will operate its finances under
+            fund accounting rules. We need a bookkeeper and accountant, at low cost, to maintain
+            the accounts and issue quarterly reports for the Board of Directors.</li>
+            <li>We need someone to help organize our volunteer teams.</li>
+            <li>We'll be updating the Relationship and D1 syllabus with Max and Pamela, but could
+            use help with music selection.</li>
+            <li>We need help updating the D2, D3, and Refocus syllabi.</li>
+            <li>We need someone to evaluate our existing audio equipment and acquire more if
+            needed.</li>
+            <li>We need someone to gather, organize, and assemble the supplies needed for each
+            training.</li>
+            <li>We need a place to store audio and video equipment, and a way to transport it if
+            we can't keep it at the hotel.</li>
+        </ol>
+        <p>Please let me know what role you might want to play in opening Discovery back up.
+        Feel free to reach out to me with your thoughts at
+        <a href="mailto:Kent@blueskyusa.net">Kent@blueskyusa.net</a>.</p>
+        <p>Thank you again for your energy, your time, your heart, and your support.</p>
+        <p>Blessings on you. I look forward to meeting you at our first Discovery
+        get-together, if not sooner.</p>
+        <p>Take care,<br>Kent Hafemann</p>
+    """
+
+    text_content = """Dear {greeting},
+
+Thanks for your continued interest in the Dallas Discovery launch.
+
+So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on this question -- but here's a start:
+
+1. To reflect the love of God by creating an effective, powerful, and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives, so that freedom, joy, peace, and love become the cornerstones of their lives.
+2. Create an enduring training that outlasts any one key leader by:
+   a. Finding young leadership capable and willing to lead the training as older leaders relinquish their roles;
+   b. Operating Dallas Discovery with margin, so the program endures financially and can be passed on to the next operating team without needing additional capital to keep it running;
+   c. Passing on, in perpetuity and free of charge, the intellectual property, licenses, software, and equipment used to operate the program.
+
+So how will we accomplish this mission and these goals?
+a. First, we'll begin hosting Discovery social gatherings to build excitement and renew friendships. We need someone to help organize and pull these events together.
+b. Start a marketing campaign to host our first Relationship Training within the next six months, and to kick off D1. Our goal is forty couples in the training room for that first Relationship Training. The need for relationship coaching is significant -- with the right marketing campaign, we believe we can fill the room and use the energy (and proceeds) from that training to help launch D1.
+c. Reach out to supporters for donations, apply for grants, and appeal to GoFundMe-type organizations to raise capital. Based on early budget conversations, we estimate needing roughly $100,000 in cash reserves to responsibly host Dallas Discovery training.
+
+In addition to cash, what are the strategic short-term needs of Discovery?
+a. We need help compiling a Discovery budget, including the cost of a hotel and food for the first Relationship Training. I'd like to find a hotel close to Coppell and DFW.
+b. We need video and photography experts willing to work for free to help us put together an effective marketing campaign -- testimonials of enthusiastic trainees whose lives have been changed by the training. Relationship Training videos and photography are needed first, then D1, D2, and D3 content.
+c. We need a professional to rebuild the Discovery website, connecting it to our CRM.
+d. We'll refresh the color scheme, the Discovery logo, and the website content.
+e. We need admin volunteers to field phone calls, help speak with others about the training, and guide trainees through registration.
+f. We need Facilitators for D1, D2, D3, and Refocus. Initially, Max and I will be the lead facilitators in D1, but we'd like to share that role with others who are qualified in the near future. We hope to run a Relationship Training three times a year -- Pamela, Max, and I will lead these, though again, we want to share the facilitator role as qualified people step forward. Facilitation of the Spiritual program is yet to be defined.
+g. The Discovery program is a 501(c)(3) entity and will operate its finances under fund accounting rules. We need a bookkeeper and accountant, at low cost, to maintain the accounts and issue quarterly reports for the Board of Directors.
+h. We need someone to help organize our volunteer teams.
+i. We'll be updating the Relationship and D1 syllabus with Max and Pamela, but could use help with music selection.
+j. We need help updating the D2, D3, and Refocus syllabi.
+k. We need someone to evaluate our existing audio equipment and acquire more if needed.
+l. We need someone to gather, organize, and assemble the supplies needed for each training.
+m. We need a place to store audio and video equipment, and a way to transport it if we can't keep it at the hotel.
+
+Please let me know what role you might want to play in opening Discovery back up. Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
+
+Thank you again for your energy, your time, your heart, and your support.
+
+Blessings on you. I look forward to meeting you at our first Discovery get-together, if not sooner.
+
+Take care,
+Kent Hafemann
+""".format(greeting=greeting)
+
     return html_content, text_content

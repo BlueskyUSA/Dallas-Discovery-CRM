@@ -24,6 +24,8 @@ from email_templates import (
     CONNECT_REQUEST_SUBJECT,
     longform_thankyou_content,
     LONGFORM_THANKYOU_SUBJECT,
+    preliminary_plan_content,
+    PRELIMINARY_PLAN_SUBJECT,
 )
 
 app = Flask(__name__)
@@ -1271,7 +1273,10 @@ def public_complete_profile(token):
             thankyou_email = values["email"] or contact["email"]
             if thankyou_email:
                 connect_url = url_for("public_connect_request", token=token, _external=True)
-                html_content, text_content = longform_thankyou_content(values["first_name"], connect_url)
+                plan_url = url_for("request_preliminary_plan", token=token, _external=True)
+                html_content, text_content = longform_thankyou_content(
+                    values["first_name"], connect_url, plan_url
+                )
                 try:
                     send_email(
                         to_email=thankyou_email,
@@ -1398,6 +1403,40 @@ def public_connect_request(token):
     conn.close()
     submitted = request.args.get("submitted") == "1"
     return render_template("connect.html", contact=contact, submitted=submitted)
+
+
+@app.route("/discovery/plan/<token>", methods=["GET", "POST"])
+def request_preliminary_plan(token):
+    """Public, no-login page linked from the long-form thank-you email's
+    "Send me the Preliminary Discovery Plan" button. Deliberately opt-in
+    -- the (much longer) plan email is only ever sent if someone clicks
+    through here and confirms, never automatically alongside the
+    thank-you note."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE profile_token = ?", (token,)).fetchone()
+    if not contact:
+        conn.close()
+        return render_template("request_plan.html", contact=None), 404
+
+    if request.method == "POST":
+        if contact["email"]:
+            html_content, text_content = preliminary_plan_content(contact["first_name"])
+            try:
+                send_email(
+                    to_email=contact["email"],
+                    to_name=contact["first_name"],
+                    subject=PRELIMINARY_PLAN_SUBJECT,
+                    html_content=html_content,
+                    text_content=text_content,
+                )
+            except EmailSendError:
+                pass
+        conn.close()
+        return redirect(url_for("request_preliminary_plan", token=token, sent="1"))
+
+    conn.close()
+    sent = request.args.get("sent") == "1"
+    return render_template("request_plan.html", contact=contact, sent=sent)
 
 
 @crm.route("/contact-requests")
