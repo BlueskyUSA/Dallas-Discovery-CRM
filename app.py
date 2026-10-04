@@ -1285,8 +1285,8 @@ def public_complete_profile(token):
                         html_content=html_content,
                         text_content=text_content,
                     )
-                except EmailSendError:
-                    pass
+                except EmailSendError as e:
+                    print(f"EmailSendError sending long-form thank-you to {thankyou_email}: {e}", flush=True)
             flash("Thank you -- your information has been saved.")
             resp = make_response(redirect(url_for("public_complete_profile", token=token)))
         resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
@@ -1395,8 +1395,8 @@ def public_connect_request(token):
                     html_content=html_content,
                     text_content=text_content,
                 )
-            except EmailSendError:
-                pass
+            except EmailSendError as e:
+                print(f"EmailSendError sending connect-request confirmation to {contact['email']}: {e}", flush=True)
         conn.close()
         return redirect(url_for("public_connect_request", token=token, submitted="1"))
 
@@ -1429,8 +1429,8 @@ def request_preliminary_plan(token):
                     html_content=html_content,
                     text_content=text_content,
                 )
-            except EmailSendError:
-                pass
+            except EmailSendError as e:
+                print(f"EmailSendError sending preliminary plan to {contact['email']}: {e}", flush=True)
         conn.close()
         return redirect(url_for("request_preliminary_plan", token=token, sent="1"))
 
@@ -2775,8 +2775,8 @@ def public_discovery():
                     html_content=html_content,
                     text_content=text_content,
                 )
-            except EmailSendError:
-                pass
+            except EmailSendError as e:
+                print(f"EmailSendError sending long-form link to {email}: {e}", flush=True)
 
         # They picked "Interested Party" rather than a past role -- send a
         # short welcome email thanking them and sharing a bit of our
@@ -2800,8 +2800,8 @@ def public_discovery():
                     html_content=html_content,
                     text_content=text_content,
                 )
-            except EmailSendError:
-                pass
+            except EmailSendError as e:
+                print(f"EmailSendError sending Interested Party welcome to {email}: {e}", flush=True)
 
         conn.close()
         return redirect(url_for("public_discovery", submitted="1"))
