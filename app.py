@@ -2704,15 +2704,28 @@ def public_discovery():
             new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
         conn.commit()
 
+        # Both the blocks below reuse one profile_token per contact rather
+        # than each generating its own -- the contact can only have one
+        # profile_token at a time, so if both emails fired (e.g. someone
+        # selects "Interested Party" but also checks "Volunteer"), a second
+        # token would silently break the link already sent in the first
+        # email. existing_token is reused if present; otherwise we generate
+        # exactly one for this whole request.
+        existing_token = conn.execute(
+            "SELECT profile_token FROM contacts WHERE id = ?", (new_id,)
+        ).fetchone()["profile_token"]
+
         # They checked "Volunteer" -- send them the long-form link right away
         # so they can share more detail for the volunteer teams. This is a
         # best-effort send: if it fails for any reason, their short-form
         # info is already saved either way, and Kent can generate/send the
         # link manually later from their contact page.
         if wants_longform and email:
-            token = secrets.token_urlsafe(24)
-            conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, new_id))
-            conn.commit()
+            token = existing_token or secrets.token_urlsafe(24)
+            if token != existing_token:
+                conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, new_id))
+                conn.commit()
+                existing_token = token
             longform_url = url_for("public_complete_profile", token=token, _external=True)
             html_content, text_content = longform_followup_content(first_name, longform_url)
             try:
@@ -2733,7 +2746,13 @@ def public_discovery():
         # have no real past role (someone who's both a past volunteer and
         # curious just gets treated as a Volunteer).
         if selected_interested_party and not role_lines and email:
-            html_content, text_content = interested_party_welcome_content(first_name)
+            ip_token = existing_token or secrets.token_urlsafe(24)
+            if ip_token != existing_token:
+                conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (ip_token, new_id))
+                conn.commit()
+                existing_token = ip_token
+            connect_url = url_for("public_connect_request", token=ip_token, _external=True)
+            html_content, text_content = interested_party_welcome_content(first_name, connect_url)
             try:
                 send_email(
                     to_email=email,

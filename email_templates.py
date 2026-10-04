@@ -132,46 +132,70 @@ def connect_request_confirmation_content(first_name, method):
 INTERESTED_PARTY_WELCOME_SUBJECT = "Thank you for your interest in Dallas Discovery"
 
 
-def interested_party_welcome_content(first_name):
+def interested_party_welcome_content(first_name, connect_url=None):
     """Returns (html_content, text_content) for the welcome email sent when
     someone selects "Interested Party" (rather than a past volunteer role)
     on the /discovery short form -- thanks them for their interest and
-    shares a bit of the personal story and heart behind the program."""
+    shares Kent and Pamela's own story with Discovery. connect_url, if
+    given, is that contact's personal link to the "reach out to me" page,
+    so they can ask Kent to personally follow up without just replying to
+    this email."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    connect_html = ""
+    connect_text = ""
+    if connect_url:
+        connect_html = f' Feel free to <a href="{connect_url}">click here</a> if you\'d like me to reach out to you personally.'
+        connect_text = f" Feel free to click the link below if you'd like me to reach out to you personally.\n{connect_url}"
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thank you so much for letting us know you're interested in Dallas Discovery &mdash;
-        it truly means a lot to us.</p>
-        <p>Pamela and I have been part of this personal-growth and relationship training program
-        since 1996, and it's hard to put into words just how much it has shaped our lives and our
-        marriage over the years. Discovery has a way of helping people find more freedom, more
-        honesty, and more connection &mdash; with themselves and with the people they love.</p>
-        <p>The program closed in 2020 because of Covid, but we are now in the early stages of
-        working to bring it back. Nothing is official yet, and there are still a lot of pieces to
-        put together, but knowing there are people like you who are curious and open to it gives
-        us so much encouragement.</p>
-        <p>We'll keep you in the loop as things develop, including when there's a meeting date or
-        more information to share. In the meantime, if you ever want to hear more about the
-        program or our own story with Discovery, just reply to this email &mdash; we'd love to
-        talk with you.</p>
-        <p>Thank you again for your interest and for taking the time to reach out.</p>
-        <p>Blessings on you,<br>Kent Hafemann</p>
+        <p>Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about
+        our journey and the profound impact Discovery has had on our lives.</p>
+        <p>In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us
+        to attend Pathways (now Discovery) &mdash; our marriage was struggling. With three
+        children and eighteen years of marriage behind us, we were lost and confused. We tried
+        counselors, church advisors, mentors, healing prayer, anything we could think of. But we
+        simply couldn't figure it out &mdash; it was like trying to hold water in our hands, our
+        life falling apart, leaking right through our fingers.</p>
+        <p>Pamela went through D1 training first. I'll never forget the phone call that changed
+        everything &mdash; I was at work, wondering what was happening with her in this mysterious
+        training our friend had invited us to. That one phone call was a breakthrough that changed
+        the course of our marriage and put us on a healing path we're still thankful for today.</p>
+        <p>Of course, wanting our marriage to work meant actually using the tools that Discovery
+        offered. We learned how our pasts had shaped our differences, and how to honor and accept
+        our limitations and broken stories. We learned how to listen and walk through conflict
+        without breaking the relationship. We learned about the power of forgiveness and the
+        importance of standing up for yourself honestly in a relationship &mdash; and so much
+        more.</p>
+        <p>Since then, Pamela and I have been involved in many trainings and programs helping
+        people identify and overcome what stands in the way of joy and peace. But there is nothing
+        out there that compares to the effectiveness of Discovery. The core trainings include D1,
+        D2, D3, and Relationship Training. D1, D2, and D3 are monthly, consecutive trainings that
+        build on one another &mdash; advancing from one to the next requires having completed the
+        one before. The Relationship Training, on the other hand, welcomes all committed couples
+        with no prior Discovery involvement required. We find that most couples who complete it go
+        on to enlist individually in D1 through D3.</p>
+        <p>We welcome your interest, and we hope you'll take the risk of stepping into this
+        life-changing training with us.{connect_html}</p>
+        <p>Thank you, and God bless you,<br>Kent Hafemann</p>
     """
 
     text_content = f"""Dear {greeting},
 
-Thank you so much for letting us know you're interested in Dallas Discovery -- it truly means a lot to us.
+Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
 
-Pamela and I have been part of this personal-growth and relationship training program since 1996, and it's hard to put into words just how much it has shaped our lives and our marriage over the years. Discovery has a way of helping people find more freedom, more honesty, and more connection -- with themselves and with the people they love.
+In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us to attend Pathways (now Discovery) -- our marriage was struggling. With three children and eighteen years of marriage behind us, we were lost and confused. We tried counselors, church advisors, mentors, healing prayer, anything we could think of. But we simply couldn't figure it out -- it was like trying to hold water in our hands, our life falling apart, leaking right through our fingers.
 
-The program closed in 2020 because of Covid, but we are now in the early stages of working to bring it back. Nothing is official yet, and there are still a lot of pieces to put together, but knowing there are people like you who are curious and open to it gives us so much encouragement.
+Pamela went through D1 training first. I'll never forget the phone call that changed everything -- I was at work, wondering what was happening with her in this mysterious training our friend had invited us to. That one phone call was a breakthrough that changed the course of our marriage and put us on a healing path we're still thankful for today.
 
-We'll keep you in the loop as things develop, including when there's a meeting date or more information to share. In the meantime, if you ever want to hear more about the program or our own story with Discovery, just reply to this email -- we'd love to talk with you.
+Of course, wanting our marriage to work meant actually using the tools that Discovery offered. We learned how our pasts had shaped our differences, and how to honor and accept our limitations and broken stories. We learned how to listen and walk through conflict without breaking the relationship. We learned about the power of forgiveness and the importance of standing up for yourself honestly in a relationship -- and so much more.
 
-Thank you again for your interest and for taking the time to reach out.
+Since then, Pamela and I have been involved in many trainings and programs helping people identify and overcome what stands in the way of joy and peace. But there is nothing out there that compares to the effectiveness of Discovery. The core trainings include D1, D2, D3, and Relationship Training. D1, D2, and D3 are monthly, consecutive trainings that build on one another -- advancing from one to the next requires having completed the one before. The Relationship Training, on the other hand, welcomes all committed couples with no prior Discovery involvement required. We find that most couples who complete it go on to enlist individually in D1 through D3.
 
-Blessings on you,
+We welcome your interest, and we hope you'll take the risk of stepping into this life-changing training with us.{connect_text}
+
+Thank you, and God bless you,
 Kent Hafemann
 """
 
