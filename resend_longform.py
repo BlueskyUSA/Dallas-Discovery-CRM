@@ -1,10 +1,11 @@
 """
 Re-sends the long-form follow-up email (the same one sent automatically
 when someone checks "Volunteer" on the discovery short form) to a contact
-already in the CRM, looked up by email. Useful when someone needs their
-link re-sent -- e.g. their earlier submission was merged with an older
+in the CRM, looked up by email. Useful when someone needs their link
+re-sent -- e.g. their earlier submission was merged with an older
 duplicate contact and they should get a fresh link pointing at the
-now-single record.
+now-single record -- or just to send/test the long form against any
+email address, even one not yet in the CRM (a contact is created for it).
 
 If the contact doesn't already have a profile_token, this generates one.
 If they do, it reuses the existing one (so any link already out there
@@ -14,6 +15,7 @@ Run from Render's Shell:
 
     python3 resend_longform.py pamela@example.com
     python3 resend_longform.py pamela@example.com --new-link
+    python3 resend_longform.py pamela@example.com --name Pamela
 """
 import sys
 import secrets
@@ -24,13 +26,17 @@ from email_utils import send_email, EmailSendError
 DISCOVERY_URL_BASE = "https://dallas-discovery-crm.onrender.com"
 
 
-def resend(to_email, force_new_link):
+def resend(to_email, force_new_link, first_name=None):
     conn = get_db()
     contact = conn.execute("SELECT * FROM contacts WHERE email = ?", (to_email,)).fetchone()
     if not contact:
-        print(f"No contact found in the CRM with email {to_email}.")
-        conn.close()
-        sys.exit(1)
+        conn.execute(
+            "INSERT INTO contacts (first_name, email, marketing_source) VALUES (?, ?, ?)",
+            (first_name or "", to_email, "Long-form test/resend"),
+        )
+        conn.commit()
+        contact = conn.execute("SELECT * FROM contacts WHERE email = ?", (to_email,)).fetchone()
+        print(f"No existing contact for {to_email} -- created a new one (#{contact['id']}).")
 
     token = contact["profile_token"]
     if not token or force_new_link:
@@ -42,18 +48,18 @@ def resend(to_email, force_new_link):
         print(f"Reusing contact #{contact['id']}'s existing profile_token.")
 
     longform_url = f"{DISCOVERY_URL_BASE}/complete-profile/{token}"
-    first_name = contact["first_name"] or ""
-    html_content, text_content = longform_followup_content(first_name, longform_url)
+    name_for_email = contact["first_name"] or first_name or ""
+    html_content, text_content = longform_followup_content(name_for_email, longform_url)
 
     try:
         message_id = send_email(
             to_email=to_email,
-            to_name=first_name or None,
+            to_name=name_for_email or None,
             subject=LONGFORM_FOLLOWUP_SUBJECT,
             html_content=html_content,
             text_content=text_content,
         )
-        print(f"Sent successfully to {first_name} <{to_email}>. Link: {longform_url}")
+        print(f"Sent successfully to {name_for_email or to_email} <{to_email}>. Link: {longform_url}")
         print(f"Brevo message id: {message_id}")
     except EmailSendError as e:
         print(f"FAILED to send: {e}")
@@ -64,6 +70,15 @@ def resend(to_email, force_new_link):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 resend_longform.py <contact's email address> [--new-link]")
+        print("Usage: python3 resend_longform.py <email address> [--new-link] [--name <first name>]")
         sys.exit(1)
-    resend(sys.argv[1].strip(), force_new_link="--new-link" in sys.argv[2:])
+
+    args = sys.argv[2:]
+    force_new_link = "--new-link" in args
+    name_arg = None
+    if "--name" in args:
+        idx = args.index("--name")
+        if idx + 1 < len(args):
+            name_arg = args[idx + 1]
+
+    resend(sys.argv[1].strip(), force_new_link=force_new_link, first_name=name_arg)
