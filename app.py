@@ -1657,7 +1657,7 @@ def requirement_warning(conn, contact_id, role, duty):
     return (
         f"Heads-up: {who['n']} has brought in {have} "
         f"{'person' if have == 1 else 'people'}; the {label} requirement is {need}. "
-        f"Assigned anyway -- record who they brought in on the cohort roster to update this."
+        f"Assigned anyway -- record who they brought in on the session roster to update this."
     )
 
 
@@ -1683,10 +1683,10 @@ def _contact_delete_blockers(conn, contact_id):
     silently destroyed. Empty list means it's safe to delete."""
     reasons = []
     counts = [
-        ("enrollments", "enrolled in a training cohort"),
+        ("enrollments", "enrolled in a training session"),
         ("contracts", "a saved contract (D1/D2/D6)"),
         ("donations", "a recorded donation"),
-        ("cohort_staffing", "listed as cohort staff"),
+        ("cohort_staffing", "listed as session staff"),
         ("small_group_staffing", "listed as small-group staff"),
     ]
     for table, phrase in counts:
