@@ -86,6 +86,24 @@
   {% endif %}
 </div>
 
+{% if session.is_owner or session.staff_role == 'Leadership' %}
+<div class="card">
+  <h3 style="margin-top:0">Business plan <span class="muted" style="font-weight:400; font-size:0.8rem">(Leadership only)</span></h3>
+  <p class="muted" style="margin-top:0">
+    Sends {{ contact.full_name }} the Preliminary Business Plan for Discovery -- our mission, goals
+    and the help we still need. It goes out immediately.
+  </p>
+  {% if contact.email %}
+  <form method="post" action="{{ url_for('.contact_send_business_plan', contact_id=contact.id) }}"
+        onsubmit='return confirm({{ ("Send the Preliminary Business Plan to " ~ contact.full_name ~ " at " ~ contact.email ~ " now?")|tojson }});'>
+    <button class="btn secondary" type="submit">Send business plan</button>
+  </form>
+  {% else %}
+  <p class="muted" style="margin:0">No email on file for this contact.</p>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h3 style="margin-top:0">Training path</h3>
   <p>
