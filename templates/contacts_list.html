@@ -4,10 +4,15 @@
 <h1>Contacts</h1>
 <form class="inline" method="get">
   <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
+  <select name="list" onchange="this.form.submit()">
+    <option value="">All lists</option>
+    {% for l in all_lists %}<option value="{{ l.id }}" {{ 'selected' if list_id == l.id }}>{{ l.name }}</option>{% endfor %}
+  </select>
   <button class="btn secondary" type="submit">Search</button>
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
 </form>
 
+{% if list_id or q %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
 <div class="card">
   <table>
     <tr><th></th><th>Name</th><th>Email</th><th>Cell</th><th>Status</th></tr>

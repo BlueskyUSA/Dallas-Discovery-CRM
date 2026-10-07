@@ -24,6 +24,7 @@
       <a href="{{ url_for('.donations_list') }}">Donations</a>
       {% endif %}
       {% if session.staff_role == 'Leadership' %}
+      <a href="{{ url_for('.lists_manage') }}">Lists</a>
       <a href="{{ url_for('.staff_list') }}">Team</a>
       {% endif %}
       {% endif %}

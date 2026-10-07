@@ -56,6 +56,34 @@
 {% endif %}
 
 <div class="card">
+  <h3 style="margin-top:0">Came from</h3>
+  {% if member_lists %}
+  <p style="margin:0 0 10px">
+    {% for l in member_lists %}
+    <span class="badge" style="margin-right:6px">{{ l.name }}{% if l.added_at %} <span class="muted">&middot; added {{ l.added_at }}</span>{% endif %}
+      {% if session.is_owner or session.staff_role == 'Leadership' %}
+      <form method="post" action="{{ url_for('.contact_list_remove', contact_id=contact.id, list_id=l.id) }}" style="display:inline; margin:0"
+            onsubmit='return confirm({{ ("Remove " ~ contact.full_name ~ " from " ~ l.name ~ "?")|tojson }});'>
+        <button type="submit" title="Remove from this list" style="border:0; background:none; cursor:pointer; color:#c0392b; font-weight:700">&times;</button>
+      </form>
+      {% endif %}
+    </span>
+    {% endfor %}
+  </p>
+  {% else %}
+  <p class="muted" style="margin:0 0 10px">Not on any list yet.</p>
+  {% endif %}
+  {% if (session.is_owner or session.staff_role == 'Leadership') and addable_lists %}
+  <form class="inline" method="post" action="{{ url_for('.contact_list_add', contact_id=contact.id) }}" style="margin:0">
+    <select name="list_id">
+      {% for l in addable_lists %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
+    </select>
+    <button class="btn secondary" type="submit">Add to list</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
   <h3 style="margin-top:0">Complete-your-profile link</h3>
   <p class="muted" style="margin-top:0">
     Share this link (e.g. by email) so {{ contact.full_name }} can fill in or update their own profile --
