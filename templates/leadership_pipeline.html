@@ -1,0 +1,38 @@
+{% extends "crm_base.html" %}
+{% block title %}Leadership pipeline — Dallas Discovery CRM{% endblock %}
+{% block content %}
+<h1>Leadership pipeline</h1>
+<p class="muted">
+  Who has brought people into the training, and who is serving as a TA or Team Captain.
+  To TA in D1 or the Relationship training a person needs to have brought in at least
+  <strong>{{ TA_MIN }}</strong> {{ 'person' if TA_MIN == 1 else 'people' }}; to be a TA Team Captain, at least
+  <strong>{{ CAPTAIN_MIN }}</strong>. This is a guide &mdash; leadership can always make an exception.
+  Record who brought each person in on the cohort roster (&ldquo;Brought in by&rdquo;).
+</p>
+
+<div class="card">
+  {% if rows %}
+  <table>
+    <tr>
+      <th>Name</th><th>People brought in</th><th>Of those, attended</th>
+      <th>Meets TA ({{ TA_MIN }}+)</th><th>Meets Team Captain ({{ CAPTAIN_MIN }}+)</th>
+      <th>Times served as TA</th><th>Times as Team Captain</th><th></th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td><a href="{{ url_for('.contact_detail', contact_id=r.id) }}">{{ r.name }}</a></td>
+      <td><strong>{{ r.enrolled }}</strong></td>
+      <td>{{ r.attended }}</td>
+      <td>{% if r.ta_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
+      <td>{% if r.captain_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
+      <td>{{ r.ta_times or '' }}</td>
+      <td>{{ r.captain_times or '' }}</td>
+      <td>{% if r.needs_attention %}<span class="badge warn">&#9888; serving below the requirement</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Nothing here yet. Open a cohort and fill in &ldquo;Brought in by&rdquo; on the roster, and people will start to appear.</p>
+  {% endif %}
+</div>
+{% endblock %}

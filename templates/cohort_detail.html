@@ -1,6 +1,16 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ cohort.code }} #{{ cohort.session_number }} — Dallas Discovery CRM{% endblock %}
 {% block content %}
+{% macro req_badge(contact_id, need) -%}
+  {%- if need -%}
+    {%- set have = enrolled_counts.get(contact_id, 0) -%}
+    {%- if have >= need %} <span class="badge good" title="Has brought in {{ have }}; requirement is {{ need }}">&#10003; brought in {{ have }}</span>
+    {%- else %} <span class="badge warn" title="Has brought in {{ have }}; requirement is {{ need }}">&#9888; brought in {{ have }} of {{ need }}</span>{% endif -%}
+  {%- endif -%}
+{%- endmacro %}
+<datalist id="contact-picks">
+  {% for c in all_contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
+</datalist>
 <h1>{{ cohort.code }} #{{ cohort.session_number }}</h1>
 <p class="muted">{{ cohort.name }} &middot; {{ cohort.session_date }} &middot; <span class="badge">{{ cohort.status }}</span></p>
 
@@ -8,10 +18,18 @@
 <div class="card">
   {% if roster %}
   <table>
-    <tr><th>Trainee</th><th>Group</th><th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
+    <tr><th>Trainee</th><th>Brought in by</th><th>Group</th><th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
     <tr>
       <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
+      <td>
+        <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
+          <input type="hidden" name="set_enrolled_by" value="1">
+          <input name="enrolled_by_pick" list="contact-picks" autocomplete="off" placeholder="— not recorded —"
+                 value="{% if e.enrolled_by_contact_id %}{{ e.enrolled_by_name }} [#{{ e.enrolled_by_contact_id }}]{% endif %}"
+                 style="width:180px" onchange="this.form.submit()">
+        </form>
+      </td>
       <td>
         <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
           <select name="small_group_id" onchange="this.form.submit()">
@@ -79,9 +97,10 @@
     </select>
     <span class="muted">or</span>
     <input name="new_contact_name" placeholder="New contact full name">
+    <input name="enrolled_by_pick" list="contact-picks" autocomplete="off" placeholder="Brought in by (optional)" style="width:200px">
     <button class="btn" type="submit">Enroll</button>
   </form>
-  <p class="muted">Bluesky 2/Bluesky 3 prerequisites are checked automatically at enrollment.</p>
+  <p class="muted">Bluesky 2/Bluesky 3 prerequisites are checked automatically at enrollment. Record who brought each person in &mdash; a TA needs to have brought in at least {{ TA_MIN }}, a Team Captain at least {{ CAPTAIN_MIN }}. See the <a href="{{ url_for('.leadership_pipeline') }}">Leadership pipeline</a>.</p>
 </div>
 
 <h2>Small groups</h2>
@@ -93,7 +112,7 @@
     <tr>
       <td>{{ sg.label }}</td>
       <td>
-        {% for s in sg_staffing if s.label == sg.label %}{{ s.full_name }}{% if s.duty %} <span class="muted">({{ s.duty }})</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
+        {% for s in sg_staffing if s.label == sg.label %}{{ s.full_name }}{% if s.duty %} <span class="muted">({{ s.duty }})</span>{% endif %}{{ req_badge(s.contact_id, CAPTAIN_MIN if s.duty == 'Team Captain' else TA_MIN) }}{{ ', ' if not loop.last }}{% endfor %}
       </td>
     </tr>
     {% endfor %}
@@ -141,7 +160,7 @@
   <table>
     <tr><th>Name</th><th>Role</th><th>Duty</th></tr>
     {% for s in staffing %}
-    <tr><td>{{ s.full_name }}</td><td>{{ s.role }}</td><td>{{ s.duty or '' }}</td></tr>
+    <tr><td>{{ s.full_name }}{{ req_badge(s.contact_id, TA_MIN if s.role == 'TA' else 0) }}</td><td>{{ s.role }}</td><td>{{ s.duty or '' }}</td></tr>
     {% endfor %}
   </table>
   {% else %}
