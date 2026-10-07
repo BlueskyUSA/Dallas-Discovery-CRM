@@ -10,14 +10,9 @@ from config import PROGRAM_NAME, DISCOVERY_URL
 EXCITEMENT_BLAST_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
 
 
-def excitement_blast_content(first_name, connect_url=None):
-    """Returns (html_content, text_content) for the initial blast email,
-    personalized with the contact's first name. connect_url, if given, is
-    that contact's personal link to the "reach out to me" page -- lets
-    someone ask Kent to personally follow up (by email or phone) without
-    emailing him directly, so replies don't just pile up in his inbox."""
-    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
-
+def _connect_blocks(connect_url):
+    """The optional personal "reach out to me" paragraph used by the
+    blast emails. Returns (html, text); both empty when there is no link."""
     connect_html = ""
     connect_text = ""
     if connect_url:
@@ -33,6 +28,18 @@ def excitement_blast_content(first_name, connect_url=None):
             f"many of you have already reached out, and every single one of you matters to me, "
             f"even though I'm just one guy trying to keep up!\n{connect_url}\n\n"
         )
+    return connect_html, connect_text
+
+
+def excitement_blast_content(first_name, connect_url=None):
+    """Returns (html_content, text_content) for the initial blast email,
+    personalized with the contact's first name. connect_url, if given, is
+    that contact's personal link to the "reach out to me" page -- lets
+    someone ask Kent to personally follow up (by email or phone) without
+    emailing him directly, so replies don't just pile up in his inbox."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    connect_html, connect_text = _connect_blocks(connect_url)
 
     html_content = f"""
         <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">{PROGRAM_NAME} Excitement is Growing!!!</p>
@@ -67,6 +74,63 @@ Dear {greeting},
 Please forgive the intrusion -- this is Kent Hafemann, and you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
 
 Some of you are aware of Dallas Discovery, a powerful and life-changing personal-growth and relationship training that Pamela and I have been involved with since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
+
+Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
+
+Please open the link below and complete a brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
+
+{DISCOVERY_URL}
+
+{connect_text}Please share this link and help us get the word out.
+
+Thanks so much. Indeed, the excitement is building!!!
+
+Your support and giving hearts are much appreciated.
+
+We look forward to seeing you soon.
+
+Blessings on you,
+Kent Hafemann
+"""
+
+    return html_content, text_content
+
+
+BLAST2_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
+
+
+def blast2_cover_content(first_name, connect_url=None):
+    """Returns (html_content, text_content) for Email Blast #2 -- the cover
+    letter for the Dallas Discovery contact database (people who already know
+    the program, so no introduction of who Kent is). connect_url, if given, is
+    that contact's personal "reach out to me" link and appears after the
+    Discovery link. NOT sent automatically by anything."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    connect_html, connect_text = _connect_blocks(connect_url)
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet
+        many have expressed a strong desire to reopen the program. Nothing is official yet, but
+        we're working hard to make that happen.</p>
+        <p>Our hope is in the next few months we will be meeting with those who attended or
+        volunteered in the training. If you were a Discovery volunteer, or if you are interested
+        to know more about this program, we would love to hear from you.</p>
+        <p><span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
+        below and complete a brief contact form so that you will be among the first to know when
+        a meeting date is set, or additional information is available.</span></p>
+        <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
+        {connect_html}
+        <p>Please share this link and help us get the word out.</p>
+        <p>Thanks so much. Indeed, the excitement is building!!!</p>
+        <p>Your support and giving hearts are much appreciated.</p>
+        <p>We look forward to seeing you soon.</p>
+        <p>Blessings on you,<br>Kent Hafemann</p>
+    """
+
+    text_content = f"""Dear {greeting},
+
+As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
 
 Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
 
