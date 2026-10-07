@@ -9,6 +9,8 @@ What it moves from the duplicate onto the keeper:
   - profile_token: only if the keeper doesn't already have one -- this
     keeps any long-form link already emailed out working, since it now
     resolves to the keeper.
+  - Contact lists ("came from"): the duplicate's lists are added to the
+    keeper's, so nobody loses where they came from.
   - Enrollments, donations, cohort/small-group staffing roles, staff
     login link, and contract records: reassigned to the keeper's id,
     *unless* the keeper already has a conflicting record there (e.g. a
@@ -141,6 +143,20 @@ def merge(keeper_id, duplicate_id, apply_changes):
         if apply_changes:
             cur.execute(f"UPDATE {table} SET {column} = ? WHERE {column} = ?", (keeper_id, duplicate_id))
 
+    # 5b. contact lists ("came from") -- union onto the keeper
+    cur.execute("SELECT list_id, added_at FROM contact_list_members WHERE contact_id = ?", (duplicate_id,))
+    dup_lists = cur.fetchall()
+    for dl in dup_lists:
+        cur.execute("SELECT 1 FROM contact_list_members WHERE contact_id = ? AND list_id = ?",
+                    (keeper_id, dl["list_id"]))
+        if cur.fetchone():
+            print(f"Keeper is already on list #{dl['list_id']} -- nothing to add.")
+        else:
+            print(f"Will put the keeper on list #{dl['list_id']} (the duplicate was on it).")
+            if apply_changes:
+                cur.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?, ?, ?)",
+                            (keeper_id, dl["list_id"], dl["added_at"]))
+
     if left_behind:
         print("\nCOULD NOT move these (keeper already has a conflicting record) -- "
               "left on the duplicate, review by hand before deleting it:")
@@ -156,6 +172,7 @@ def merge(keeper_id, duplicate_id, apply_changes):
     print(f"Will delete duplicate contact #{duplicate_id} and its photo row (if any).")
     if apply_changes:
         cur.execute("DELETE FROM contact_photos WHERE contact_id = ?", (duplicate_id,))
+        cur.execute("DELETE FROM contact_list_members WHERE contact_id = ?", (duplicate_id,))
         cur.execute("DELETE FROM contacts WHERE id = ?", (duplicate_id,))
         conn.commit()
         print(f"\nDone -- #{duplicate_id} merged into #{keeper_id} and deleted.")

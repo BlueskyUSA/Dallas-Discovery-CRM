@@ -1048,20 +1048,25 @@ def dashboard():
 @area_required("contacts")
 def contacts_list():
     q = request.args.get("q", "").strip()
+    list_id = request.args.get("list", type=int)
     conn = get_db()
+    where, params = [], []
     if q:
-        rows = conn.execute(
-            f"""SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts
-                WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ?
-                ORDER BY last_name, first_name""",
-            (f"%{q}%", f"%{q}%", f"%{q}%"),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts ORDER BY last_name, first_name LIMIT 200"
-        ).fetchall()
+        where.append("(first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
+        params += [f"%{q}%", f"%{q}%", f"%{q}%"]
+    if list_id:
+        where.append("id IN (SELECT contact_id FROM contact_list_members WHERE list_id = ?)")
+        params.append(list_id)
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    limit_sql = "" if (q or list_id) else "LIMIT 200"
+    rows = conn.execute(
+        f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} "
+        f"ORDER BY last_name, first_name {limit_sql}",
+        params,
+    ).fetchall()
+    all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q)
+    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, all_lists=all_lists)
 
 
 @crm.route("/contacts/new", methods=["GET", "POST"])
@@ -1594,9 +1599,22 @@ def contact_detail(contact_id):
         (contact_id, contact_id),
     ).fetchall()
     path, grad_date = training_path(conn, contact_id)
+    member_lists = conn.execute(
+        """SELECT l.id, l.name, m.added_at FROM contact_list_members m
+           JOIN contact_lists l ON l.id = m.list_id
+           WHERE m.contact_id = ? ORDER BY l.name""",
+        (contact_id,),
+    ).fetchall()
+    on_ids = {r["id"] for r in member_lists}
+    addable_lists = [
+        r for r in conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
+        if r["id"] not in on_ids
+    ]
     conn.close()
     return render_template(
         "contact_detail.html",
+        member_lists=member_lists,
+        addable_lists=addable_lists,
         contact=contact,
         enrollments=enrollments,
         contract_kinds=CONTRACT_KINDS,
@@ -1858,6 +1876,7 @@ def contact_delete(contact_id):
             return redirect(url_for(".contact_detail", contact_id=contact_id))
     name = contact["full_name"]
     conn.execute("DELETE FROM contact_photos WHERE contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM contact_list_members WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
     conn.commit()
     conn.close()
@@ -2819,6 +2838,107 @@ def leadership_pipeline():
     return render_template(
         "leadership_pipeline.html", rows=rows, TA_MIN=TA_MIN_ENROLLED, CAPTAIN_MIN=CAPTAIN_MIN_ENROLLED
     )
+
+
+# ---------- contact lists ("where this contact came from") ----------
+
+@crm.route("/lists")
+@area_required("contacts")
+@leadership_required
+def lists_manage():
+    conn = get_db()
+    lists = conn.execute(
+        """SELECT l.id, l.name, l.created_at, COUNT(m.id) AS n
+           FROM contact_lists l LEFT JOIN contact_list_members m ON m.list_id = l.id
+           GROUP BY l.id, l.name, l.created_at ORDER BY l.name"""
+    ).fetchall()
+    conn.close()
+    return render_template("lists_manage.html", lists=lists)
+
+
+@crm.route("/lists/new", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def list_new():
+    name = " ".join((request.form.get("name") or "").split())
+    if not name:
+        flash("Please type a name for the list.")
+        return redirect(url_for(".lists_manage"))
+    conn = get_db()
+    if conn.execute("SELECT 1 FROM contact_lists WHERE LOWER(name) = LOWER(?)", (name,)).fetchone():
+        flash(f'There is already a list called "{name}".')
+    else:
+        conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", (name, date.today().isoformat()))
+        conn.commit()
+        flash(f'Created the list "{name}".')
+    conn.close()
+    return redirect(url_for(".lists_manage"))
+
+
+@crm.route("/lists/<int:list_id>/rename", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def list_rename(list_id):
+    name = " ".join((request.form.get("name") or "").split())
+    conn = get_db()
+    if not name:
+        flash("Please type a name for the list.")
+    elif conn.execute(
+        "SELECT 1 FROM contact_lists WHERE LOWER(name) = LOWER(?) AND id != ?", (name, list_id)
+    ).fetchone():
+        flash(f'There is already a list called "{name}".')
+    else:
+        conn.execute("UPDATE contact_lists SET name = ? WHERE id = ?", (name, list_id))
+        conn.commit()
+        flash("Renamed.")
+    conn.close()
+    return redirect(url_for(".lists_manage"))
+
+
+@crm.route("/lists/<int:list_id>/delete", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def list_delete(list_id):
+    conn = get_db()
+    n = conn.execute("SELECT COUNT(*) AS n FROM contact_list_members WHERE list_id = ?", (list_id,)).fetchone()["n"]
+    if n:
+        flash(f"That list still has {n} contact(s) on it, so it can't be deleted.")
+    else:
+        conn.execute("DELETE FROM contact_lists WHERE id = ?", (list_id,))
+        conn.commit()
+        flash("List deleted.")
+    conn.close()
+    return redirect(url_for(".lists_manage"))
+
+
+@crm.route("/contacts/<int:contact_id>/lists/add", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_list_add(contact_id):
+    list_id = request.form.get("list_id", type=int)
+    conn = get_db()
+    if list_id and conn.execute("SELECT 1 FROM contact_lists WHERE id = ?", (list_id,)).fetchone():
+        if not conn.execute(
+            "SELECT 1 FROM contact_list_members WHERE contact_id = ? AND list_id = ?", (contact_id, list_id)
+        ).fetchone():
+            conn.execute(
+                "INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?, ?, ?)",
+                (contact_id, list_id, date.today().isoformat()),
+            )
+            conn.commit()
+    conn.close()
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+
+@crm.route("/contacts/<int:contact_id>/lists/<int:list_id>/remove", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_list_remove(contact_id, list_id):
+    conn = get_db()
+    conn.execute("DELETE FROM contact_list_members WHERE contact_id = ? AND list_id = ?", (contact_id, list_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
 # ---------- bulk "brought in by" entry ----------

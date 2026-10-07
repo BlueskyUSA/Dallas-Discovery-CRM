@@ -243,6 +243,23 @@ CREATE TABLE IF NOT EXISTS contact_photos (
     content_type TEXT NOT NULL
 );
 
+-- Named lists a contact "came from" (e.g. "Dallas Discovery database",
+-- "Kent's personal list"). A contact can be on several. Leadership manages
+-- the lists; used to choose who receives which email blast.
+CREATE TABLE IF NOT EXISTS contact_lists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS contact_list_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id INTEGER NOT NULL REFERENCES contacts(id),
+    list_id INTEGER NOT NULL REFERENCES contact_lists(id),
+    added_at TEXT NOT NULL DEFAULT '',
+    UNIQUE(contact_id, list_id)
+);
+
 -- Music lists per program (e.g. Squeeze's Saturday dinner entry/background,
 -- stretch songs, dance songs). Editable directly in the CRM rather than
 -- maintained in an external music app.
