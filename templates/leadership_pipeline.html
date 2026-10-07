@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Leadership pipeline</h1>
 <p class="muted">
-  Who has brought people into the training, and who is serving as a TA or Team Captain.
+  Who has brought people into the training, and who is serving as a TA or TA Team Captain.
   To TA in D1 or the Relationship training a person needs to have brought in at least
   <strong>{{ TA_MIN }}</strong> {{ 'person' if TA_MIN == 1 else 'people' }}; to be a TA Team Captain, at least
   <strong>{{ CAPTAIN_MIN }}</strong>. This is a guide &mdash; leadership can always make an exception.
@@ -16,8 +16,8 @@
   <table>
     <tr>
       <th>Name</th><th>People brought in</th><th>Of those, attended</th>
-      <th>Meets TA ({{ TA_MIN }}+)</th><th>Meets Team Captain ({{ CAPTAIN_MIN }}+)</th>
-      <th>Times served as TA</th><th>Times as Team Captain</th><th></th>
+      <th>Meets TA ({{ TA_MIN }}+)</th><th>Meets TA Team Captain ({{ CAPTAIN_MIN }}+)</th>
+      <th>Times served as TA</th><th>Times as TA Team Captain</th><th></th>
     </tr>
     {% for r in rows %}
     <tr>
