@@ -99,14 +99,12 @@ Kent Hafemann
 BLAST2_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
 
 
-def blast2_cover_content(first_name, connect_url=None):
+def blast2_cover_content(first_name):
     """Returns (html_content, text_content) for Email Blast #2 -- the cover
     letter for the Dallas Discovery contact database (people who already know
-    the program, so no introduction of who Kent is). connect_url, if given, is
-    that contact's personal "reach out to me" link and appears after the
-    Discovery link. NOT sent automatically by anything."""
+    the program, so no introduction of who Kent is). Deliberately has no
+    personal "reach out to me" paragraph. NOT sent automatically by anything."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
-    connect_html, connect_text = _connect_blocks(connect_url)
 
     html_content = f"""
         <p>Dear {greeting},</p>
@@ -120,7 +118,6 @@ def blast2_cover_content(first_name, connect_url=None):
         below and complete a brief contact form so that you will be among the first to know when
         a meeting date is set, or additional information is available.</span></p>
         <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
-        {connect_html}
         <p>Please share this link and help us get the word out.</p>
         <p>Thanks so much. Indeed, the excitement is building!!!</p>
         <p>Your support and giving hearts are much appreciated.</p>
@@ -138,7 +135,7 @@ Please open the link below and complete a brief contact form so that you will be
 
 {DISCOVERY_URL}
 
-{connect_text}Please share this link and help us get the word out.
+Please share this link and help us get the word out.
 
 Thanks so much. Indeed, the excitement is building!!!
 

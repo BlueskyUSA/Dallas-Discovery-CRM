@@ -8,20 +8,16 @@ from the Render shell:
 
     python3 send_blast2_test.py
 
-Safe to run more than once -- it just sends another copy. The email
-includes a sample "reach out to me" paragraph so you can see both parts.
+Safe to run more than once -- it just sends another copy.
 """
 from email_templates import blast2_cover_content, BLAST2_SUBJECT
 from email_utils import send_email, EmailSendError
-from config import PUBLIC_BASE_URL
 
 TO_EMAIL = "khres53@gmail.com"
 
 
 def main():
-    html_content, text_content = blast2_cover_content(
-        first_name="Kent", connect_url=f"{PUBLIC_BASE_URL}/connect/EXAMPLE-TEST-LINK"
-    )
+    html_content, text_content = blast2_cover_content(first_name="Kent")
     try:
         message_id = send_email(
             to_email=TO_EMAIL,
