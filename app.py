@@ -2871,6 +2871,7 @@ def public_discovery():
         # best-effort send: if it fails for any reason, their short-form
         # info is already saved either way, and Kent can generate/send the
         # link manually later from their contact page.
+        emailed = False  # set True only when a follow-up email actually went out
         if wants_longform and email:
             token = existing_token or secrets.token_urlsafe(24)
             if token != existing_token:
@@ -2887,6 +2888,7 @@ def public_discovery():
                     html_content=html_content,
                     text_content=text_content,
                 )
+                emailed = True
             except EmailSendError as e:
                 print(f"EmailSendError sending long-form link to {email}: {e}", flush=True)
 
@@ -2912,18 +2914,22 @@ def public_discovery():
                     html_content=html_content,
                     text_content=text_content,
                 )
+                emailed = True
             except EmailSendError as e:
                 print(f"EmailSendError sending Interested Party welcome to {email}: {e}", flush=True)
 
         conn.close()
+        if emailed:
+            return redirect(url_for("public_discovery", submitted="1", emailed="1"))
         return redirect(url_for("public_discovery", submitted="1"))
     submitted = request.args.get("submitted") == "1"
+    emailed_flag = submitted and request.args.get("emailed") == "1"
     current_year = date.today().year
     # Goes back to 1990 -- the program had been running for a while before
     # Kent and Pamela got involved in 1996, so past volunteers from those
     # earlier years need to be able to pick their actual year too.
     years = list(range(current_year, 1989, -1))
-    return render_template("public_discovery.html", submitted=submitted, years=years)
+    return render_template("public_discovery.html", submitted=submitted, emailed=emailed_flag, years=years)
 
 
 @app.route("/donate", methods=["GET", "POST"])
