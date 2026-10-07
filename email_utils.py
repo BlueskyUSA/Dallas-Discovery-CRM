@@ -12,9 +12,16 @@ those live in app.py and the (future) blast-queue logic, and call
 send_email() one message at a time.
 """
 import os
+import time
 import requests
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
+# Render's outbound connections to Brevo occasionally drop ("connection reset",
+# "SSL EOF"). Those are connection-level blips, so we retry them a couple of
+# times before giving up. We do NOT retry read timeouts or Brevo error replies.
+SEND_ATTEMPTS = 3
+RETRY_DELAY_SECONDS = 2
 
 # The address/name every CRM email is sent from. Brevo requires this
 # address to be a "verified sender" (either the whole blueskyusa.net domain,
@@ -50,19 +57,28 @@ def send_email(to_email, subject, html_content, to_name=None, text_content=None,
     if reply_to:
         payload["replyTo"] = {"email": reply_to}
 
-    try:
-        resp = requests.post(
-            BREVO_API_URL,
-            json=payload,
-            headers={
-                "api-key": api_key,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            timeout=15,
-        )
-    except requests.RequestException as e:
-        raise EmailSendError(f"Network error contacting Brevo: {e}") from e
+    resp = None
+    for attempt in range(1, SEND_ATTEMPTS + 1):
+        try:
+            resp = requests.post(
+                BREVO_API_URL,
+                json=payload,
+                headers={
+                    "api-key": api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                timeout=15,
+            )
+            break
+        except requests.ConnectionError as e:  # includes SSL errors and resets
+            if attempt < SEND_ATTEMPTS:
+                print(f"Brevo connection problem (attempt {attempt}/{SEND_ATTEMPTS}), retrying: {e}", flush=True)
+                time.sleep(RETRY_DELAY_SECONDS * attempt)
+                continue
+            raise EmailSendError(f"Network error contacting Brevo: {e}") from e
+        except requests.RequestException as e:
+            raise EmailSendError(f"Network error contacting Brevo: {e}") from e
 
     if resp.status_code not in (200, 201):
         raise EmailSendError(f"Brevo rejected the send ({resp.status_code}): {resp.text}")
