@@ -5,9 +5,9 @@ from app.py so the wording can be revised without touching route logic, and
 reused identically by the one-off test send and the eventual full blast.
 """
 
-EXCITEMENT_BLAST_SUBJECT = "Dallas Discovery Excitement is Growing"
+from config import PROGRAM_NAME, DISCOVERY_URL
 
-DISCOVERY_URL = "https://dallas-discovery-crm.onrender.com/discovery"
+EXCITEMENT_BLAST_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
 
 
 def excitement_blast_content(first_name, connect_url=None):
@@ -35,7 +35,7 @@ def excitement_blast_content(first_name, connect_url=None):
         )
 
     html_content = f"""
-        <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">Dallas Discovery Excitement is Growing!!!</p>
+        <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">{PROGRAM_NAME} Excitement is Growing!!!</p>
         <p>Dear {greeting},</p>
         <p>Please forgive the intrusion &mdash; this is Kent Hafemann, and you're receiving this
         email because you're someone I've known or worked with over the years, whether through
@@ -129,7 +129,7 @@ def connect_request_confirmation_content(first_name, method):
     return html_content, text_content
 
 
-INTERESTED_PARTY_WELCOME_SUBJECT = "Thank you for your interest in Dallas Discovery"
+INTERESTED_PARTY_WELCOME_SUBJECT = f"Thank you for your interest in {PROGRAM_NAME}"
 
 
 def interested_party_welcome_content(first_name, connect_url=None):
@@ -150,7 +150,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about
+        <p>Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about
         our journey and the profound impact Discovery has had on our lives.</p>
         <p>In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us
         to attend Pathways (now Discovery) &mdash; our marriage was struggling. With three
@@ -183,7 +183,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
 
     text_content = f"""Dear {greeting},
 
-Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
+Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
 
 In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us to attend Pathways (now Discovery) -- our marriage was struggling. With three children and eighteen years of marriage behind us, we were lost and confused. We tried counselors, church advisors, mentors, healing prayer, anything we could think of. But we simply couldn't figure it out -- it was like trying to hold water in our hands, our life falling apart, leaking right through our fingers.
 
@@ -305,7 +305,7 @@ def preliminary_plan_content(first_name):
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thanks for your continued interest in the Dallas Discovery launch.</p>
+        <p>Thanks for your continued interest in the {PROGRAM_NAME} launch.</p>
         <p>So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on
         this question &mdash; but here's a start:</p>
         <ol>
@@ -317,7 +317,7 @@ def preliminary_plan_content(first_name):
                 <ol type="a">
                     <li>Finding young leadership capable and willing to lead the training as
                     older leaders relinquish their roles;</li>
-                    <li>Operating Dallas Discovery with margin, so the program endures
+                    <li>Operating {PROGRAM_NAME} with margin, so the program endures
                     financially and can be passed on to the next operating team without needing
                     additional capital to keep it running;</li>
                     <li>Passing on, in perpetuity and free of charge, the intellectual property,
@@ -385,20 +385,20 @@ def preliminary_plan_content(first_name):
 
     text_content = """Dear {greeting},
 
-Thanks for your continued interest in the Dallas Discovery launch.
+Thanks for your continued interest in the {PROGRAM_NAME} launch.
 
 So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on this question -- but here's a start:
 
 1. To reflect the love of God by creating an effective, powerful, and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives, so that freedom, joy, peace, and love become the cornerstones of their lives.
 2. Create an enduring training that outlasts any one key leader by:
    a. Finding young leadership capable and willing to lead the training as older leaders relinquish their roles;
-   b. Operating Dallas Discovery with margin, so the program endures financially and can be passed on to the next operating team without needing additional capital to keep it running;
+   b. Operating {PROGRAM_NAME} with margin, so the program endures financially and can be passed on to the next operating team without needing additional capital to keep it running;
    c. Passing on, in perpetuity and free of charge, the intellectual property, licenses, software, and equipment used to operate the program.
 
 So how will we accomplish this mission and these goals?
 a. First, we'll begin hosting Discovery social gatherings to build excitement and renew friendships. We need someone to help organize and pull these events together.
 b. Start a marketing campaign to host our first Relationship Training within the next six months, and to kick off D1. Our goal is forty couples in the training room for that first Relationship Training. The need for relationship coaching is significant -- with the right marketing campaign, we believe we can fill the room and use the energy (and proceeds) from that training to help launch D1.
-c. Reach out to supporters for donations, apply for grants, and appeal to GoFundMe-type organizations to raise capital. Based on early budget conversations, we estimate needing roughly $100,000 in cash reserves to responsibly host Dallas Discovery training.
+c. Reach out to supporters for donations, apply for grants, and appeal to GoFundMe-type organizations to raise capital. Based on early budget conversations, we estimate needing roughly $100,000 in cash reserves to responsibly host {PROGRAM_NAME} training.
 
 In addition to cash, what are the strategic short-term needs of Discovery?
 a. We need help compiling a Discovery budget, including the cost of a hotel and food for the first Relationship Training. I'd like to find a hotel close to Coppell and DFW.
@@ -423,6 +423,6 @@ Blessings on you. I look forward to meeting you at our first Discovery get-toget
 
 Take care,
 Kent Hafemann
-""".format(greeting=greeting)
+""".format(greeting=greeting, PROGRAM_NAME=PROGRAM_NAME)
 
     return html_content, text_content

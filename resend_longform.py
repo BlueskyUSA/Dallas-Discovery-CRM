@@ -23,7 +23,7 @@ from db import get_db
 from email_templates import longform_followup_content, LONGFORM_FOLLOWUP_SUBJECT
 from email_utils import send_email, EmailSendError
 
-DISCOVERY_URL_BASE = "https://dallas-discovery-crm.onrender.com"
+from config import PUBLIC_BASE_URL as DISCOVERY_URL_BASE
 
 
 def resend(to_email, force_new_link, first_name=None):

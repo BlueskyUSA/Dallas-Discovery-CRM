@@ -12,6 +12,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db, init_db
 from seed import seed
+from config import PROGRAM_NAME
 from email_utils import send_email, EmailSendError
 from email_templates import (
     longform_followup_content,
@@ -868,6 +869,12 @@ CONTRACT_SINGLE_LINE_KINDS = {"D1", "D1S", "D6S"}
 CONTRACT_EXAMPLES = {
     "D1": "I am a Strong, Confident Man",
 }
+
+
+@app.context_processor
+def inject_program_name():
+    """Makes {{ program_name }} available in every template (see config.py)."""
+    return {"program_name": PROGRAM_NAME}
 
 
 @app.context_processor
