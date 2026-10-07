@@ -1671,7 +1671,7 @@ def requirement_warning(conn, contact_id, role, duty):
     who = conn.execute(
         f"SELECT {FULL_NAME_SQL} AS n FROM contacts WHERE id = ?", (contact_id,)
     ).fetchone()
-    label = "Team Captain" if duty == "Team Captain" else "TA"
+    label = "TA Team Captain" if duty == "Team Captain" else "TA"
     return (
         f"Heads-up: {who['n']} has brought in {have} "
         f"{'person' if have == 1 else 'people'}; the {label} requirement is {need}. "
