@@ -37,9 +37,9 @@ def excitement_blast_content(first_name, connect_url=None):
     html_content = f"""
         <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">Dallas Discovery Excitement is Growing!!!</p>
         <p>Dear {greeting},</p>
-        <p>Please forgive the intrusion &mdash; you're receiving this email because you're someone
-        I've known or worked with over the years, whether through business, family, friend, or
-        just life.</p>
+        <p>Please forgive the intrusion &mdash; this is Kent Hafemann, and you're receiving this
+        email because you're someone I've known or worked with over the years, whether through
+        business, family, friend, or just life.</p>
         <p>Some of you are aware of Dallas Discovery, a powerful and life-changing
         personal-growth and relationship training that Pamela and I have been involved with
         since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have
@@ -64,7 +64,7 @@ def excitement_blast_content(first_name, connect_url=None):
 
 Dear {greeting},
 
-Please forgive the intrusion -- you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
+Please forgive the intrusion -- this is Kent Hafemann, and you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
 
 Some of you are aware of Dallas Discovery, a powerful and life-changing personal-growth and relationship training that Pamela and I have been involved with since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
 
