@@ -82,7 +82,10 @@
       <p class="lead">This link isn't valid or has expired. Please reach out to us directly and we'll make sure to connect.</p>
       {% elif submitted %}
       <div class="connect-success">
-        <h2>Thank you, {{ contact.first_name }} &mdash; I got it.</h2>
+        <h2 style="font-size:clamp(1.7rem,6vw,2.3rem);">&#10003; Thank you, {{ contact.first_name }} &mdash; I got it.</h2>
+        {% if emailed %}
+        <p style="font-size:1.15rem; padding:12px 0; margin:0 0 14px; border-bottom:1px solid var(--pub-border);"><strong>&#9993; We just sent you a confirmation email.</strong> Please check your inbox &mdash; and your spam or promotions folder if you don't see it.</p>
+        {% endif %}
         <p>So many of you have reached out already, and I want you to know that every single one
         of you matters to me. I'm doing my best to personally get back to each person, but I'm
         just one guy right now, so it may take a little time. Please bear with me &mdash; I

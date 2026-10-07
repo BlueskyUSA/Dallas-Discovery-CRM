@@ -93,9 +93,12 @@
     Sends {{ contact.full_name }} the Preliminary Business Plan for Discovery -- our mission, goals
     and the help we still need. It goes out immediately.
   </p>
+  <p style="margin-top:0">
+    {% if contact.business_plan_sent_at %}Last sent: <strong>{{ contact.business_plan_sent_at }}</strong>{% else %}<span class="muted">Not sent yet.</span>{% endif %}
+  </p>
   {% if contact.email %}
   <form method="post" action="{{ url_for('.contact_send_business_plan', contact_id=contact.id) }}"
-        onsubmit='return confirm({{ ("Send the Preliminary Business Plan to " ~ contact.full_name ~ " at " ~ contact.email ~ " now?")|tojson }});'>
+        onsubmit='return confirm({{ ("Send the Preliminary Business Plan to " ~ contact.full_name ~ " at " ~ contact.email ~ (" (last sent " ~ contact.business_plan_sent_at ~ ")" if contact.business_plan_sent_at else "") ~ " now?")|tojson }});'>
     <button class="btn secondary" type="submit">Send business plan</button>
   </form>
   {% else %}
