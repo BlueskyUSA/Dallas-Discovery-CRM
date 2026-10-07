@@ -1193,6 +1193,44 @@ def contact_send_excitement_email(contact_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
+@crm.route("/contacts/<int:contact_id>/send-business-plan", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_send_business_plan(contact_id):
+    """Leadership-only: sends the Preliminary Business Plan email to this one
+    contact on demand from their detail page -- the same copy people get when
+    they click "Send me the Preliminary Discovery Plan" in the long-form
+    thank-you email, just without needing them to ask first. Best used when
+    someone has asked for it in person or by phone."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    if not contact["email"]:
+        flash("Can't send -- this contact has no email address on file.")
+        return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+    html_content, text_content = preliminary_plan_content(contact["first_name"])
+    try:
+        send_email(
+            to_email=contact["email"],
+            to_name=contact["first_name"],
+            subject=PRELIMINARY_PLAN_SUBJECT,
+            html_content=html_content,
+            text_content=text_content,
+        )
+        print(
+            f"SENT business plan to contact {contact_id} ({contact['email']}) by {session.get('staff_name')}",
+            flush=True,
+        )
+        flash(f"Business plan sent to {contact['first_name']} ({contact['email']}).")
+    except EmailSendError as e:
+        print(f"EmailSendError sending business plan to {contact['email']}: {e}", flush=True)
+        flash(f"Couldn't send the business plan: {e}")
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+
 PROFILE_TOKEN_COOKIE = "bsky_profile_token"
 PROFILE_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
 
