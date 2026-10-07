@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ cohort.code }} #{{ cohort.session_number }} — Dallas Discovery CRM{% endblock %}
+{% block title %}{{ cohort.code }} #{{ cohort.session_number }} — {{ program_name }} CRM{% endblock %}
 {% block content %}
 {% macro req_badge(contact_id, need) -%}
   {%- if need -%}

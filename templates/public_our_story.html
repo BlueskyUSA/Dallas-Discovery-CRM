@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}About the Team — Dallas Discovery{% endblock %}
-{% block meta_description %}The story behind Dallas Discovery — how Kent and Pamela Hafemann's own marriage and a life-changing training became a mission to help other relationships thrive.{% endblock %}
+{% block title %}About the Team — {{ program_name }}{% endblock %}
+{% block meta_description %}The story behind {{ program_name }} — how Kent and Pamela Hafemann's own marriage and a life-changing training became a mission to help other relationships thrive.{% endblock %}
 {% block content %}
 <section class="pub-section">
   <div class="pub-container" style="max-width:760px">
@@ -51,9 +51,9 @@
     <p class="lead" style="margin-bottom:0">
       Unfortunately, the Pathways/Discovery program shut down due to Covid, and
       we feel the loss of such an important, powerful, and life-giving program in
-      our community. Dallas Discovery builds on what we gleaned from
+      our community. {{ program_name }} builds on what we gleaned from
       Pathways, Discovery, and other trainings. Sage wisdom is hard earned and
-      takes many years to culminate. Dallas Discovery offers you a powerful,
+      takes many years to culminate. {{ program_name }} offers you a powerful,
       safe place to search out knowledge, to find freedom from what bogs you
       down, and invite joy into your life.
     </p>
@@ -63,7 +63,7 @@
 <section class="pub-section">
   <div class="pub-container">
     <h2>Meet the Team</h2>
-    <p class="lead">The coaches and leaders behind Dallas Discovery &mdash; this list will keep growing as we bring on more trainers and assistants.</p>
+    <p class="lead">The coaches and leaders behind {{ program_name }} &mdash; this list will keep growing as we bring on more trainers and assistants.</p>
     <div style="display:grid; gap:18px; max-width:760px">
 
       <div class="team-card">

@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ program.code }} Materials — Dallas Discovery CRM{% endblock %}
+{% block title %}{{ program.code }} Materials — {{ program_name }} CRM{% endblock %}
 {% block content %}
 <h1>{{ program.name }} &mdash; Training Materials</h1>
 <p class="muted">Handouts, worksheets, and resource sheets given to trainees during the weekend, organized by which day they're used. <a href="{{ url_for('.programs_list') }}">&larr; Back to Programs</a>

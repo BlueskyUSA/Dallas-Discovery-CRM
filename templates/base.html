@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Dallas Discovery{% endblock %}</title>
-  <meta name="description" content="{% block meta_description %}Dallas Discovery — life and relationship training that helps you examine your past, present, and future, and build stronger relationships.{% endblock %}">
+  <title>{% block title %}{{ program_name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ program_name }} — life and relationship training that helps you examine your past, present, and future, and build stronger relationships.{% endblock %}">
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,8 +15,8 @@
 <body>
   <header class="pub-topbar">
     <a class="pub-brand" href="{{ url_for('public_home') }}">
-      <img src="{{ url_for('static', filename='logo-emblem.png') }}" alt="Dallas Discovery emblem">
-      Dallas Discovery
+      <img src="{{ url_for('static', filename='logo-emblem.png') }}" alt="{{ program_name }} emblem">
+      {{ program_name }}
     </a>
     <nav class="pub-nav">
       <a href="{{ url_for('public_home') }}">Home</a>
@@ -39,7 +39,7 @@
   </main>
   <footer class="pub-footer">
     <div class="pub-container">
-      <p>&copy; 2026 Dallas Discovery. All rights reserved.</p>
+      <p>&copy; 2026 {{ program_name }}. All rights reserved.</p>
       <p class="muted">Team: <a href="{{ url_for('crm.dashboard') }}">CRM login &rarr;</a></p>
     </div>
   </footer>

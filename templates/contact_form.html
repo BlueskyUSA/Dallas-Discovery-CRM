@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ 'Edit' if contact else 'Add' }} Contact — Dallas Discovery CRM{% endblock %}
+{% block title %}{{ 'Edit' if contact else 'Add' }} Contact — {{ program_name }} CRM{% endblock %}
 {% block content %}
 <h1>{{ 'Edit contact' if contact else 'Add contact' }}</h1>
 {% if for_team_login %}
