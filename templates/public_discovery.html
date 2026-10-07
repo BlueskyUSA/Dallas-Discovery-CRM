@@ -97,6 +97,13 @@
 <body>
   <main class="discovery-wrap">
     <div class="discovery-card">
+      {% if submitted %}
+      <span class="discovery-eyebrow">The Excitement Is Building!!!</span>
+      <div class="discovery-success" role="status">
+        <h2 style="font-size:clamp(1.9rem,6vw,2.6rem);">&#10003; You're on the list!</h2>
+        <p style="font-size:1.3rem; line-height:1.6; margin:0;">Thanks for adding your name &mdash; we'll be in touch as soon as there's something to share.</p>
+      </div>
+      {% else %}
       <span class="discovery-eyebrow">The Excitement Is Building!!!</span>
       <h1>Calling all you amazing Facilitators, TA's and many other Volunteers</h1>
       <p class="lead" style="text-align:left;">
@@ -120,12 +127,6 @@
         Kent
       </p>
 
-      {% if submitted %}
-      <div class="discovery-success">
-        <h2>You're on the list!</h2>
-        <p class="muted" style="font-size:1.1rem;">Thanks for adding your name &mdash; we'll be in touch as soon as there's something to share.</p>
-      </div>
-      {% else %}
       <div class="discovery-form-card">
         <form class="pub-form" method="post">
           <div class="field"><label>First name *</label><input name="first_name" required></div>
