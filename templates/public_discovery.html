@@ -102,6 +102,9 @@
       <div class="discovery-success" role="status">
         <h2 style="font-size:clamp(1.9rem,6vw,2.6rem);">&#10003; You're on the list!</h2>
         <p style="font-size:1.3rem; line-height:1.6; margin:0;">Thanks for adding your name &mdash; we'll be in touch as soon as there's something to share.</p>
+        {% if emailed %}
+        <p style="font-size:1.15rem; line-height:1.6; margin:18px 0 0; padding-top:16px; border-top:1px solid var(--pub-border);"><strong>&#9993; We just sent you an email.</strong> Please check your inbox &mdash; and your spam or promotions folder if you don't see it.</p>
+        {% endif %}
       </div>
       {% else %}
       <span class="discovery-eyebrow">The Excitement Is Building!!!</span>
