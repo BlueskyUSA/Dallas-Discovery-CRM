@@ -321,7 +321,14 @@ def preliminary_plan_content(first_name):
                     financially and can be passed on to the next operating team without needing
                     additional capital to keep it running;</li>
                     <li>Passing on, in perpetuity and free of charge, the intellectual property,
-                    licenses, software, and equipment used to operate the program.</li>
+                    licenses, software, and equipment used to operate the program;</li>
+                    <li>An enduring program requires a proven track record of commitment,
+                    leadership, and excellent communication skills at the top. That is why we
+                    will require that any individual who wishes to TA in D1 or the Relationship
+                    Training first enroll at least one person in the training &mdash; be it D1 or
+                    the Relationship Training. Similarly, if you wish to be a TA &ldquo;Team
+                    Captain&rdquo; in D1 or the Relationship Training, we will require that you
+                    have enrolled at least two individuals in the training.</li>
                 </ol>
             </li>
         </ol>
@@ -393,7 +400,8 @@ So, what are my goals and mission for Discovery? Perhaps you may want to weigh i
 2. Create an enduring training that outlasts any one key leader by:
    a. Finding young leadership capable and willing to lead the training as older leaders relinquish their roles;
    b. Operating {PROGRAM_NAME} with margin, so the program endures financially and can be passed on to the next operating team without needing additional capital to keep it running;
-   c. Passing on, in perpetuity and free of charge, the intellectual property, licenses, software, and equipment used to operate the program.
+   c. Passing on, in perpetuity and free of charge, the intellectual property, licenses, software, and equipment used to operate the program;
+   d. An enduring program requires a proven track record of commitment, leadership, and excellent communication skills at the top. That is why we will require that any individual who wishes to TA in D1 or the Relationship Training first enroll at least one person in the training -- be it D1 or the Relationship Training. Similarly, if you wish to be a TA "Team Captain" in D1 or the Relationship Training, we will require that you have enrolled at least two individuals in the training.
 
 So how will we accomplish this mission and these goals?
 a. First, we'll begin hosting Discovery social gatherings to build excitement and renew friendships. We need someone to help organize and pull these events together.
