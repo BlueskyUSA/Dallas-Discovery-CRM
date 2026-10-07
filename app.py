@@ -855,7 +855,7 @@ CONTRACT_KINDS = {
     "D1S": "Your Stretch Song",
     "D2": "Your Poem",
     "D3": "Your Future",
-    "D5": "Your Spiritual Renewal Contract",
+    "D5": "Spiritual Contract",
     "D6": "Your Couples Relationship Contract",
     "D6S": "Relationship Song Chosen for your Partner",
 }
@@ -1200,6 +1200,22 @@ def contact_send_excitement_email(contact_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
+def _mark_business_plan_sent(contact_id):
+    """Records today's date as the last time the Preliminary Business Plan
+    went out to this contact. Date only -- the plan changes over time, so we
+    don't try to track which version. Best-effort: never blocks a send."""
+    try:
+        conn = get_db()
+        conn.execute(
+            "UPDATE contacts SET business_plan_sent_at = ? WHERE id = ?",
+            (date.today().isoformat(), contact_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:  # e.g. column not migrated yet
+        print(f"Couldn't record business-plan sent date for contact {contact_id}: {e}", flush=True)
+
+
 @crm.route("/contacts/<int:contact_id>/send-business-plan", methods=["POST"])
 @area_required("contacts")
 @leadership_required
@@ -1227,6 +1243,7 @@ def contact_send_business_plan(contact_id):
             html_content=html_content,
             text_content=text_content,
         )
+        _mark_business_plan_sent(contact_id)
         print(
             f"SENT business plan to contact {contact_id} ({contact['email']}) by {session.get('staff_name')}",
             flush=True,
@@ -1430,6 +1447,7 @@ def public_connect_request(token):
         )
         conn.commit()
 
+        emailed = False
         if contact["email"]:
             html_content, text_content = connect_request_confirmation_content(contact["first_name"], method)
             try:
@@ -1440,14 +1458,18 @@ def public_connect_request(token):
                     html_content=html_content,
                     text_content=text_content,
                 )
+                emailed = True
             except EmailSendError as e:
                 print(f"EmailSendError sending connect-request confirmation to {contact['email']}: {e}", flush=True)
         conn.close()
+        if emailed:
+            return redirect(url_for("public_connect_request", token=token, submitted="1", emailed="1"))
         return redirect(url_for("public_connect_request", token=token, submitted="1"))
 
     conn.close()
     submitted = request.args.get("submitted") == "1"
-    return render_template("connect.html", contact=contact, submitted=submitted)
+    emailed_flag = submitted and request.args.get("emailed") == "1"
+    return render_template("connect.html", contact=contact, submitted=submitted, emailed=emailed_flag)
 
 
 @app.route("/discovery/plan/<token>", methods=["GET", "POST"])
@@ -1474,6 +1496,7 @@ def request_preliminary_plan(token):
                     html_content=html_content,
                     text_content=text_content,
                 )
+                _mark_business_plan_sent(contact["id"])
             except EmailSendError as e:
                 print(f"EmailSendError sending preliminary plan to {contact['email']}: {e}", flush=True)
         conn.close()

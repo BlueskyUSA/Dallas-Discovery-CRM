@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     last_name TEXT,
     photo_filename TEXT,
     profile_token TEXT UNIQUE,  -- unguessable link letting them fill in/update their own profile, no login
+    business_plan_sent_at TEXT,      -- date the Preliminary Business Plan email was last sent to them (any version)
     email TEXT,
     cell_phone TEXT,
     home_phone TEXT,
