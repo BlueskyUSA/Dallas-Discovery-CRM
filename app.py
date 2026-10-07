@@ -2821,6 +2821,103 @@ def leadership_pipeline():
     )
 
 
+# ---------- bulk "brought in by" entry ----------
+
+BROUGHT_IN_PAGE_LIMIT = 300
+
+
+@crm.route("/brought-in-by", methods=["GET", "POST"])
+@area_required("contacts")
+def brought_in_by_bulk():
+    """One screen to fill in 'Brought in by' for many past trainees at once.
+    Lists enrollments with no one recorded yet (or all, with ?show=all),
+    optionally for a single cohort. Saving applies every row that has a name
+    picked; blank rows are left alone, never cleared."""
+    conn = get_db()
+    cohort_id = request.values.get("cohort_id", type=int)
+    show_all = request.values.get("show") == "all"
+
+    if request.method == "POST":
+        saved, problems = 0, []
+        for key, raw in request.form.items():
+            if not key.startswith("pick_") or not (raw or "").strip():
+                continue
+            try:
+                enr_id = int(key[5:])
+            except ValueError:
+                continue
+            enr = conn.execute("SELECT * FROM enrollments WHERE id = ?", (enr_id,)).fetchone()
+            if not enr:
+                continue
+            brought_by, err = parse_contact_pick(conn, raw)
+            who = conn.execute(
+                f"SELECT {FULL_NAME_SQL} AS n FROM contacts WHERE id = ?", (enr["contact_id"],)
+            ).fetchone()
+            who = who["n"] if who else f"#{enr_id}"
+            if err:
+                problems.append(f"{who}: {err}")
+            elif brought_by == enr["contact_id"]:
+                problems.append(f"{who}: can't be recorded as bringing themselves in.")
+            elif brought_by != enr["enrolled_by_contact_id"]:
+                conn.execute(
+                    "UPDATE enrollments SET enrolled_by_contact_id = ? WHERE id = ?", (brought_by, enr_id)
+                )
+                saved += 1
+        conn.commit()
+        if saved:
+            flash(f"Saved {saved} {'entry' if saved == 1 else 'entries'}.")
+        elif not problems:
+            flash("Nothing to save -- pick a name in at least one row.")
+        for p in problems[:10]:
+            flash("Not saved -- " + p)
+        if len(problems) > 10:
+            flash(f"...and {len(problems) - 10} more not saved.")
+        conn.close()
+        return redirect(url_for(".brought_in_by_bulk", cohort_id=cohort_id or None,
+                                show="all" if show_all else None))
+
+    where, params = [], []
+    if cohort_id:
+        where.append("e.cohort_id = ?")
+        params.append(cohort_id)
+    if not show_all:
+        where.append("e.enrolled_by_contact_id IS NULL")
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    rows = conn.execute(
+        f"""SELECT e.id, e.enrolled_by_contact_id, {full_name_sql('c')} AS trainee,
+                   p.code AS program_code, ch.session_number, ch.session_date,
+                   {full_name_sql('b')} AS brought_name
+            FROM enrollments e
+            JOIN contacts c ON c.id = e.contact_id
+            JOIN cohorts ch ON ch.id = e.cohort_id
+            JOIN programs p ON p.id = ch.program_id
+            LEFT JOIN contacts b ON b.id = e.enrolled_by_contact_id
+            {where_sql}
+            ORDER BY ch.session_date DESC, ch.id DESC, c.last_name, c.first_name
+            LIMIT {BROUGHT_IN_PAGE_LIMIT + 1}""",
+        params,
+    ).fetchall()
+    truncated = len(rows) > BROUGHT_IN_PAGE_LIMIT
+    rows = rows[:BROUGHT_IN_PAGE_LIMIT]
+    missing_total = conn.execute(
+        "SELECT COUNT(*) AS n FROM enrollments WHERE enrolled_by_contact_id IS NULL"
+    ).fetchone()["n"]
+    cohorts = conn.execute(
+        """SELECT ch.id, p.code, ch.session_number, ch.session_date
+           FROM cohorts ch JOIN programs p ON p.id = ch.program_id
+           ORDER BY ch.session_date DESC, ch.id DESC"""
+    ).fetchall()
+    all_contacts = conn.execute(
+        f"SELECT id, {FULL_NAME_SQL} AS full_name FROM contacts ORDER BY last_name, first_name"
+    ).fetchall()
+    conn.close()
+    return render_template(
+        "brought_in_by.html", rows=rows, cohorts=cohorts, cohort_id=cohort_id, show_all=show_all,
+        truncated=truncated, limit=BROUGHT_IN_PAGE_LIMIT, missing_total=missing_total,
+        all_contacts=all_contacts,
+    )
+
+
 # ---------- donations ----------
 
 @crm.route("/donations")
