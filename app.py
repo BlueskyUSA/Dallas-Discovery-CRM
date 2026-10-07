@@ -1571,6 +1571,63 @@ def _contact_delete_blockers(conn, contact_id):
     return reasons
 
 
+def _contact_history_counts(conn, contact_id):
+    """How many rows of training/financial history hang off this contact --
+    shown on the delete page so leadership sees exactly what 'Clear history'
+    will erase. Returns a list of (plain-English label, count) with zeros
+    left out."""
+    items = []
+    for label, sql, params in [
+        ("training enrollments", "SELECT COUNT(*) c FROM enrollments WHERE contact_id = ?", (contact_id,)),
+        ("saved contracts (D1/D2/D6)", "SELECT COUNT(*) c FROM contracts WHERE contact_id = ?", (contact_id,)),
+        ("recorded donations", "SELECT COUNT(*) c FROM donations WHERE contact_id = ?", (contact_id,)),
+        ("cohort staff assignments", "SELECT COUNT(*) c FROM cohort_staffing WHERE contact_id = ?", (contact_id,)),
+        ("small-group staff assignments", "SELECT COUNT(*) c FROM small_group_staffing WHERE contact_id = ?", (contact_id,)),
+        (
+            "contracts where they are credited as facilitator/assistant (the credit is removed, the other person's contract is kept)",
+            "SELECT COUNT(*) c FROM contracts WHERE led_by_contact_id = ? OR assisted_by_contact_id = ?",
+            (contact_id, contact_id),
+        ),
+    ]:
+        n = conn.execute(sql, params).fetchone()["c"]
+        if n:
+            items.append((label, n))
+    return items
+
+
+def _clear_contact_history(conn, contact_id):
+    """Erases this contact's training and financial history so the contact
+    itself can be kept (or deleted). Never deletes anyone else's records: if
+    this contact is credited as facilitator/assistant on another person's
+    contract, only that credit is cleared. Does NOT touch a linked CRM staff
+    login. Caller commits."""
+    # Things hanging off this contact's enrollments and contracts first
+    conn.execute(
+        "DELETE FROM feedback_responses WHERE enrollment_id IN (SELECT id FROM enrollments WHERE contact_id = ?)",
+        (contact_id,),
+    )
+    conn.execute(
+        "DELETE FROM training_profiles WHERE enrollment_id IN (SELECT id FROM enrollments WHERE contact_id = ?)",
+        (contact_id,),
+    )
+    conn.execute(
+        "DELETE FROM contract_revisions WHERE contract_id IN (SELECT id FROM contracts WHERE contact_id = ?)",
+        (contact_id,),
+    )
+    conn.execute("DELETE FROM contracts WHERE contact_id = ?", (contact_id,))
+    conn.execute("UPDATE contracts SET led_by_contact_id = NULL WHERE led_by_contact_id = ?", (contact_id,))
+    conn.execute("UPDATE contracts SET assisted_by_contact_id = NULL WHERE assisted_by_contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM enrollments WHERE contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM donations WHERE contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM cohort_staffing WHERE contact_id = ?", (contact_id,))
+    conn.execute("DELETE FROM small_group_staffing WHERE contact_id = ?", (contact_id,))
+
+
+def _typed_name_matches(contact, form):
+    typed = " ".join((form.get("confirm_name") or "").split()).lower()
+    return bool(typed) and typed == " ".join((contact["full_name"] or "").split()).lower()
+
+
 @crm.route("/contacts/<int:contact_id>/delete", methods=["GET"])
 @area_required("contacts")
 @leadership_required
@@ -1584,8 +1641,42 @@ def contact_delete_confirm(contact_id):
         flash("Couldn't find that contact.")
         return redirect(url_for(".contacts_list"))
     blockers = _contact_delete_blockers(conn, contact_id)
+    history = _contact_history_counts(conn, contact_id)
+    has_staff_link = bool(conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone())
     conn.close()
-    return render_template("contact_delete_confirm.html", contact=contact, blockers=blockers)
+    return render_template(
+        "contact_delete_confirm.html",
+        contact=contact,
+        blockers=blockers,
+        history=history,
+        has_staff_link=has_staff_link,
+    )
+
+
+@crm.route("/contacts/<int:contact_id>/clear-history", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_clear_history(contact_id):
+    """Leadership-only: wipes this contact's training/financial history but
+    keeps the contact. Requires typing the contact's full name."""
+    conn = get_db()
+    contact = conn.execute(f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    if not contact:
+        conn.close()
+        flash("Couldn't find that contact.")
+        return redirect(url_for(".contacts_list"))
+    if not _typed_name_matches(contact, request.form):
+        conn.close()
+        flash("The name you typed didn't match -- nothing was cleared.")
+        return redirect(url_for(".contact_delete_confirm", contact_id=contact_id))
+    history = _contact_history_counts(conn, contact_id)
+    _clear_contact_history(conn, contact_id)
+    conn.commit()
+    conn.close()
+    summary = ", ".join(f"{n} {label.split(' (')[0]}" for label, n in history) or "nothing to clear"
+    print(f"CLEARED HISTORY for contact {contact_id} ({contact['full_name']}) by {session.get('staff_name')}: {summary}", flush=True)
+    flash(f"Cleared history for {contact['full_name']}: {summary}.")
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
 @crm.route("/contacts/<int:contact_id>/delete", methods=["POST"])
@@ -1598,17 +1689,38 @@ def contact_delete(contact_id):
         conn.close()
         flash("Couldn't find that contact.")
         return redirect(url_for(".contacts_list"))
-    blockers = _contact_delete_blockers(conn, contact_id)
-    if blockers:
-        conn.close()
-        flash("Couldn't delete -- this contact " + "; and ".join(blockers) + ". Remove that first, or ask for help.")
-        return redirect(url_for(".contact_detail", contact_id=contact_id))
+    cleared_summary = None
+    if request.form.get("clear_history") == "1":
+        # Leadership chose "clear history and delete": needs the typed name,
+        # and a linked CRM staff login still has to be unlinked on the Team
+        # page first (we never delete a login as a side effect).
+        if not _typed_name_matches(contact, request.form):
+            conn.close()
+            flash("The name you typed didn't match -- nothing was cleared or deleted.")
+            return redirect(url_for(".contact_delete_confirm", contact_id=contact_id))
+        if conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone():
+            conn.close()
+            flash("This contact is linked to a CRM staff login -- unlink it from the Team page first. Nothing was changed.")
+            return redirect(url_for(".contact_delete_confirm", contact_id=contact_id))
+        history = _contact_history_counts(conn, contact_id)
+        _clear_contact_history(conn, contact_id)
+        cleared_summary = ", ".join(f"{n} {label.split(' (')[0]}" for label, n in history) or "no history"
+    else:
+        blockers = _contact_delete_blockers(conn, contact_id)
+        if blockers:
+            conn.close()
+            flash("Couldn't delete -- this contact " + "; and ".join(blockers) + ". Remove that first, or ask for help.")
+            return redirect(url_for(".contact_detail", contact_id=contact_id))
     name = contact["full_name"]
     conn.execute("DELETE FROM contact_photos WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
     conn.commit()
     conn.close()
-    flash(f"Deleted {name}.")
+    if cleared_summary is not None:
+        print(f"CLEARED HISTORY AND DELETED contact {contact_id} ({name}) by {session.get('staff_name')}: {cleared_summary}", flush=True)
+        flash(f"Deleted {name} (history cleared first: {cleared_summary}).")
+    else:
+        flash(f"Deleted {name}.")
     return redirect(url_for(".contacts_list"))
 
 
