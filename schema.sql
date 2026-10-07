@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     attended INTEGER NOT NULL DEFAULT 0,   -- 0/1
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     feedback_token TEXT UNIQUE,
+    enrolled_by_contact_id INTEGER REFERENCES contacts(id),  -- who brought this person in (TA / Team Captain requirement)
     UNIQUE(contact_id, cohort_id)
 );
 

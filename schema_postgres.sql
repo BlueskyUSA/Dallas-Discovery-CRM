@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     attended INTEGER NOT NULL DEFAULT 0,   -- 0/1
     created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
     feedback_token TEXT UNIQUE,
+    enrolled_by_contact_id INTEGER REFERENCES contacts(id),  -- who brought this person in (TA / Team Captain requirement)
     UNIQUE(contact_id, cohort_id)
 );
 
@@ -274,19 +275,11 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
     notes TEXT
 );
 
--- Authorized Users: which Staff accounts (beyond Leadership, who always
--- have access) may view a confidential area. area_key is either a fixed
--- key ("accounting", "marketing", "contacts") or a program's code
--- ("B1", "B2", ...). Capped at 4 grants per area_key, enforced in the app.
-CREATE TABLE IF NOT EXISTS access_grants (
-    id SERIAL PRIMARY KEY,
-    area_key TEXT NOT NULL,
-    staff_id INTEGER NOT NULL REFERENCES staff(id),
-    granted_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
-);
-
 -- Team logins for the CRM (/crm). role is 'Team' or 'Leadership' --
 -- Leadership additionally sees feedback results, contracts, and donations.
+-- (Defined here, before access_grants below, since access_grants has a
+-- foreign key to staff -- Postgres requires the referenced table to exist
+-- first when running this script fresh on a brand-new database.)
 CREATE TABLE IF NOT EXISTS staff (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -297,4 +290,15 @@ CREATE TABLE IF NOT EXISTS staff (
     is_owner INTEGER NOT NULL DEFAULT 0,
     contact_id INTEGER REFERENCES contacts(id),  -- optional link to their full Contact profile
     created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+);
+
+-- Authorized Users: which Staff accounts (beyond Leadership, who always
+-- have access) may view a confidential area. area_key is either a fixed
+-- key ("accounting", "marketing", "contacts") or a program's code
+-- ("B1", "B2", ...). Capped at 4 grants per area_key, enforced in the app.
+CREATE TABLE IF NOT EXISTS access_grants (
+    id SERIAL PRIMARY KEY,
+    area_key TEXT NOT NULL,
+    staff_id INTEGER NOT NULL REFERENCES staff(id),
+    granted_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
 );

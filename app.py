@@ -1543,6 +1543,72 @@ def contact_detail(contact_id):
     )
 
 
+# ---------- "enrolled by" and the TA / Team Captain requirement ----------
+# To TA in D1 or the Relationship training a person must have brought in at
+# least TA_MIN_ENROLLED people; to be a Team Captain, at least
+# CAPTAIN_MIN_ENROLLED. These are lifetime counts of DIFFERENT people recorded
+# as "brought in by" that person on an enrollment (anyone who enrolled counts,
+# whether or not they attended). The requirement only produces a warning --
+# leadership can always make an exception.
+TA_MIN_ENROLLED = 1
+CAPTAIN_MIN_ENROLLED = 2
+
+
+def people_enrolled_count(conn, contact_id):
+    """How many different people this contact has brought into a training."""
+    row = conn.execute(
+        """SELECT COUNT(DISTINCT contact_id) c FROM enrollments
+           WHERE enrolled_by_contact_id = ? AND contact_id != ?""",
+        (contact_id, contact_id),
+    ).fetchone()
+    return row["c"]
+
+
+def staffing_requirement(role, duty):
+    """Minimum people-brought-in for a staffing assignment (0 = none)."""
+    if duty == "Team Captain":
+        return CAPTAIN_MIN_ENROLLED
+    if role == "TA":
+        return TA_MIN_ENROLLED
+    return 0
+
+
+def requirement_warning(conn, contact_id, role, duty):
+    """A plain-English heads-up if this person hasn't met the requirement for
+    the assignment just made, or None if they have (or it has none)."""
+    need = staffing_requirement(role, duty)
+    if not need:
+        return None
+    have = people_enrolled_count(conn, contact_id)
+    if have >= need:
+        return None
+    who = conn.execute(
+        f"SELECT {FULL_NAME_SQL} AS n FROM contacts WHERE id = ?", (contact_id,)
+    ).fetchone()
+    label = "Team Captain" if duty == "Team Captain" else "TA"
+    return (
+        f"Heads-up: {who['n']} has brought in {have} "
+        f"{'person' if have == 1 else 'people'}; the {label} requirement is {need}. "
+        f"Assigned anyway -- record who they brought in on the cohort roster to update this."
+    )
+
+
+def parse_contact_pick(conn, raw):
+    """Turns what a 'Brought in by' box holds ('Full Name [#123]', picked from
+    the autocomplete list) into (contact_id, error). Blank -> (None, None)."""
+    import re as _re
+    raw = (raw or "").strip()
+    if not raw:
+        return None, None
+    m = _re.search(r"\[#(\d+)\]\s*$", raw)
+    if not m:
+        return None, "Please pick a name from the list that appears as you type."
+    cid = int(m.group(1))
+    if not conn.execute("SELECT 1 FROM contacts WHERE id = ?", (cid,)).fetchone():
+        return None, "That contact wasn't found."
+    return cid, None
+
+
 def _contact_delete_blockers(conn, contact_id):
     """Returns a list of plain-English reasons this contact can't be safely
     deleted yet -- real training/financial history that would otherwise be
@@ -1565,6 +1631,11 @@ def _contact_delete_blockers(conn, contact_id):
     ).fetchone()
     if led["c"]:
         reasons.append("is credited as a contract facilitator/assistant for someone else")
+    brought = conn.execute(
+        "SELECT COUNT(*) c FROM enrollments WHERE enrolled_by_contact_id = ?", (contact_id,)
+    ).fetchone()
+    if brought["c"]:
+        reasons.append("is recorded as having brought other people into a training")
     staff_row = conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone()
     if staff_row:
         reasons.append("is linked to a CRM staff login (unlink it from the Team page first)")
@@ -1587,6 +1658,11 @@ def _contact_history_counts(conn, contact_id):
             "contracts where they are credited as facilitator/assistant (the credit is removed, the other person's contract is kept)",
             "SELECT COUNT(*) c FROM contracts WHERE led_by_contact_id = ? OR assisted_by_contact_id = ?",
             (contact_id, contact_id),
+        ),
+        (
+            "enrollments where they are recorded as having brought the person in (the credit is removed, the other person's enrollment is kept)",
+            "SELECT COUNT(*) c FROM enrollments WHERE enrolled_by_contact_id = ?",
+            (contact_id,),
         ),
     ]:
         n = conn.execute(sql, params).fetchone()["c"]
@@ -1617,6 +1693,7 @@ def _clear_contact_history(conn, contact_id):
     conn.execute("DELETE FROM contracts WHERE contact_id = ?", (contact_id,))
     conn.execute("UPDATE contracts SET led_by_contact_id = NULL WHERE led_by_contact_id = ?", (contact_id,))
     conn.execute("UPDATE contracts SET assisted_by_contact_id = NULL WHERE assisted_by_contact_id = ?", (contact_id,))
+    conn.execute("UPDATE enrollments SET enrolled_by_contact_id = NULL WHERE enrolled_by_contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM enrollments WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM donations WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM cohort_staffing WHERE contact_id = ?", (contact_id,))
@@ -2357,9 +2434,11 @@ def cohort_detail(cohort_id):
     roster = conn.execute(
         f"""SELECT e.*, {full_name_sql('ct')} AS full_name,
                    ct.id AS contact_id, sg.label AS group_label,
-                   fr.id AS feedback_response_id
+                   fr.id AS feedback_response_id,
+                   {full_name_sql('eb')} AS enrolled_by_name
            FROM enrollments e
            JOIN contacts ct ON ct.id = e.contact_id
+           LEFT JOIN contacts eb ON eb.id = e.enrolled_by_contact_id
            LEFT JOIN small_groups sg ON sg.id = e.small_group_id
            LEFT JOIN feedback_responses fr ON fr.enrollment_id = e.id
            WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""",
@@ -2384,6 +2463,15 @@ def cohort_detail(cohort_id):
     all_contacts = conn.execute(
         f"SELECT id, {FULL_NAME_SQL} AS full_name FROM contacts ORDER BY last_name, first_name"
     ).fetchall()
+    enrolled_counts = {
+        r["cid"]: r["n"]
+        for r in conn.execute(
+            """SELECT enrolled_by_contact_id AS cid, COUNT(DISTINCT contact_id) n
+               FROM enrollments
+               WHERE enrolled_by_contact_id IS NOT NULL AND contact_id != enrolled_by_contact_id
+               GROUP BY enrolled_by_contact_id"""
+        ).fetchall()
+    }
     conn.close()
     return render_template(
         "cohort_detail.html",
@@ -2393,6 +2481,9 @@ def cohort_detail(cohort_id):
         staffing=staffing,
         sg_staffing=sg_staffing,
         all_contacts=all_contacts,
+        enrolled_counts=enrolled_counts,
+        TA_MIN=TA_MIN_ENROLLED,
+        CAPTAIN_MIN=CAPTAIN_MIN_ENROLLED,
     )
 
 
@@ -2423,10 +2514,18 @@ def enroll(cohort_id):
         conn.close()
         return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
+    brought_by, pick_error = parse_contact_pick(conn, request.form.get("enrolled_by_pick"))
+    if pick_error:
+        flash(f"Not enrolled: {pick_error}")
+        conn.close()
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    if brought_by == contact_id:
+        brought_by = None  # nobody brings themselves in
+
     try:
         conn.execute(
-            "INSERT INTO enrollments (contact_id, cohort_id) VALUES (?, ?)",
-            (contact_id, cohort_id),
+            "INSERT INTO enrollments (contact_id, cohort_id, enrolled_by_contact_id) VALUES (?, ?, ?)",
+            (contact_id, cohort_id, brought_by),
         )
         conn.commit()
         flash("Enrolled.")
@@ -2450,6 +2549,14 @@ def enrollment_update(enrollment_id):
         fields["attended"] = 1
     if request.form.get("small_group_id"):
         fields["small_group_id"] = request.form["small_group_id"]
+    if "set_enrolled_by" in request.form:
+        brought_by, pick_error = parse_contact_pick(conn, request.form.get("enrolled_by_pick"))
+        if pick_error:
+            flash(pick_error)
+        elif brought_by == enr["contact_id"]:
+            flash("Someone can't be recorded as bringing themselves in.")
+        else:
+            fields["enrolled_by_contact_id"] = brought_by
     if fields:
         set_clause = ", ".join(f"{k} = ?" for k in fields)
         conn.execute(f"UPDATE enrollments SET {set_clause} WHERE id = ?", (*fields.values(), enrollment_id))
@@ -2565,6 +2672,9 @@ def staffing_new(cohort_id):
         (cohort_id, request.form["contact_id"], request.form["role"], request.form.get("duty") or None),
     )
     conn.commit()
+    warning = requirement_warning(conn, int(request.form["contact_id"]), request.form["role"], request.form.get("duty") or None)
+    if warning:
+        flash(warning)
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
@@ -2579,8 +2689,68 @@ def sg_staffing_new(small_group_id):
         (small_group_id, request.form["contact_id"], request.form.get("duty") or None),
     )
     conn.commit()
+    warning = requirement_warning(conn, int(request.form["contact_id"]), "TA", request.form.get("duty") or None)
+    if warning:
+        flash(warning)
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=sg["cohort_id"]))
+
+
+# ---------- leadership pipeline ----------
+
+@crm.route("/leadership-pipeline")
+@area_required("contacts")
+def leadership_pipeline():
+    """Who has brought people into the training, and who is serving as a TA or
+    Team Captain -- with a plain check against the requirement (TA: brought in
+    at least TA_MIN_ENROLLED people; Team Captain: at least CAPTAIN_MIN_ENROLLED)."""
+    conn = get_db()
+    people = {}
+
+    for r in conn.execute(
+        """SELECT enrolled_by_contact_id AS cid,
+                  COUNT(DISTINCT contact_id) AS n,
+                  COUNT(DISTINCT CASE WHEN attended = 1 THEN contact_id END) AS attended
+           FROM enrollments
+           WHERE enrolled_by_contact_id IS NOT NULL AND contact_id != enrolled_by_contact_id
+           GROUP BY enrolled_by_contact_id"""
+    ).fetchall():
+        people[r["cid"]] = {"enrolled": r["n"], "attended": r["attended"], "ta_times": 0, "captain_times": 0}
+
+    def entry(cid):
+        return people.setdefault(cid, {"enrolled": 0, "attended": 0, "ta_times": 0, "captain_times": 0})
+
+    for r in conn.execute(
+        """SELECT contact_id AS cid, COUNT(*) AS n,
+                  SUM(CASE WHEN duty = 'Team Captain' THEN 1 ELSE 0 END) AS caps
+           FROM small_group_staffing GROUP BY contact_id"""
+    ).fetchall():
+        e = entry(r["cid"])
+        e["ta_times"] += r["n"]
+        e["captain_times"] += r["caps"] or 0
+    for r in conn.execute(
+        "SELECT contact_id AS cid, COUNT(*) AS n FROM cohort_staffing WHERE role = 'TA' GROUP BY contact_id"
+    ).fetchall():
+        entry(r["cid"])["ta_times"] += r["n"]
+
+    names = {
+        r["id"]: r["n"]
+        for r in conn.execute(f"SELECT id, {FULL_NAME_SQL} AS n FROM contacts").fetchall()
+    }
+    conn.close()
+
+    rows = []
+    for cid, e in people.items():
+        e["id"] = cid
+        e["name"] = names.get(cid, "(unknown)")
+        e["ta_ok"] = e["enrolled"] >= TA_MIN_ENROLLED
+        e["captain_ok"] = e["enrolled"] >= CAPTAIN_MIN_ENROLLED
+        e["needs_attention"] = (e["ta_times"] and not e["ta_ok"]) or (e["captain_times"] and not e["captain_ok"])
+        rows.append(e)
+    rows.sort(key=lambda e: (-e["enrolled"], e["name"].lower()))
+    return render_template(
+        "leadership_pipeline.html", rows=rows, TA_MIN=TA_MIN_ENROLLED, CAPTAIN_MIN=CAPTAIN_MIN_ENROLLED
+    )
 
 
 # ---------- donations ----------
