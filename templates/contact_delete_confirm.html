@@ -11,13 +11,46 @@
     <li>{{ reason }}</li>
     {% endfor %}
   </ul>
-  <p class="muted">Removing a contact with real training or financial history attached could destroy records you need -- that has to be cleaned up first, or ask for help.</p>
+  <p class="muted">Removing a contact with real training or financial history attached could destroy records you need. Either clean that up first, or use the leadership option below.</p>
   <a class="btn secondary" href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a>
 </div>
-{% else %}
-<div class="card">
+{% endif %}
+
+{% if history or not blockers %}
+{% if history %}
+<div class="card" style="border-color:#c0392b; margin-top:16px">
+  <h2 style="margin-top:0">Leadership: clear this contact's history</h2>
+  <p>This permanently erases the following for <strong>{{ contact.full_name }}</strong>. It can't be undone:</p>
+  <ul>
+    {% for label, n in history %}
+    <li><strong>{{ n }}</strong> {{ label }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted">Anyone else's records are kept. Their name, email and profile are not touched unless you also choose to delete the contact.</p>
+  {% if has_staff_link %}
+  <p class="muted"><strong>Note:</strong> this contact is linked to a CRM staff login. You can clear history, but to delete the contact you must unlink the login on the Team page first.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('.contact_clear_history', contact_id=contact.id) }}" style="margin-bottom:12px">
+    <label for="confirm_name_clear">To confirm, type the full name: <strong>{{ contact.full_name }}</strong></label>
+    <input id="confirm_name_clear" name="confirm_name" type="text" autocomplete="off" required style="display:block; margin:6px 0 10px; width:100%; max-width:360px">
+    <button class="btn" type="submit" style="background:#c0392b; border-color:#c0392b">Clear history, keep the contact</button>
+  </form>
+  {% if not has_staff_link %}
+  <form method="post" action="{{ url_for('.contact_delete', contact_id=contact.id) }}">
+    <input type="hidden" name="clear_history" value="1">
+    <label for="confirm_name_delete">Or clear the history <em>and delete the contact</em>. Type the full name again: <strong>{{ contact.full_name }}</strong></label>
+    <input id="confirm_name_delete" name="confirm_name" type="text" autocomplete="off" required style="display:block; margin:6px 0 10px; width:100%; max-width:360px">
+    <button class="btn" type="submit" style="background:#c0392b; border-color:#c0392b">Clear history and delete this contact</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% if not blockers %}
+<div class="card" style="margin-top:16px">
   <p>This permanently removes <strong>{{ contact.full_name }}</strong> ({{ contact.email or 'no email' }}) and their photo, if any. This can't be undone.</p>
-  <form method="post">
+  <form method="post" action="{{ url_for('.contact_delete', contact_id=contact.id) }}">
     <button class="btn" type="submit" style="background:#c0392b; border-color:#c0392b">Yes, delete this contact</button>
     <a class="btn secondary" href="{{ url_for('.contact_detail', contact_id=contact.id) }}">Cancel</a>
   </form>
