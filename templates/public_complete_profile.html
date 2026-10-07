@@ -12,12 +12,11 @@
   It only takes a few minutes, and it helps us keep in touch and match you up correctly with your
   fellow participants and team members.
 </p>
-<p class="muted">
-  No need to finish it all in one sitting -- your answers save automatically as you go, so it's
-  completely safe to close this page anytime and pick up right where you left off using this same
-  link.
-</p>
-<p class="muted" id="autosave-status" style="min-height:1.2em"></p>
+<div role="note" style="background:rgba(31,111,178,0.10); border-left:6px solid var(--pub-primary, #1f6fb2); border-radius:6px; padding:14px 18px; margin:18px 0;">
+  <p style="margin:0 0 6px; font-size:1.15em; font-weight:bold; color:var(--pub-primary, #1f6fb2);">&#10003; Take your time. Your answers save automatically.</p>
+  <p style="margin:0;">No need to finish in one sitting. It's completely safe to close this page anytime and pick up right where you left off using this same link.</p>
+  <p id="autosave-status" style="margin:8px 0 0; min-height:1.2em; font-size:0.9em; font-style:italic;"></p>
+</div>
 <div class="card">
   <form method="post" autocomplete="off" enctype="multipart/form-data" id="profile-form" action="{{ url_for('public_complete_profile', token=contact.profile_token) }}">
     <div class="grid2">
