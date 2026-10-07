@@ -6,14 +6,14 @@
 
 <div class="card">
   <form method="post">
-    <div class="field"><label>Is this your first time attending Bluesky Relationship?</label>
+    <div class="field"><label>Is this your first time attending the Relationship Training?</label>
       <select name="first_time_attending">
         <option value="">—</option>
         <option {{ 'selected' if profile and profile.first_time_attending == 'Yes' else '' }}>Yes</option>
         <option {{ 'selected' if profile and profile.first_time_attending == 'No' else '' }}>No</option>
       </select>
     </div>
-    <div class="field"><label>What do you want to get out of Bluesky Relationship Training?</label>
+    <div class="field"><label>What do you want to get out of the Relationship Training?</label>
       <textarea name="training_goals" rows="2" style="width:100%">{{ profile.training_goals if profile else '' }}</textarea></div>
     {% if is_couples %}
     <div class="field"><label>How long have you been in your relationship?</label>
