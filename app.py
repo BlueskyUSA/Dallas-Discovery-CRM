@@ -2555,9 +2555,10 @@ def cohort_new(program_id):
             (program_id, max_num + 1, session_date),
         )
     conn.commit()
-    new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
+    code = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()["code"]
     conn.close()
-    return redirect(url_for(".cohort_detail", cohort_id=new_id))
+    flash(f"Scheduled {code} #{max_num + 1} for {_short_span(date.fromisoformat(session_date), date.fromisoformat(end_date or session_date))}. It now appears in the {code} list below and on the calendar.")
+    return redirect(url_for(".programs_list") + f"#program-{program_id}")
 
 
 COHORT_STATUSES = ["Scheduled", "Completed", "Cancelled"]
