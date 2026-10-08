@@ -1,0 +1,91 @@
+{% extends "crm_base.html" %}
+{% block title %}Calendar {{ year }} — {{ program_name }} CRM{% endblock %}
+{% block content %}
+<style>
+  .cal-head { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+  .cal-head h1 { margin:0; }
+  .cal-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; margin:14px 0 22px; }
+  .cal-month { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 12px 8px; }
+  .cal-month h3 { margin:0 0 8px; font-size:1rem; display:flex; justify-content:space-between; align-items:baseline; }
+  .cal-month h3 .n { font-size:0.75rem; font-weight:600; color:var(--muted); }
+  .cal-month table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .cal-month th { font-size:0.68rem; color:var(--muted); font-weight:600; padding:2px 0; text-align:center; background:none; border:0; }
+  .cal-month td { text-align:center; padding:2px 0; height:30px; font-size:0.82rem; border:0; vertical-align:middle; }
+  .cal-day { display:inline-block; min-width:26px; line-height:26px; border-radius:50%; }
+  .cal-day.today { outline:2px solid var(--accent); }
+  .cal-day.ev { color:#fff; font-weight:700; text-decoration:none; }
+  .cal-legend { display:flex; gap:14px; flex-wrap:wrap; margin:6px 0; font-size:0.85rem; }
+  .cal-legend .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+  .cal-opens { margin:8px 0 2px; padding-top:8px; border-top:1px solid var(--border); font-size:0.8rem; min-height:1.2em; }
+  .cal-opens .row { margin:2px 0; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .cal-opens .when { font-weight:700; }
+  .chip { display:inline-block; padding:1px 7px; border-radius:10px; color:#fff; font-size:0.72rem; font-weight:700; text-decoration:none; }
+  .chip.cx { opacity:0.45; text-decoration:line-through; }
+</style>
+<div class="cal-head">
+  <a class="btn secondary" href="{{ url_for('.calendar_view', year=year-1) }}">&larr; {{ year-1 }}</a>
+  <h1>{{ year }}</h1>
+  <a class="btn secondary" href="{{ url_for('.calendar_view', year=year+1) }}">{{ year+1 }} &rarr;</a>
+  <a class="btn secondary" href="{{ url_for('.calendar_view') }}">This year</a>
+</div>
+<p class="muted" style="margin:0 0 6px">Every scheduled training session, by date. Click a colored date to open that session. Add or change sessions on the <a href="{{ url_for('.programs_list') }}">Programs</a> page.</p>
+{% if codes %}
+<div class="cal-legend">
+  {% for c in codes %}<span><span class="dot" style="background:{{ colors.get(c, '#777') }}"></span>{{ c }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<div class="cal-grid">
+  {% for m in months %}
+  <div class="cal-month">
+    <h3>{{ m.name }}</h3>
+    <table>
+      <tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr>
+      {% for week in m.weeks %}
+      <tr>
+        {% for d in week %}
+        <td>
+          {% if d %}
+            {% if d.sessions %}
+              <a class="cal-day ev" href="{{ url_for('.cohort_detail', cohort_id=d.first_id) }}"
+                 style="background:{{ d.bg }};border-radius:{{ '7px' if d.multi_day else '50%' }}{{ ';opacity:0.45' if d.cancelled }}"
+                 title="{{ d.title }}">{{ d.day }}</a>
+            {% else %}
+              <span class="cal-day{{ ' today' if d.today }}">{{ d.day }}</span>
+            {% endif %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+    <div class="cal-opens">
+      {% for g in m.opens %}
+      <div class="row"><span class="when">{{ g.label }}</span>
+        {% for s in g.sessions %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ colors.get(s.code, '#777') }}" href="{{ url_for('.cohort_detail', cohort_id=s.id) }}" title="{{ s.code }} #{{ s.session_number }}">{{ s.code }}</a>{% endfor %}
+      </div>
+      {% else %}<span class="muted">&mdash;</span>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Weekends in {{ year }}</h2>
+<div class="card">
+  <table>
+    <tr><th>Starts</th><th>Training running that weekend</th></tr>
+    {% for g in groups %}
+    {% if g.start.year == year %}
+    <tr>
+      <td><strong>{{ g.start_short }}</strong></td>
+      <td>
+        {% for s in g.sessions %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ colors.get(s.code, '#777') }}" href="{{ url_for('.cohort_detail', cohort_id=s.id) }}" title="{{ s.code }} #{{ s.session_number }} &middot; {{ s.status }}">{{ s.code }}</a> {% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% else %}
+    <tr><td colspan="2" class="muted">No sessions scheduled in {{ year }} yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
