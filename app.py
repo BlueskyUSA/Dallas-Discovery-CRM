@@ -3030,25 +3030,24 @@ CALENDAR_COLORS = {
 }
 
 
-@crm.route("/calendar")
-@area_required("contacts")
-def calendar_view():
-    """Year-at-a-glance calendar of every scheduled training session, twelve
-    small months with each session date marked in its program's color and
-    linked to that session. Read-only -- sessions are still scheduled on the
-    Programs page."""
+def _calendar_data(year, public=False):
+    """Everything the year calendar needs. public=True is the visitor-facing
+    version: cancelled sessions are left out and nothing links to a staff page."""
     import calendar as _cal
-    year = request.args.get("year", type=int) or date.today().year
-    year = max(2000, min(2100, year))
     conn = get_db()
-    rows = conn.execute(
+    rows = [dict(r) for r in conn.execute(
         """SELECT ch.id, ch.session_number, ch.session_date, ch.end_date, ch.status, p.code, p.name
            FROM cohorts ch JOIN programs p ON p.id = ch.program_id
            WHERE ch.session_date <= ? AND COALESCE(ch.end_date, ch.session_date) >= ?
            ORDER BY ch.session_date, p.code""",
         (f"{year}-12-31", f"{year}-01-01"),
-    ).fetchall()
+    ).fetchall()]
     conn.close()
+    if public:
+        rows = [r for r in rows if r["status"] != "Cancelled"]
+    for r in rows:
+        r["href"] = None if public else url_for(".cohort_detail", cohort_id=r["id"])
+        r["span"] = date_span(r)
 
     # sessions that run on the same dates (e.g. D1, D2 and D3 on one weekend)
     # are grouped so the weekend can be called out as one event
@@ -3097,9 +3096,11 @@ def calendar_view():
             "bg": bg,
             "multi_day": any(g["last"] != g["start"] for g in found),
             "cancelled": all(r["status"] == "Cancelled" for r in sessions),
-            "first_id": sessions[0]["id"],
+            "href": sessions[0]["href"],
             "title": "; ".join(
-                f"{r['code']} #{r['session_number']} " + date_span(r) + f" ({r['status']})" for r in sessions
+                (f"{r['code']} #{r['session_number']} " if not public else f"{r['code']} ")
+                + r["span"] + ("" if public else f" ({r['status']})")
+                for r in sessions
             ),
         })
         return cell
@@ -3116,9 +3117,29 @@ def calendar_view():
             "weeks": weeks,
             "opens": [g for g in groups if g["start"].year == year and g["start"].month == m],
         })
-    codes = sorted({r["code"] for r in rows})
+    return {
+        "year": year, "months": months, "groups": groups, "colors": CALENDAR_COLORS,
+        "codes": sorted({r["code"] for r in rows}),
+        "names": {r["code"]: r["name"] for r in rows},
+        "public": public,
+    }
+
+
+@crm.route("/calendar")
+@area_required("contacts")
+def calendar_view():
+    """Year-at-a-glance calendar of every scheduled training session, twelve
+    small months with each session date marked in its program's color and
+    linked to that session. Read-only -- sessions are still scheduled on the
+    Programs page."""
+    year = request.args.get("year", type=int) or date.today().year
+    year = max(2000, min(2100, year))
+    cal = _calendar_data(year, public=False)
     return render_template(
-        "calendar.html", year=year, months=months, groups=groups, colors=CALENDAR_COLORS, codes=codes,
+        "calendar.html", cal=cal,
+        prev_url=url_for(".calendar_view", year=year - 1),
+        next_url=url_for(".calendar_view", year=year + 1),
+        today_url=url_for(".calendar_view"),
     )
 
 
@@ -3338,10 +3359,27 @@ def public_register():
         """SELECT c.*, p.code, p.name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
            WHERE COALESCE(c.end_date, c.session_date) >= date('now')
+             AND c.status != 'Cancelled'
            ORDER BY c.session_date ASC LIMIT 20"""
     ).fetchall()
     conn.close()
-    return render_template("public_register.html", programs=programs, upcoming=upcoming)
+    year = request.args.get("year", type=int)
+    if not year:
+        # default to this year, or -- if nothing is scheduled yet this year --
+        # the year of the next upcoming session
+        year = date.today().year
+        if upcoming:
+            first_year = int(str(upcoming[0]["session_date"])[:4])
+            if first_year > year:
+                year = first_year
+    year = max(2000, min(2100, year))
+    cal = _calendar_data(year, public=True)
+    return render_template(
+        "public_register.html", programs=programs, upcoming=upcoming, cal=cal,
+        prev_url=url_for("public_register", year=year - 1) + "#calendar",
+        next_url=url_for("public_register", year=year + 1) + "#calendar",
+        today_url=url_for("public_register") + "#calendar",
+    )
 
 
 @app.route("/contact", methods=["GET", "POST"])
