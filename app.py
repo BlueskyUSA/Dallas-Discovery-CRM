@@ -691,11 +691,12 @@ def staff_new_search():
     conn = get_db()
     contacts = []
     if q:
+        _search_sql, _search_params = _contact_search_clause(q)
         contacts = conn.execute(
             f"""SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts
-                WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ?
+                WHERE {_search_sql}
                 ORDER BY last_name, first_name LIMIT 25""",
-            (f"%{q}%", f"%{q}%", f"%{q}%"),
+            _search_params,
         ).fetchall()
     conn.close()
     return render_template("staff_new_search.html", q=q, contacts=contacts)
@@ -762,11 +763,12 @@ def staff_link_contact_search(staff_id):
     q = request.args.get("q", "").strip()
     contacts = []
     if q:
+        _search_sql, _search_params = _contact_search_clause(q)
         contacts = conn.execute(
             f"""SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts
-                WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ?
+                WHERE {_search_sql}
                 ORDER BY last_name, first_name LIMIT 25""",
-            (f"%{q}%", f"%{q}%", f"%{q}%"),
+            _search_params,
         ).fetchall()
     conn.close()
     return render_template("staff_link_contact.html", staff=staff, q=q, contacts=contacts)
@@ -1006,6 +1008,18 @@ def staff_remove_owner(staff_id):
         flash(f"{staff['name']} is no longer an Owner.")
     conn.close()
     return redirect(url_for(".staff_list"))
+
+
+def _contact_search_clause(q):
+    """SQL + params for a name/email search. Every word typed must match the first
+    name, last name, or email, so "Max Thompson" finds Max Thompson (and "thompson max"
+    does too), while a single word or part of an email works as before."""
+    words = q.split() or [q]
+    parts, params = [], []
+    for w in words:
+        parts.append("(first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
+        params += [f"%{w}%", f"%{w}%", f"%{w}%"]
+    return " AND ".join(parts), params
 
 
 # Reusable SQL snippet: builds a display name from first_name/last_name.
@@ -1253,8 +1267,9 @@ def contacts_list():
     conn = get_db()
     where, params = [], []
     if q:
-        where.append("(first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
-        params += [f"%{q}%", f"%{q}%", f"%{q}%"]
+        _search_sql, _search_params = _contact_search_clause(q)
+        where.append("(" + _search_sql + ")")
+        params += _search_params
     if list_id:
         where.append("id IN (SELECT contact_id FROM contact_list_members WHERE list_id = ?)")
         params.append(list_id)
