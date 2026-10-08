@@ -3011,6 +3011,19 @@ def contact_list_remove(contact_id, list_id):
 
 # ---------- calendar ----------
 
+def _short_date(d):
+    return f"{d.strftime('%b')} {d.day}"
+
+
+def _short_span(start, last):
+    """'Jun 11-13', 'Jul 30-Aug 1', or just 'Jun 12' for a one-day session."""
+    if last == start:
+        return _short_date(start)
+    if last.month == start.month:
+        return f"{_short_date(start)}\u2013{last.day}"
+    return f"{_short_date(start)}\u2013{_short_date(last)}"
+
+
 CALENDAR_COLORS = {
     "D1": "#3f7d4f", "D2": "#c9a13b", "D3": "#3a78b5",
     "D4": "#8a5aa8", "D5": "#d9822b", "D6": "#2a9d9a",
@@ -3037,39 +3050,75 @@ def calendar_view():
     ).fetchall()
     conn.close()
 
-    # every day a session covers (first day through last day), within this year
-    by_day = {}
-    month_ids = {m: set() for m in range(1, 13)}
+    # sessions that run on the same dates (e.g. D1, D2 and D3 on one weekend)
+    # are grouped so the weekend can be called out as one event
+    groups_by_key = {}
     for r in rows:
         try:
-            d = date.fromisoformat(r["session_date"])
-            last = date.fromisoformat(r["end_date"]) if r["end_date"] else d
+            start = date.fromisoformat(r["session_date"])
+            last = date.fromisoformat(r["end_date"]) if r["end_date"] else start
         except (TypeError, ValueError):
             continue
-        while d <= last:
+        g = groups_by_key.setdefault((start, last), {"start": start, "last": last, "sessions": []})
+        g["sessions"].append(r)
+    groups = sorted(groups_by_key.values(), key=lambda g: (g["start"], g["last"]))
+    for g in groups:
+        g["sessions"].sort(key=lambda r: r["code"])
+        g["label"] = _short_span(g["start"], g["last"])
+        g["start_short"] = _short_date(g["start"])
+
+    # every day a group covers (first day through last day), within this year
+    by_day = {}
+    for g in groups:
+        d = g["start"]
+        while d <= g["last"]:
             if d.year == year:
-                by_day.setdefault(d.isoformat(), []).append(r)
-                month_ids[d.month].add(r["id"])
+                by_day.setdefault(d.isoformat(), []).append(g)
             d += timedelta(days=1)
+
+    def day_cell(d, m):
+        iso = f"{year}-{m:02d}-{d:02d}"
+        cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": []}
+        found = by_day.get(iso, [])
+        if not found:
+            return cell
+        sessions = [r for g in found for r in g["sessions"]]
+        colors = [CALENDAR_COLORS.get(r["code"], "#777777") for r in sessions]
+        colors = list(dict.fromkeys(colors))
+        if len(colors) == 1:
+            bg = colors[0]
+        else:
+            step = 100 / len(colors)
+            bg = "conic-gradient(" + ", ".join(
+                f"{c} {i * step:.1f}% {(i + 1) * step:.1f}%" for i, c in enumerate(colors)
+            ) + ")"
+        cell.update({
+            "sessions": sessions,
+            "bg": bg,
+            "multi_day": any(g["last"] != g["start"] for g in found),
+            "cancelled": all(r["status"] == "Cancelled" for r in sessions),
+            "first_id": sessions[0]["id"],
+            "title": "; ".join(
+                f"{r['code']} #{r['session_number']} " + date_span(r) + f" ({r['status']})" for r in sessions
+            ),
+        })
+        return cell
 
     cal = _cal.Calendar(firstweekday=6)  # weeks start on Sunday
     months = []
     for m in range(1, 13):
-        weeks = []
-        for week in cal.monthdayscalendar(year, m):
-            weeks.append([
-                None if d == 0 else {
-                    "day": d,
-                    "sessions": by_day.get(f"{year}-{m:02d}-{d:02d}", []),
-                    "today": f"{year}-{m:02d}-{d:02d}" == date.today().isoformat(),
-                }
-                for d in week
-            ])
-        months.append({"name": _cal.month_name[m], "weeks": weeks, "count": len(month_ids[m])})
+        weeks = [
+            [None if d == 0 else day_cell(d, m) for d in week]
+            for week in cal.monthdayscalendar(year, m)
+        ]
+        months.append({
+            "name": _cal.month_name[m],
+            "weeks": weeks,
+            "opens": [g for g in groups if g["start"].year == year and g["start"].month == m],
+        })
     codes = sorted({r["code"] for r in rows})
     return render_template(
-        "calendar.html", year=year, months=months, sessions=rows, colors=CALENDAR_COLORS,
-        codes=codes,
+        "calendar.html", year=year, months=months, groups=groups, colors=CALENDAR_COLORS, codes=codes,
     )
 
 
