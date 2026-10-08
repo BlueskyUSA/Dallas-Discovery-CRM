@@ -39,10 +39,10 @@
 </div>
 
 <div class="stat-row">
-  {% if session.staff_role != 'Accounting' and (session.staff_role == 'Leadership' or has_contacts_access) %}
+  {% if session.staff_role == 'Leadership' or has_contacts_access %}
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
   {% endif %}
-  {% if session.staff_role != 'Accounting' and (session.staff_role == 'Leadership' or has_program_access) %}
+  {% if session.staff_role == 'Leadership' or has_program_access %}
   <a class="btn secondary" href="{{ url_for('.programs_list') }}">Schedule a session</a>
   {% endif %}
 </div>
