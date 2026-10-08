@@ -1,0 +1,8 @@
+{% extends "crm_base.html" %}
+{% block title %}Business plan — {{ program_name }} CRM{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contracts_list') }}">&larr; Contracts &amp; business plan</a></p>
+<h1>Preliminary business plan</h1>
+<p class="muted">Exactly as it is emailed to people who ask for it (subject: &ldquo;{{ subject }}&rdquo;). View-only.</p>
+<div class="card" style="max-width:820px; line-height:1.55">{{ plan_html|safe }}</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "crm_base.html" %}
+{% block title %}Contracts — {{ program_name }} CRM{% endblock %}
+{% block content %}
+<h1>Contracts &amp; business plan</h1>
+<p class="muted">View-only. Contracts are changed by Leadership from each person's contact page.</p>
+<div class="card">
+  <h3 style="margin-top:0">Preliminary business plan</h3>
+  <p>The plan as it is sent to interested people. <a href="{{ url_for('.business_plan_view') }}">Read it &rarr;</a></p>
+</div>
+<div class="card">
+  <h3 style="margin-top:0">Recorded contracts</h3>
+  <table>
+    <tr><th>Person</th><th>Contract</th><th>Last revised</th><th></th></tr>
+    {% for k in contracts %}
+    <tr>
+      <td>{{ k.full_name }}</td>
+      <td>{{ kinds.get(k.kind, k.kind) }}</td>
+      <td>{{ k.last_revised or k.created_at }}</td>
+      <td><a href="{{ url_for('.contract_view', contract_id=k.id) }}">Read &rarr;</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No contracts recorded yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

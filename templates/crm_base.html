@@ -24,6 +24,9 @@
       {% if session.staff_role == 'Leadership' or has_donations_access %}
       <a href="{{ url_for('.donations_list') }}">Donations</a>
       {% endif %}
+      {% if has_contracts_access %}
+      <a href="{{ url_for('.contracts_list') }}">Contracts</a>
+      {% endif %}
       {% if session.staff_role == 'Leadership' %}
       <a href="{{ url_for('.lists_manage') }}">Lists</a>
       <a href="{{ url_for('.staff_list') }}">Team</a>
@@ -32,7 +35,7 @@
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
       {% if session.staff_id %}
       <span class="muted" style="color:#e6e2d0; font-size:0.82rem; margin-left:8px">
-        {{ session.staff_name }} ({{ session.staff_role }})
+        {{ session.staff_name }} ({{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %})
         &middot; <a href="{{ url_for('.change_password') }}">Change password</a>
         &middot; <a href="{{ url_for('.logout') }}">Log out</a>
       </span>

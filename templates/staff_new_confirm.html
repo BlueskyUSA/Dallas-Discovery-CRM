@@ -16,6 +16,7 @@
         <select name="role">
           <option value="Team">Team</option>
           <option value="Leadership">Leadership</option>
+          {% if session.is_owner %}<option value="Accounting">Accounting &amp; Legal (view-only)</option>{% endif %}
         </select>
       </div>
       <div class="field"><label>Temporary password</label><input name="password" required autocomplete="new-password" placeholder="They can change this after logging in"></div>

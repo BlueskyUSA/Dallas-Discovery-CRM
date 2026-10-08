@@ -3,9 +3,10 @@
 {% block content %}
 <h1>Team accounts</h1>
 <p class="muted">
-  Leadership accounts help run the CRM (manage staff, add accounts) but only see confidential areas
-  (Contacts, Donations, program materials) once specifically authorized under each row's "Access" menu -- same as Team.
-  Only the Owner sees everything automatically. Deactivating an account keeps its history but blocks it from logging in.
+  Leadership accounts help run the CRM but only see confidential areas (Contacts, Donations, Contracts, program materials)
+  once the Owner authorizes them. <strong>Accounting &amp; Legal</strong> logins (accountant, bookkeeper, attorney) are view-only
+  and can only be given Accounting, Donations, Contracts, or Contacts. Only the Owner creates or changes Accounting &amp; Legal logins,
+  sets who can open which areas, and resets passwords. Deactivating an account keeps its history but blocks it from logging in.
 </p>
 
 <div class="card">
@@ -23,23 +24,26 @@
         {% endif %}
       </td>
       <td>{{ s.email }}</td>
-      <td>{{ s.role }}</td>
+      <td>{{ role_label(s.role) }}</td>
       <td>{% if s.active %}<span class="badge good">Active</span>{% else %}<span class="badge">Deactivated</span>{% endif %}</td>
       <td>
         {% if s.is_owner %}
         <span class="muted">Everything (Owner)</span>
         {% else %}
+          {% if session.is_owner %}
           {% set granted_keys = granted_keys_by_staff.get(s.id, []) %}
           <details style="margin-top:4px;">
             <summary style="cursor:pointer; font-size:0.9rem;">Access &#9662;</summary>
             <div style="margin-top:8px; min-width:260px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
+              {% if s.role != 'Accounting' %}
               <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
                     onsubmit="return confirm('Give {{ s.name }} full access to every area of the CRM?');" style="margin-bottom:10px;">
                 <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
               </form>
+              {% endif %}
               <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
                 <input type="hidden" name="redirect_to" value="staff_list">
-                {% for area_key, label in all_areas %}
+                {% for area_key, label in (accounting_areas if s.role == 'Accounting' else all_areas) %}
                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
                   <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
                          {% if area_key in granted_keys %}checked{% endif %}>
@@ -50,6 +54,9 @@
               </form>
             </div>
           </details>
+          {% else %}
+          <span class="muted" style="font-size:0.88rem">{{ (access_by_staff.get(s.id, [])|join(', ')) or 'None granted' }}</span>
+          {% endif %}
         {% endif %}
       </td>
       <td style="white-space:nowrap">
@@ -71,7 +78,7 @@
           </form>
           {% endif %}
         </details>
-        {% if not is_self_owner_row %}
+        {% if not is_self_owner_row and (session.is_owner or s.role != 'Accounting') %}
           {% if s.active %}
           <form method="post" action="{{ url_for('.staff_deactivate', staff_id=s.id) }}" style="display:inline">
             <button class="btn secondary" type="submit">Deactivate</button>
@@ -81,10 +88,12 @@
             <button class="btn secondary" type="submit">Reactivate</button>
           </form>
           {% endif %}
+          {% if session.is_owner %}
           <form method="post" action="{{ url_for('.staff_reset_password', staff_id=s.id) }}"
                 onsubmit="return confirm('Reset {{ s.name }}\'s password? They\'ll need the new one to log in.');" style="display:inline">
             <button class="btn secondary" type="submit">Reset password</button>
           </form>
+          {% endif %}
         {% endif %}
         {% if session.is_owner and not is_self_owner_row and s.is_owner %}
           <form method="post" action="{{ url_for('.staff_remove_owner', staff_id=s.id) }}"
