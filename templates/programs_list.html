@@ -4,24 +4,6 @@
 <h1>Programs</h1>
 
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
-{% if is_lead %}
-<div class="card">
-  <h3 style="margin-top:0">Add a new program</h3>
-  <form class="inline" method="post" action="{{ url_for('.program_new') }}">
-    <input name="code" placeholder="Code (e.g. T5)" style="width:90px" required>
-    <input name="name" placeholder="Full name (e.g. T5 — Refocus)" style="width:220px" required>
-    <input name="description" placeholder="Description (optional)" style="width:260px">
-    <select name="prerequisite_program_id">
-      <option value="">No prerequisite</option>
-      {% for p in programs %}
-      <option value="{{ p.id }}">Requires {{ p.code }} first</option>
-      {% endfor %}
-    </select>
-    <button class="btn" type="submit">Add program</button>
-  </form>
-</div>
-{% endif %}
-
 {% for p in programs %}
 <div class="card" id="program-{{ p.id }}">
   <h3 style="margin-top:0">{{ p.name }}</h3>
@@ -112,6 +94,25 @@
   {% endif %}
 </div>
 {% endfor %}
+
+{% if is_lead %}
+<div class="card">
+  <h3 style="margin-top:0">Add a new program</h3>
+  <form class="inline" method="post" action="{{ url_for('.program_new') }}">
+    <input name="code" placeholder="Code (e.g. T5)" style="width:90px" required>
+    <input name="name" placeholder="Full name (e.g. T5 — Refocus)" style="width:220px" required>
+    <input name="description" placeholder="Description (optional)" style="width:260px">
+    <select name="prerequisite_program_id">
+      <option value="">No prerequisite</option>
+      {% for p in programs %}
+      <option value="{{ p.id }}">Requires {{ p.code }} first</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Add program</button>
+  </form>
+</div>
+{% endif %}
+
 {% if is_lead %}
 <script>
 // Guide the scheduling steps: fill "last day" from the usual length, show a plain-English preview,
