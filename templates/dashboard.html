@@ -4,11 +4,11 @@
 <h1>Dashboard</h1>
 <p class="muted">{{ program_name }} — CRM &amp; registration</p>
 
-<div class="stat-row">
-  <div class="stat"><div class="num">{{ contact_count }}</div><div class="label">Total contacts</div></div>
-  {% for p in programs %}
-  <div class="stat"><div class="num">{{ p.code }}</div><div class="label">{{ p.name.split('—')[1] if '—' in p.name else p.name }}</div></div>
-  {% endfor %}
+<div class="card" style="max-width:820px; line-height:1.55">
+  <h2 style="margin-top:0">Welcome to the Discovery ERP Program</h2>
+  <p>This site includes a powerful master CRM database holding trainee and leadership history. The site is programmed with a leadership login and a team login. The team login has limited access to the site but still has the capability to administer various organizational aspects of upcoming trainings. The leadership login has access to all aspects of the site except the ability to transfer ownership of the program to another.</p>
+  <p>The programs in this site include D1, D2, D3, Relationship, Refocus, and Spiritual trainings. The site also has the flexibility to add additional training programs should they be conceived, such as a training on how to manage your finances, or???</p>
+  <p style="margin-bottom:0">This is robust and comprehensive. The site maintains and controls the public Discovery website, integrates with accounting and marketing software, and features many other programs necessary to operate and report on Discovery's financial condition and operational history.</p>
 </div>
 
 <h2>Upcoming sessions</h2>
@@ -20,7 +20,7 @@
     <tr>
       <td>{{ c.code }}</td>
       <td>#{{ c.session_number }}</td>
-      <td>{{ c.session_date }}</td>
+      <td>{{ c|date_span }}</td>
       <td>{% if session.staff_role == 'Leadership' or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}</td>
     </tr>
     {% endfor %}
