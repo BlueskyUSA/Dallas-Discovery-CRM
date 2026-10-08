@@ -178,7 +178,7 @@ SESSION_IDLE_TIMEOUT_MINUTES = 30
 
 @crm.before_request
 def require_staff_login():
-    if request.endpoint in ("crm.login", "crm.leadership_login"):
+    if request.endpoint in ("crm.login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login"):
         return
     if not session.get("staff_id"):
         return redirect(url_for(".login", next=request.path))
@@ -250,7 +250,8 @@ ACCOUNTING_ROLE = "Accounting"
 ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
 # Accounting & Legal logins are view-only: any form submission is refused except
 # signing in/out and changing their own password.
-ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.leadership_login", "crm.logout", "crm.change_password")
+ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
+                            "crm.logout", "crm.change_password")
 
 
 def role_label(role):
@@ -308,6 +309,7 @@ def _area_labels_map(conn):
     """area_key -> human label, for every fixed area plus every program
     that actually exists today (e.g. 'B1' -> 'B1 — Bluesky 1')."""
     labels = dict(FIXED_ACCESS_AREAS)
+    labels[ACCOUNTING_LOGIN_GRANT] = "Accounting & Legal login"
     for row in conn.execute("SELECT code, name FROM programs").fetchall():
         labels[row["code"]] = f"{row['code']} — {row['name']}"
     return labels
@@ -391,7 +393,42 @@ def program_area_required(view):
     return wrapped
 
 
-def _attempt_login(next_url):
+ACCOUNTING_LOGIN_GRANT = "accounting_login"   # access_grants key: lets a Leadership account use the Accounting & Legal door
+
+
+def _door_allows(door, staff, is_owner):
+    """Which accounts may sign in at which login page. The Owner may use any door.
+    Team door: Team, Leadership. Leadership door: Leadership. Owner door: the Owner only.
+    Accounting & Legal door: Accounting & Legal logins, plus a Leadership account only
+    if the Owner has granted it."""
+    if is_owner:
+        return True
+    role = staff["role"]
+    if door == "team":
+        return role in ("Team", "Leadership")
+    if door == "leadership":
+        return role == "Leadership"
+    if door == "accounting":
+        if role == ACCOUNTING_ROLE:
+            return True
+        if role == "Leadership":
+            conn = get_db()
+            g = conn.execute(
+                "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?",
+                (ACCOUNTING_LOGIN_GRANT, staff["id"]),
+            ).fetchone()
+            conn.close()
+            return bool(g)
+        return False
+    return False  # owner door
+
+
+def _home_door_title(staff):
+    return {"Team": "Team Login", "Leadership": "Leadership Login", ACCOUNTING_ROLE: "Accounting & Legal Login"}.get(
+        staff["role"], "Team Login")
+
+
+def _attempt_login(next_url, door="team"):
     """Shared by both login pages -- checks credentials against the same
     staff table regardless of which page (Team or Leadership) was used."""
     email = request.form.get("email", "").strip().lower()
@@ -400,6 +437,19 @@ def _attempt_login(next_url):
     staff = conn.execute("SELECT * FROM staff WHERE email = ? AND active = 1", (email,)).fetchone()
     conn.close()
     if staff and check_password_hash(staff["password_hash"], password):
+        try:
+            owner_flag = bool(staff["is_owner"])
+        except (KeyError, IndexError):
+            owner_flag = False
+        if not _door_allows(door, staff, owner_flag):
+            title = next(t for k, _, t in LOGIN_PAGES if k == door)
+            if door == "owner":
+                flash("The Owner Login is for the account Owner only.")
+            elif door == "accounting" and staff["role"] == "Leadership":
+                flash("The Owner has not given your account access to the Accounting & Legal Login. Ask the Owner.")
+            else:
+                flash(f"That account can't sign in at the {title}. Please use the {_home_door_title(staff)} page.")
+            return None
         session["staff_id"] = staff["id"]
         session["staff_name"] = staff["name"]
         session["staff_role"] = staff["role"]
@@ -415,30 +465,50 @@ def _attempt_login(next_url):
     return None
 
 
-@crm.route("/login", methods=["GET", "POST"])
-def login():
+LOGIN_PAGES = [
+    ("team", "login", "Team Login"),
+    ("leadership", "leadership_login", "Leadership Login"),
+    ("accounting", "accounting_login", "Accounting & Legal Login"),
+    ("owner", "owner_login", "Owner Login"),
+]
+
+
+def _login_page(kind):
+    """One sign-in page per door (Team, Leadership, Professional Team, Owner).
+    All four check the same accounts -- the email and password are the security;
+    the page just tells people which door is theirs."""
     if session.get("staff_id"):
         return redirect(url_for(".dashboard"))
     next_url = request.form.get("next") or request.args.get("next") or url_for(".dashboard")
     if request.method == "POST":
-        result = _attempt_login(next_url)
+        result = _attempt_login(next_url, kind)
         if result:
             return result
-    return render_template("login.html", next=next_url, page_title="Team Login",
-                            other_login_url=url_for(".leadership_login"), other_login_label="Leadership login")
+    title = next(t for k, _, t in LOGIN_PAGES if k == kind)
+    return render_template(
+        "login.html", next=next_url, page_title=title,
+        logins=[(t, url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
+    )
+
+
+@crm.route("/login", methods=["GET", "POST"])
+def login():
+    return _login_page("team")
 
 
 @crm.route("/leadership-login", methods=["GET", "POST"])
 def leadership_login():
-    if session.get("staff_id"):
-        return redirect(url_for(".dashboard"))
-    next_url = request.form.get("next") or request.args.get("next") or url_for(".dashboard")
-    if request.method == "POST":
-        result = _attempt_login(next_url)
-        if result:
-            return result
-    return render_template("login.html", next=next_url, page_title="Leadership Login",
-                            other_login_url=url_for(".login"), other_login_label="Team login")
+    return _login_page("leadership")
+
+
+@crm.route("/accounting-login", methods=["GET", "POST"])
+def accounting_login():
+    return _login_page("accounting")
+
+
+@crm.route("/owner-login", methods=["GET", "POST"])
+def owner_login():
+    return _login_page("owner")
 
 
 @crm.route("/logout")
@@ -473,7 +543,7 @@ def change_password():
 
 
 @crm.route("/staff")
-@leadership_required
+@owner_required
 def staff_list():
     conn = get_db()
     rows = conn.execute("SELECT * FROM staff ORDER BY name").fetchall()
@@ -490,6 +560,7 @@ def staff_list():
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
+        door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
     )
 
 
@@ -584,7 +655,7 @@ def staff_access(staff_id):
 
 
 @crm.route("/staff/new")
-@leadership_required
+@owner_required
 def staff_new_search():
     """Adding a team member starts here: find their Contact record first,
     so every team member's name/address/emergency contact/etc lives in one
@@ -606,7 +677,7 @@ def staff_new_search():
 
 
 @crm.route("/staff/new/contact/<int:contact_id>", methods=["GET", "POST"])
-@leadership_required
+@owner_required
 def staff_new_for_contact(contact_id):
     conn = get_db()
     contact = conn.execute(
@@ -653,7 +724,7 @@ def staff_new_for_contact(contact_id):
 
 
 @crm.route("/staff/<int:staff_id>/link-contact")
-@leadership_required
+@owner_required
 def staff_link_contact_search(staff_id):
     """Matches an existing team login (one created before this Team<->Contact
     link existed) to that person's Contact record."""
@@ -677,7 +748,7 @@ def staff_link_contact_search(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/link-contact/<int:contact_id>", methods=["GET", "POST"])
-@leadership_required
+@owner_required
 def staff_link_contact(staff_id, contact_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -701,7 +772,7 @@ def staff_link_contact(staff_id, contact_id):
 
 
 @crm.route("/staff/<int:staff_id>/unlink-contact", methods=["POST"])
-@leadership_required
+@owner_required
 def staff_unlink_contact(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -714,7 +785,7 @@ def staff_unlink_contact(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/edit", methods=["POST"])
-@leadership_required
+@owner_required
 def staff_edit(staff_id):
     """Fixes a team member's name or email -- e.g. an account whose name
     was mistyped when it was created (by hand or auto-created while
@@ -743,7 +814,7 @@ def staff_edit(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/deactivate", methods=["POST"])
-@leadership_required
+@owner_required
 def staff_deactivate(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -768,7 +839,7 @@ def staff_deactivate(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/reactivate", methods=["POST"])
-@leadership_required
+@owner_required
 def staff_reactivate(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -777,6 +848,31 @@ def staff_reactivate(staff_id):
     conn.commit()
     conn.close()
     flash("Account reactivated.")
+    return redirect(url_for(".staff_list"))
+
+
+@crm.route("/staff/<int:staff_id>/accounting-door", methods=["POST"])
+@owner_required
+def staff_accounting_door(staff_id):
+    """Owner lets a Leadership account (or takes away) sign in at the Accounting & Legal
+    login. It opens the door only; what they can then see still follows their area grants."""
+    conn = get_db()
+    staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if not staff or staff["role"] != "Leadership":
+        conn.close()
+        flash("Only Leadership accounts need this permission.")
+        return redirect(url_for(".staff_list"))
+    has = conn.execute(
+        "SELECT id FROM access_grants WHERE area_key = ? AND staff_id = ?", (ACCOUNTING_LOGIN_GRANT, staff_id)
+    ).fetchone()
+    if request.form.get("allow") and not has:
+        conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (ACCOUNTING_LOGIN_GRANT, staff_id))
+        flash(f"{staff['name']} can now sign in at the Accounting & Legal Login.")
+    elif not request.form.get("allow") and has:
+        conn.execute("DELETE FROM access_grants WHERE id = ?", (has["id"],))
+        flash(f"{staff['name']} can no longer sign in at the Accounting & Legal Login.")
+    conn.commit()
+    conn.close()
     return redirect(url_for(".staff_list"))
 
 
@@ -2422,7 +2518,7 @@ def playlist_song_move(program_id, playlist_id, song_id):
 # ---------- Authorized Users hub (who can see each confidential area) ----------
 
 @crm.route("/authorized-users")
-@leadership_required
+@owner_required
 def authorized_users_hub():
     conn = get_db()
     existing_programs = {
@@ -2437,7 +2533,7 @@ def authorized_users_hub():
 
 
 @crm.route("/authorized-users/<area_key>")
-@leadership_required
+@owner_required
 def authorized_users_area(area_key):
     area_label = dict(FIXED_ACCESS_AREAS).get(area_key, area_key)
     conn = get_db()
