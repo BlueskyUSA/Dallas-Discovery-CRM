@@ -238,6 +238,50 @@ def leadership_required(view):
     return wrapped
 
 
+# ---------- roles ----------
+# staff.role holds one of three values: "Team" (shown as Volunteer Team in the
+# welcome letter), "Leadership", and "Accounting" (shown as "Accounting & Legal":
+# the accountant, bookkeeper and attorney). The Owner is a flag (is_owner) on a
+# Leadership account, not a separate role value.
+ROLE_LABELS = {"Team": "Team", "Leadership": "Leadership", "Accounting": "Accounting & Legal"}
+ACCOUNTING_ROLE = "Accounting"
+# The only areas an Accounting & Legal login can ever be given (the Owner picks
+# which of these each person gets). Program materials and marketing are never offered.
+ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
+# Accounting & Legal logins are view-only: any form submission is refused except
+# signing in/out and changing their own password.
+ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.leadership_login", "crm.logout", "crm.change_password")
+
+
+def role_label(role):
+    return ROLE_LABELS.get(role, role)
+
+
+@crm.before_request
+def accounting_view_only():
+    if session.get("staff_role") != ACCOUNTING_ROLE or session.get("is_owner"):
+        return
+    if request.method in ("GET", "HEAD", "OPTIONS") or request.endpoint in ACCOUNTING_WRITE_ALLOWED:
+        return
+    flash("Your Accounting & Legal login is view-only. Nothing was changed.")
+    return redirect(url_for(".dashboard"))
+
+
+def _accounting_target_blocked(staff_id):
+    """Only the Owner may change an Accounting & Legal login (edit, deactivate,
+    reactivate, link to a contact). True (after flashing why) if this account is
+    one and the person asking is not the Owner."""
+    if session.get("is_owner"):
+        return False
+    conn = get_db()
+    row = conn.execute("SELECT role FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    conn.close()
+    if row and row["role"] == ACCOUNTING_ROLE:
+        flash("Only the Owner can change Accounting & Legal logins.")
+        return True
+    return False
+
+
 # ---------- authorized users (confidential-area access control) ----------
 # A small, fixed set of "areas" -- three fixed areas plus one per training
 # program (keyed by that program's code, e.g. "D1"). Each area can have up
@@ -253,6 +297,7 @@ FIXED_ACCESS_AREAS = [
     ("marketing", "Marketing"),
     ("contacts", "Contacts"),
     ("donations", "Donations"),
+    ("contracts", "Contracts & business plan"),
 ]
 # Reserved program-code slots shown in the hub even before that program
 # exists yet (B1-B4 are today's real programs; B5/B6 are room to grow).
@@ -444,11 +489,12 @@ def staff_list():
     return render_template(
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
+        accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
     )
 
 
 @crm.route("/staff/<int:staff_id>/reset-password", methods=["POST"])
-@leadership_required
+@owner_required
 def staff_reset_password(staff_id):
     """Generates a fresh temporary password for this account and shows it
     once. The CRM never stores a readable password -- only a one-way hash --
@@ -469,7 +515,7 @@ def staff_reset_password(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/access", methods=["GET", "POST"])
-@leadership_required
+@owner_required
 def staff_access(staff_id):
     """One place to see and set everything a single Team/Leadership
     account is authorized for, instead of visiting each area one at a
@@ -482,6 +528,8 @@ def staff_access(staff_id):
         return redirect(url_for(".staff_list"))
 
     all_areas = _all_areas(conn)
+    if target["role"] == ACCOUNTING_ROLE:
+        all_areas = [a for a in all_areas if a[0] in ACCOUNTING_AREAS]
 
     if request.method == "POST":
         selected = set(request.form.getlist("area_key"))
@@ -572,6 +620,12 @@ def staff_new_for_contact(contact_id):
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         role = request.form.get("role") or "Team"
+        if role not in ROLE_LABELS:
+            role = "Team"
+        if role == ACCOUNTING_ROLE and not session.get("is_owner"):
+            flash("Only the Owner can create Accounting & Legal logins. Nothing was added.")
+            conn.close()
+            return render_template("staff_new_confirm.html", contact=contact)
         temp_password = request.form["password"]
         if not email:
             flash("Enter an email to use for their CRM login.")
@@ -584,7 +638,7 @@ def staff_new_for_contact(contact_id):
             )
             conn.commit()
             flash(
-                f"Added {contact['full_name']} as {role}. Give them this email ({email}) "
+                f"Added {contact['full_name']} as {role_label(role)}. Give them this email ({email}) "
                 f"and this temporary password: {temp_password}"
             )
             conn.close()
@@ -625,6 +679,8 @@ def staff_link_contact_search(staff_id):
 @crm.route("/staff/<int:staff_id>/link-contact/<int:contact_id>", methods=["GET", "POST"])
 @leadership_required
 def staff_link_contact(staff_id, contact_id):
+    if _accounting_target_blocked(staff_id):
+        return redirect(url_for(".staff_list"))
     conn = get_db()
     contact = conn.execute(
         f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)
@@ -647,6 +703,8 @@ def staff_link_contact(staff_id, contact_id):
 @crm.route("/staff/<int:staff_id>/unlink-contact", methods=["POST"])
 @leadership_required
 def staff_unlink_contact(staff_id):
+    if _accounting_target_blocked(staff_id):
+        return redirect(url_for(".staff_list"))
     conn = get_db()
     conn.execute("UPDATE staff SET contact_id = NULL WHERE id = ?", (staff_id,))
     conn.commit()
@@ -661,6 +719,8 @@ def staff_edit(staff_id):
     """Fixes a team member's name or email -- e.g. an account whose name
     was mistyped when it was created (by hand or auto-created while
     granting access)."""
+    if _accounting_target_blocked(staff_id):
+        return redirect(url_for(".staff_list"))
     name = request.form.get("name", "").strip()
     email = request.form.get("email", "").strip().lower()
     if not name or not email:
@@ -685,6 +745,8 @@ def staff_edit(staff_id):
 @crm.route("/staff/<int:staff_id>/deactivate", methods=["POST"])
 @leadership_required
 def staff_deactivate(staff_id):
+    if _accounting_target_blocked(staff_id):
+        return redirect(url_for(".staff_list"))
     if staff_id == session.get("staff_id"):
         flash("You can't deactivate your own account -- ask another Owner or Leadership account to do it.")
         return redirect(url_for(".staff_list"))
@@ -708,6 +770,8 @@ def staff_deactivate(staff_id):
 @crm.route("/staff/<int:staff_id>/reactivate", methods=["POST"])
 @leadership_required
 def staff_reactivate(staff_id):
+    if _accounting_target_blocked(staff_id):
+        return redirect(url_for(".staff_list"))
     conn = get_db()
     conn.execute("UPDATE staff SET active = 1 WHERE id = ?", (staff_id,))
     conn.commit()
@@ -730,6 +794,10 @@ def staff_grant_full_access(staff_id):
         conn.close()
         return redirect(url_for(".staff_list"))
 
+    if staff["role"] == ACCOUNTING_ROLE:
+        flash("Accounting & Legal logins can't be given full access. Choose their areas one by one under Access.")
+        conn.close()
+        return redirect(url_for(".staff_list"))
     conn.execute("UPDATE staff SET role = 'Leadership' WHERE id = ?", (staff_id,))
 
     all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS] + [
@@ -2398,7 +2466,7 @@ def authorized_users_area(area_key):
 
 
 @crm.route("/authorized-users/<area_key>/assign", methods=["POST"])
-@leadership_required
+@owner_required
 def authorized_users_assign(area_key):
     """Authorizes someone for this area by name + email. If that email
     doesn't match an existing Team account, one is created on the spot
@@ -2462,6 +2530,11 @@ def authorized_users_assign(area_key):
         conn.close()
         return redirect(url_for(".authorized_users_area", area_key=area_key))
 
+    target_row = conn.execute("SELECT role FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if target_row and target_row["role"] == ACCOUNTING_ROLE and area_key not in ACCOUNTING_AREAS:
+        flash("Accounting & Legal logins can only be given Accounting, Donations, Contracts, or Contacts.")
+        conn.close()
+        return redirect(url_for(".authorized_users_area", area_key=area_key))
     existing_grant = conn.execute(
         "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?", (area_key, staff_id)
     ).fetchone()
@@ -2479,7 +2552,7 @@ def authorized_users_assign(area_key):
 
 
 @crm.route("/authorized-users/<area_key>/<int:grant_id>/remove", methods=["POST"])
-@leadership_required
+@owner_required
 def authorized_users_remove(area_key, grant_id):
     conn = get_db()
     conn.execute("DELETE FROM access_grants WHERE id = ?", (grant_id,))
@@ -2490,7 +2563,7 @@ def authorized_users_remove(area_key, grant_id):
 
 
 @crm.route("/authorized-users/<area_key>/<int:staff_id>/reset-password", methods=["POST"])
-@leadership_required
+@owner_required
 def authorized_users_reset_password(area_key, staff_id):
     """Generates a fresh temporary password for this Team account and
     shows it once. The CRM never stores a readable password -- only a
@@ -3310,6 +3383,48 @@ def brought_in_by_bulk():
     )
 
 
+# ---------- contracts & business plan (read-only; for Accounting & Legal) ----------
+
+@crm.route("/contracts")
+@area_required("contracts")
+def contracts_list():
+    conn = get_db()
+    rows = conn.execute(
+        f"""SELECT k.id, k.kind, k.created_at, {full_name_sql('c')} AS full_name,
+                   (SELECT MAX(r.revised_at) FROM contract_revisions r WHERE r.contract_id = k.id) AS last_revised
+            FROM contracts k JOIN contacts c ON c.id = k.contact_id
+            ORDER BY c.last_name, c.first_name, k.kind"""
+    ).fetchall()
+    conn.close()
+    return render_template("contracts_list.html", contracts=rows, kinds=CONTRACT_KINDS)
+
+
+@crm.route("/contracts/business-plan")
+@area_required("contracts")
+def business_plan_view():
+    html_content, _text = preliminary_plan_content("")
+    return render_template("business_plan_view.html", subject=PRELIMINARY_PLAN_SUBJECT, plan_html=html_content)
+
+
+@crm.route("/contracts/<int:contract_id>")
+@area_required("contracts")
+def contract_view(contract_id):
+    conn = get_db()
+    k = conn.execute(
+        f"""SELECT k.*, {full_name_sql('c')} AS full_name FROM contracts k
+            JOIN contacts c ON c.id = k.contact_id WHERE k.id = ?""",
+        (contract_id,),
+    ).fetchone()
+    if not k:
+        conn.close()
+        abort(404)
+    revisions = conn.execute(
+        "SELECT * FROM contract_revisions WHERE contract_id = ? ORDER BY revised_at DESC, id DESC", (contract_id,)
+    ).fetchall()
+    conn.close()
+    return render_template("contract_view.html", k=k, revisions=revisions, kinds=CONTRACT_KINDS)
+
+
 # ---------- donations ----------
 
 @crm.route("/donations")
@@ -3775,14 +3890,17 @@ def public_feedback(token):
 @crm.context_processor
 def inject_area_access():
     if not session.get("staff_id"):
-        return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False}
+        return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False,
+                "has_contracts_access": False}
     return {
         "has_contacts_access": _has_area_access("contacts"),
         "has_program_access": _has_any_program_access(),
         "has_donations_access": _has_area_access("donations"),
+        "has_contracts_access": _has_area_access("contracts"),
     }
 
 
+app.jinja_env.globals["role_label"] = role_label
 app.register_blueprint(crm)
 
 
