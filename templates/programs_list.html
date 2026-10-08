@@ -100,11 +100,11 @@
         style="background:#f1f6ef; border:1px solid #b9cfb4; border-radius:8px; padding:12px 14px; margin-top:14px;">
     <div style="font-weight:700; margin-bottom:8px">Schedule a new {{ p.code }} session (it will be {{ p.code }} #{{ next_num }})</div>
     <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end">
-      <div><div class="muted" style="font-size:0.82rem"><strong>Step 1.</strong> Pick the first day</div>
+      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 1.</strong> Pick the first day</div>
         <input type="date" name="session_date" required></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong>Step 2.</strong> Last day <span>(fills in by itself; change if needed)</span></div>
+      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 2.</strong> Last day <span>(fills in by itself; change if needed)</span></div>
         <input type="date" name="end_date"></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong>Step 3.</strong> Save it</div>
+      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 3.</strong> Save it</div>
         <button class="btn sched-btn" type="submit" disabled>Schedule this {{ p.code }} session</button></div>
     </div>
     <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"><span class="muted">Nothing is scheduled until you click the button in Step 3. Start with Step 1.</span></div>
