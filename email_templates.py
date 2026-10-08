@@ -373,58 +373,65 @@ def preliminary_plan_content(first_name):
             safe environment for trainees to evaluate and overcome the broken parts of their
             lives so that freedom, joy, peace, and love become the cornerstones of their
             lives.</li>
-            <li>Create an enduring training that outlasts any one key leader by:
+            <li>Create an enduring ministry that outlasts any one key leader by:
                 <ol type="a">
-                    <li>Finding young leadership capable and willing to lead the training as
-                    older leaders relinquish their roles;</li>
-                    <li>To operate {PROGRAM_NAME} with margin so that the program will endure
-                    financially and be capable of being passed on to the next operating team
-                    without the need to infuse additional operating capital to keep it running.
-                    If the program is not profitable, it will not succeed;</li>
-                    <li>In perpetuity, freely pass on (without charge) to future operating
-                    Discovery teams the intellectual property, licenses, software, and equipment
-                    used to operate the program.</li>
+                    <li>Operating {PROGRAM_NAME} so that revenue exceeds expenses;</li>
+                    <li>When the time is right, transfer Discovery intellectual property,
+                    licenses, software, and equipment to the next operating team at no cost.</li>
                 </ol>
             </li>
         </ol>
-        <p>OK&hellip; so how will we accomplish this mission and these goals?</p>
+        <p>We all believe that Discovery is a much-needed ministry in our broken world. Do you
+        remember the cleansing of your heart, the amazing and powerful freedom, love, and
+        forgiveness we each experienced in this training? Our lives were changed forever!!! I
+        thank God for Discovery, and I know you do too, otherwise you would not be reading this.
+        So, let&rsquo;s think big, and do something for Discovery that has never been done
+        before&hellip; GIVE IT AWAY&hellip; so that for generations, by God&rsquo;s grace,
+        millions of people will experience the love of God and love for themselves&hellip; and
+        with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest
+        commandment.</p>
+        <p>This is a monumental vision. To give Discovery away, as volunteers, it needs your
+        prayers and your support. We need to find folks who believe in our mission and can give
+        financially to the non-profit. If that might be you, or someone you know, please reach
+        out to me to discuss the financial needs of the program. The program cannot open without
+        financial support.</p>
+        <p><strong>How will we accomplish this Mission?</strong></p>
         <ol type="a">
-            <li>First, we will begin hosting Discovery social gatherings to build the excitement
-            and renew friendships. We need someone to help organize and pull these events
-            together.</li>
-            <li>Next we will start a selection process for leadership teams. Previous leaders
-            will have priority due to their experience, but the minimum expectation of all
-            leadership is to have enrolled at least one trainee in D1, or one couple in the
-            Relationship training. We need Facilitators for D2, D3, and Refocus. Initially, Max
-            Thompson, Pamela Hafemann and I will be the lead facilitators in D1 and the
-            Relationship training. But it is our desire to share this role with others who are
-            qualified in the very near future. The Board of Directors will make the final
-            leadership selections.</li>
+            <li>First, we will begin hosting Discovery social gatherings to build vision and
+            excitement, and renew old friendships (volunteers will be needed to organize and pull
+            these events together).</li>
+            <li>Hold fund-raisers to capture the financial support needed to open the program.
+            All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient
+            funding to pay for the acquisition cost of the program, plus we have been advised
+            that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow
+            reserves to ensure the program survives.</li>
+            <li>Begin the selection process for leadership teams. Previous leaders will have
+            priority due to their experience, but the minimum expectation of all leadership is to
+            have enrolled at least one trainee in D1, or one couple in the Relationship training.
+            We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela
+            Hafemann and I will be the lead facilitators in D1 and the Relationship training. But
+            it is our desire to share this role with others who are qualified in the very near
+            future. The Board of Directors will make final leadership selections.</li>
             <li>Begin a marketing campaign with the goal of hosting a Relationship training within
             the next four to six months, and to kick off D1 soon thereafter. Our goal is to have
             forty couples in the training room for the first Relationship training. We believe
             the need for relationship coaching is so significant that with the right marketing
             campaign, we can easily fill the seats and use the energy from that training to kick
             off D1.</li>
-            <li>Reach out to supporters for donations to the Discovery 501(c)(3), apply for
-            grants, and appeal to GoFundMe types of organizations to raise capital. Based on
-            early budget conversations, to responsibly host {PROGRAM_NAME} it has been
-            recommended that $100,000 in cash-flow reserves be raised through donations.</li>
         </ol>
         <p><strong>VOLUNTEERS NEEDED AS FOLLOWS:</strong></p>
         <ol type="a">
-            <li>Help raise $100,000 in donations to the Discovery 501(c)(3) non-profit
-            organization.</li>
             <li>We need video and photography experts willing to work for free to help us put
             together an effective marketing campaign. Videography will include testimonials of
             enthusiastic trainees whose lives have been changed by the training. Relationship
             training videos and photography will be needed first.</li>
             <li>We need admin volunteers for the following:
-                <ol type="a">
+                <ol>
                     <li>Skilled coaches to help trainees with registration and payment
-                    confirmation</li>
-                    <li>Event sign-in table</li>
-                    <li>Greet and mingle with trainees at the clap-in</li>
+                    confirmation;</li>
+                    <li>Two volunteers to man the event sign-in table;</li>
+                    <li>Greet and mingle with trainees at the clap-in;</li>
+                    <li>Qualified security personnel to oversee the safety of the program.</li>
                 </ol>
             </li>
             <li>We need someone to evaluate existing audio equipment and/or acquire additional
@@ -450,27 +457,30 @@ Thanks for your continued interest in the {PROGRAM_NAME} launch.
 So, what are the goals and mission for {PROGRAM_NAME}? Perhaps you may want to weigh in on this question... but here is a start:
 
 1. To reflect the Love of God by creating an effective, powerful and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives so that freedom, joy, peace, and love become the cornerstones of their lives.
-2. Create an enduring training that outlasts any one key leader by:
-   a. Finding young leadership capable and willing to lead the training as older leaders relinquish their roles;
-   b. To operate {PROGRAM_NAME} with margin so that the program will endure financially and be capable of being passed on to the next operating team without the need to infuse additional operating capital to keep it running. If the program is not profitable, it will not succeed;
-   c. In perpetuity, freely pass on (without charge) to future operating Discovery teams the intellectual property, licenses, software, and equipment used to operate the program.
+2. Create an enduring ministry that outlasts any one key leader by:
+   a. Operating {PROGRAM_NAME} so that revenue exceeds expenses;
+   b. When the time is right, transfer Discovery intellectual property, licenses, software, and equipment to the next operating team at no cost.
 
-OK... so how will we accomplish this mission and these goals?
-a. First, we will begin hosting Discovery social gatherings to build the excitement and renew friendships. We need someone to help organize and pull these events together.
-b. Next we will start a selection process for leadership teams. Previous leaders will have priority due to their experience, but the minimum expectation of all leadership is to have enrolled at least one trainee in D1, or one couple in the Relationship training. We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela Hafemann and I will be the lead facilitators in D1 and the Relationship training. But it is our desire to share this role with others who are qualified in the very near future. The Board of Directors will make the final leadership selections.
-c. Begin a marketing campaign with the goal of hosting a Relationship training within the next four to six months, and to kick off D1 soon thereafter. Our goal is to have forty couples in the training room for the first Relationship training. We believe the need for relationship coaching is so significant that with the right marketing campaign, we can easily fill the seats and use the energy from that training to kick off D1.
-d. Reach out to supporters for donations to the Discovery 501(c)(3), apply for grants, and appeal to GoFundMe types of organizations to raise capital. Based on early budget conversations, to responsibly host {PROGRAM_NAME} it has been recommended that $100,000 in cash-flow reserves be raised through donations.
+We all believe that Discovery is a much-needed ministry in our broken world. Do you remember the cleansing of your heart, the amazing and powerful freedom, love, and forgiveness we each experienced in this training? Our lives were changed forever!!! I thank God for Discovery, and I know you do too, otherwise you would not be reading this. So, let's think big, and do something for Discovery that has never been done before... GIVE IT AWAY... so that for generations, by God's grace, millions of people will experience the love of God and love for themselves... and with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest commandment.
+
+This is a monumental vision. To give Discovery away, as volunteers, it needs your prayers and your support. We need to find folks who believe in our mission and can give financially to the non-profit. If that might be you, or someone you know, please reach out to me to discuss the financial needs of the program. The program cannot open without financial support.
+
+HOW WILL WE ACCOMPLISH THIS MISSION?
+a. First, we will begin hosting Discovery social gatherings to build vision and excitement, and renew old friendships (volunteers will be needed to organize and pull these events together).
+b. Hold fund-raisers to capture the financial support needed to open the program. All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient funding to pay for the acquisition cost of the program, plus we have been advised that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow reserves to ensure the program survives.
+c. Begin the selection process for leadership teams. Previous leaders will have priority due to their experience, but the minimum expectation of all leadership is to have enrolled at least one trainee in D1, or one couple in the Relationship training. We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela Hafemann and I will be the lead facilitators in D1 and the Relationship training. But it is our desire to share this role with others who are qualified in the very near future. The Board of Directors will make final leadership selections.
+d. Begin a marketing campaign with the goal of hosting a Relationship training within the next four to six months, and to kick off D1 soon thereafter. Our goal is to have forty couples in the training room for the first Relationship training. We believe the need for relationship coaching is so significant that with the right marketing campaign, we can easily fill the seats and use the energy from that training to kick off D1.
 
 VOLUNTEERS NEEDED AS FOLLOWS:
-a. Help raise $100,000 in donations to the Discovery 501(c)(3) non-profit organization.
-b. We need video and photography experts willing to work for free to help us put together an effective marketing campaign. Videography will include testimonials of enthusiastic trainees whose lives have been changed by the training. Relationship training videos and photography will be needed first.
-c. We need admin volunteers for the following:
-   - Skilled coaches to help trainees with registration and payment confirmation
-   - Event sign-in table
-   - Greet and mingle with trainees at the clap-in
-d. We need someone to evaluate existing audio equipment and/or acquire additional equipment if needed.
-e. We need a place to store audio/video equipment and training supplies, and a means to transport this equipment if we cannot keep it at the hotel.
-f. We need someone to gather, organize, maintain and assemble the supplies needed for each training.
+a. We need video and photography experts willing to work for free to help us put together an effective marketing campaign. Videography will include testimonials of enthusiastic trainees whose lives have been changed by the training. Relationship training videos and photography will be needed first.
+b. We need admin volunteers for the following:
+   1. Skilled coaches to help trainees with registration and payment confirmation;
+   2. Two volunteers to man the event sign-in table;
+   3. Greet and mingle with trainees at the clap-in;
+   4. Qualified security personnel to oversee the safety of the program.
+c. We need someone to evaluate existing audio equipment and/or acquire additional equipment if needed.
+d. We need a place to store audio/video equipment and training supplies, and a means to transport this equipment if we cannot keep it at the hotel.
+e. We need someone to gather, organize, maintain and assemble the supplies needed for each training.
 
 Please let me know what role you may wish to play to open Discovery. Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
 

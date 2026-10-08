@@ -871,6 +871,18 @@ CONTRACT_EXAMPLES = {
 }
 
 
+@app.template_filter("date_span")
+def date_span(row):
+    """A session's date for display: '2027-03-12', or '2027-03-12 to
+    2027-03-14' when it runs more than one day."""
+    start = row["session_date"]
+    try:
+        end = row["end_date"]
+    except (KeyError, IndexError):
+        end = None
+    return f"{start} to {end}" if end and end != start else start
+
+
 @app.context_processor
 def inject_program_name():
     """Makes {{ program_name }} available in every template (see config.py)."""
@@ -1034,7 +1046,7 @@ def dashboard():
     upcoming = conn.execute(
         """SELECT c.*, p.code, p.name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
-           WHERE c.session_date >= date('now')
+           WHERE COALESCE(c.end_date, c.session_date) >= date('now')
            ORDER BY c.session_date ASC LIMIT 10"""
     ).fetchall()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
@@ -2065,7 +2077,11 @@ def programs_list():
             "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number DESC", (p["id"],)
         ).fetchall()
     conn.close()
-    return render_template("programs_list.html", programs=programs, cohorts_by_program=cohorts_by_program)
+    return render_template(
+        "programs_list.html", programs=programs, cohorts_by_program=cohorts_by_program,
+        default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
+        usual_weekday=USUAL_START_WEEKDAY,
+    )
 
 
 @crm.route("/programs/new", methods=["POST"])
@@ -2491,6 +2507,27 @@ def authorized_users_reset_password(area_key, staff_id):
     return redirect(url_for(".authorized_users_area", area_key=area_key))
 
 
+# How many days each training normally runs. Used only to pre-fill the "through"
+# date when scheduling a session (staff can always change it). D5 = Refocus,
+# a single Saturday; every other training is a three-day weekend.
+DEFAULT_SESSION_DAYS = {"D5": 1}
+DEFAULT_SESSION_DAYS_OTHER = 3
+# Trainings that are normally held on one particular weekday (Python weekday:
+# Monday=0 ... Saturday=5, Sunday=6) -> name shown in a gentle heads-up.
+USUAL_START_WEEKDAY = {"D5": (5, "Saturday")}
+
+
+def _clean_end_date(start, raw_end):
+    """Returns (end_date_or_None, error_or_None). A blank end date, or one equal
+    to the start, means a one-day session. The end can't be before the start."""
+    raw_end = (raw_end or "").strip()
+    if not raw_end or raw_end == start:
+        return None, None
+    if raw_end < start:
+        return None, "The end date can't be before the start date. Nothing was saved."
+    return raw_end, None
+
+
 @crm.route("/programs/<int:program_id>/cohorts/new", methods=["POST"])
 @program_area_required
 def cohort_new(program_id):
@@ -2499,14 +2536,45 @@ def cohort_new(program_id):
         "SELECT COALESCE(MAX(session_number), 0) m FROM cohorts WHERE program_id = ?", (program_id,)
     ).fetchone()["m"]
     session_date = request.form["session_date"]
-    conn.execute(
-        "INSERT INTO cohorts (program_id, session_number, session_date) VALUES (?, ?, ?)",
-        (program_id, max_num + 1, session_date),
-    )
+    end_date, date_error = _clean_end_date(session_date, request.form.get("end_date"))
+    if date_error:
+        conn.close()
+        flash(date_error)
+        return redirect(url_for(".programs_list"))
+    if end_date:
+        conn.execute(
+            "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
+            (program_id, max_num + 1, session_date, end_date),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO cohorts (program_id, session_number, session_date) VALUES (?, ?, ?)",
+            (program_id, max_num + 1, session_date),
+        )
     conn.commit()
     new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=new_id))
+
+
+@crm.route("/cohorts/<int:cohort_id>/dates", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def cohort_update_dates(cohort_id):
+    start = (request.form.get("session_date") or "").strip()
+    if not start:
+        flash("Please enter a start date. Nothing was changed.")
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    end_date, date_error = _clean_end_date(start, request.form.get("end_date"))
+    if date_error:
+        flash(date_error)
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    conn = get_db()
+    conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, cohort_id))
+    conn.commit()
+    conn.close()
+    flash("Session dates saved.")
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
 @crm.route("/cohorts/<int:cohort_id>")
@@ -2941,6 +3009,119 @@ def contact_list_remove(contact_id, list_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
+# ---------- calendar ----------
+
+def _short_date(d):
+    return f"{d.strftime('%b')} {d.day}"
+
+
+def _short_span(start, last):
+    """'Jun 11-13', 'Jul 30-Aug 1', or just 'Jun 12' for a one-day session."""
+    if last == start:
+        return _short_date(start)
+    if last.month == start.month:
+        return f"{_short_date(start)}\u2013{last.day}"
+    return f"{_short_date(start)}\u2013{_short_date(last)}"
+
+
+CALENDAR_COLORS = {
+    "D1": "#3f7d4f", "D2": "#c9a13b", "D3": "#3a78b5",
+    "D4": "#8a5aa8", "D5": "#d9822b", "D6": "#2a9d9a",
+}
+
+
+@crm.route("/calendar")
+@area_required("contacts")
+def calendar_view():
+    """Year-at-a-glance calendar of every scheduled training session, twelve
+    small months with each session date marked in its program's color and
+    linked to that session. Read-only -- sessions are still scheduled on the
+    Programs page."""
+    import calendar as _cal
+    year = request.args.get("year", type=int) or date.today().year
+    year = max(2000, min(2100, year))
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT ch.id, ch.session_number, ch.session_date, ch.end_date, ch.status, p.code, p.name
+           FROM cohorts ch JOIN programs p ON p.id = ch.program_id
+           WHERE ch.session_date <= ? AND COALESCE(ch.end_date, ch.session_date) >= ?
+           ORDER BY ch.session_date, p.code""",
+        (f"{year}-12-31", f"{year}-01-01"),
+    ).fetchall()
+    conn.close()
+
+    # sessions that run on the same dates (e.g. D1, D2 and D3 on one weekend)
+    # are grouped so the weekend can be called out as one event
+    groups_by_key = {}
+    for r in rows:
+        try:
+            start = date.fromisoformat(r["session_date"])
+            last = date.fromisoformat(r["end_date"]) if r["end_date"] else start
+        except (TypeError, ValueError):
+            continue
+        g = groups_by_key.setdefault((start, last), {"start": start, "last": last, "sessions": []})
+        g["sessions"].append(r)
+    groups = sorted(groups_by_key.values(), key=lambda g: (g["start"], g["last"]))
+    for g in groups:
+        g["sessions"].sort(key=lambda r: r["code"])
+        g["label"] = _short_span(g["start"], g["last"])
+        g["start_short"] = _short_date(g["start"])
+
+    # every day a group covers (first day through last day), within this year
+    by_day = {}
+    for g in groups:
+        d = g["start"]
+        while d <= g["last"]:
+            if d.year == year:
+                by_day.setdefault(d.isoformat(), []).append(g)
+            d += timedelta(days=1)
+
+    def day_cell(d, m):
+        iso = f"{year}-{m:02d}-{d:02d}"
+        cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": []}
+        found = by_day.get(iso, [])
+        if not found:
+            return cell
+        sessions = [r for g in found for r in g["sessions"]]
+        colors = [CALENDAR_COLORS.get(r["code"], "#777777") for r in sessions]
+        colors = list(dict.fromkeys(colors))
+        if len(colors) == 1:
+            bg = colors[0]
+        else:
+            step = 100 / len(colors)
+            bg = "conic-gradient(" + ", ".join(
+                f"{c} {i * step:.1f}% {(i + 1) * step:.1f}%" for i, c in enumerate(colors)
+            ) + ")"
+        cell.update({
+            "sessions": sessions,
+            "bg": bg,
+            "multi_day": any(g["last"] != g["start"] for g in found),
+            "cancelled": all(r["status"] == "Cancelled" for r in sessions),
+            "first_id": sessions[0]["id"],
+            "title": "; ".join(
+                f"{r['code']} #{r['session_number']} " + date_span(r) + f" ({r['status']})" for r in sessions
+            ),
+        })
+        return cell
+
+    cal = _cal.Calendar(firstweekday=6)  # weeks start on Sunday
+    months = []
+    for m in range(1, 13):
+        weeks = [
+            [None if d == 0 else day_cell(d, m) for d in week]
+            for week in cal.monthdayscalendar(year, m)
+        ]
+        months.append({
+            "name": _cal.month_name[m],
+            "weeks": weeks,
+            "opens": [g for g in groups if g["start"].year == year and g["start"].month == m],
+        })
+    codes = sorted({r["code"] for r in rows})
+    return render_template(
+        "calendar.html", year=year, months=months, groups=groups, colors=CALENDAR_COLORS, codes=codes,
+    )
+
+
 # ---------- bulk "brought in by" entry ----------
 
 BROUGHT_IN_PAGE_LIMIT = 300
@@ -3156,7 +3337,7 @@ def public_register():
     upcoming = conn.execute(
         """SELECT c.*, p.code, p.name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
-           WHERE c.session_date >= date('now')
+           WHERE COALESCE(c.end_date, c.session_date) >= date('now')
            ORDER BY c.session_date ASC LIMIT 20"""
     ).fetchall()
     conn.close()
