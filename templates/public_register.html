@@ -6,18 +6,12 @@
     <h2>Upcoming Sessions</h2>
     <p class="lead">Here's what's currently scheduled. Don't see a date that works? Let us know below and we'll follow up.</p>
 
-    {% if upcoming %}
-      {% for c in upcoming %}
-      <div class="session-row">
-        <div>
-          <div class="who">{{ c.code }} &mdash; {{ c.name }}</div>
-          <div class="when">Session #{{ c.session_number }}</div>
-        </div>
-        <div class="when">{{ c.session_date }}</div>
-      </div>
-      {% endfor %}
-    {% else %}
-      <p class="muted">No sessions are on the calendar yet &mdash; check back soon, or let us know you're interested below and we'll reach out when the next one is scheduled.</p>
+    <div id="calendar">
+      {% include "_calendar_widget.html" %}
+    </div>
+
+    {% if not upcoming %}
+      <p class="muted" style="margin-top:20px">No sessions are on the calendar yet &mdash; check back soon, or let us know you're interested below and we'll reach out when the next one is scheduled.</p>
     {% endif %}
   </div>
 </section>

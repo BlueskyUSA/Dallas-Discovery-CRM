@@ -1,0 +1,93 @@
+{# Year-at-a-glance calendar. Used by the staff page (links to each session)
+   and the public Upcoming Sessions page (no links). Expects: cal, prev_url,
+   next_url, today_url. #}
+<style>
+  .cal-wrap { --cc-card: var(--card, var(--pub-surface, #fff)); --cc-border: var(--border, var(--pub-border, #ddd));
+              --cc-muted: var(--muted, var(--pub-muted, #666)); --cc-accent: var(--accent, var(--pub-warm, #c9a13b)); }
+  .cal-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .cal-head .yr { margin:0; font-size:1.8rem; font-weight:700; }
+  .cal-nav { display:inline-block; padding:6px 12px; border:1px solid var(--cc-border); border-radius:8px; text-decoration:none; color:inherit; background:var(--cc-card); font-size:0.9rem; }
+  .cal-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; margin:14px 0 22px; }
+  .cal-month { background:var(--cc-card); border:1px solid var(--cc-border); border-radius:10px; padding:12px 12px 8px; }
+  .cal-month h3 { margin:0 0 8px; font-size:1rem; }
+  .cal-month table { width:100%; border-collapse:collapse; table-layout:fixed; box-shadow:none; background:none; }
+  .cal-month th { font-size:0.68rem; color:var(--cc-muted); font-weight:600; padding:2px 0; text-align:center; background:none; border:0; }
+  .cal-month td { text-align:center; padding:2px 0; height:30px; font-size:0.82rem; border:0; vertical-align:middle; background:none; }
+  .cal-day { display:inline-block; min-width:26px; line-height:26px; border-radius:50%; }
+  .cal-day.today { outline:2px solid var(--cc-accent); }
+  .cal-day.ev { color:#fff; font-weight:700; text-decoration:none; text-shadow:0 0 2px rgba(0,0,0,0.35); }
+  .cal-legend { display:flex; gap:14px; flex-wrap:wrap; margin:6px 0; font-size:0.85rem; }
+  .cal-legend .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+  .cal-opens { margin:8px 0 2px; padding-top:8px; border-top:1px solid var(--cc-border); font-size:0.8rem; min-height:1.2em; }
+  .cal-opens .row { margin:2px 0; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .cal-opens .when { font-weight:700; }
+  .chip { display:inline-block; padding:1px 7px; border-radius:10px; color:#fff; font-size:0.72rem; font-weight:700; text-decoration:none; }
+  .chip.cx { opacity:0.45; text-decoration:line-through; }
+  .cal-weekends { width:100%; border-collapse:collapse; background:var(--cc-card); }
+  .cal-weekends th, .cal-weekends td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--cc-border); }
+</style>
+<div class="cal-wrap">
+  <div class="cal-head">
+    <a class="cal-nav" href="{{ prev_url }}">&larr; {{ cal.year - 1 }}</a>
+    <span class="yr">{{ cal.year }}</span>
+    <a class="cal-nav" href="{{ next_url }}">{{ cal.year + 1 }} &rarr;</a>
+    <a class="cal-nav" href="{{ today_url }}">This year</a>
+  </div>
+  {% if cal.codes %}
+  <div class="cal-legend">
+    {% for c in cal.codes %}<span><span class="dot" style="background:{{ cal.colors.get(c, '#777') }}"></span>{{ c }}{% if cal.public and cal.names.get(c) and cal.names[c] != c %} &mdash; {{ cal.names[c] }}{% endif %}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="cal-grid">
+    {% for m in cal.months %}
+    <div class="cal-month">
+      <h3>{{ m.name }}</h3>
+      <table>
+        <tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr>
+        {% for week in m.weeks %}
+        <tr>
+          {% for d in week %}
+          <td>
+            {% if d %}
+              {% if d.sessions %}
+                {% if d.href %}<a class="cal-day ev" href="{{ d.href }}"{% else %}<span class="cal-day ev"{% endif %}
+                   style="background:{{ d.bg }};border-radius:{{ '7px' if d.multi_day else '50%' }}{{ ';opacity:0.45' if d.cancelled }}"
+                   title="{{ d.title }}">{{ d.day }}{% if d.href %}</a>{% else %}</span>{% endif %}
+              {% else %}
+                <span class="cal-day{{ ' today' if d.today }}">{{ d.day }}</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+      <div class="cal-opens">
+        {% for g in m.opens %}
+        <div class="row"><span class="when">{{ g.label }}</span>
+          {% for s in g.sessions %}{% if s.href %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ cal.colors.get(s.code, '#777') }}" href="{{ s.href }}" title="{{ s.code }} #{{ s.session_number }}">{{ s.code }}</a>{% else %}<span class="chip" style="background:{{ cal.colors.get(s.code, '#777') }}">{{ s.code }}</span>{% endif %}{% endfor %}
+        </div>
+        {% else %}<span style="color:var(--cc-muted)">&mdash;</span>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h3 style="margin:18px 0 8px">Weekends in {{ cal.year }}</h3>
+  <table class="cal-weekends">
+    <tr><th>Starts</th><th>Training running that weekend</th></tr>
+    {% for g in cal.groups %}
+    {% if g.start.year == cal.year %}
+    <tr>
+      <td><strong>{{ g.start_short }}</strong></td>
+      <td>
+        {% for s in g.sessions %}{% if s.href %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ cal.colors.get(s.code, '#777') }}" href="{{ s.href }}" title="{{ s.code }} #{{ s.session_number }} &middot; {{ s.status }}">{{ s.code }}</a>{% else %}<span class="chip" style="background:{{ cal.colors.get(s.code, '#777') }}">{{ s.code }}</span>{% endif %} {% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% else %}
+    <tr><td colspan="2" style="color:var(--cc-muted)">No sessions scheduled in {{ cal.year }} yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
