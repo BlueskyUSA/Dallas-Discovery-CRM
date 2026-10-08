@@ -12,6 +12,9 @@
     <nav>
       {% if session.staff_id %}
       <a href="{{ url_for('.dashboard') }}">Dashboard</a>
+      {% if session.is_owner %}
+      <a href="{{ url_for('.staff_list') }}">Site Access</a>
+      {% endif %}
       {% if session.staff_role == 'Leadership' or has_contacts_access %}
       <a href="{{ url_for('.contacts_list') }}">Contacts</a>
       <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
@@ -29,9 +32,6 @@
       {% endif %}
       {% if session.staff_role == 'Leadership' %}
       <a href="{{ url_for('.lists_manage') }}">Lists</a>
-      {% endif %}
-      {% if session.is_owner %}
-      <a href="{{ url_for('.staff_list') }}">Site Access</a>
       {% endif %}
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
