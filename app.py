@@ -2085,6 +2085,7 @@ def programs_list():
 
 
 @crm.route("/programs/new", methods=["POST"])
+@leadership_required
 def program_new():
     conn = get_db()
     code = request.form["code"].strip()
@@ -2102,6 +2103,7 @@ def program_new():
 
 
 @crm.route("/programs/<int:program_id>/edit", methods=["POST"])
+@leadership_required
 def program_edit(program_id):
     conn = get_db()
     code = request.form["code"].strip()
@@ -2123,6 +2125,7 @@ def program_edit(program_id):
 
 
 @crm.route("/programs/<int:program_id>/delete", methods=["POST"])
+@leadership_required
 def program_delete(program_id):
     conn = get_db()
     prog = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
@@ -2529,7 +2532,7 @@ def _clean_end_date(start, raw_end):
 
 
 @crm.route("/programs/<int:program_id>/cohorts/new", methods=["POST"])
-@program_area_required
+@leadership_required
 def cohort_new(program_id):
     conn = get_db()
     max_num = conn.execute(
@@ -2557,24 +2560,90 @@ def cohort_new(program_id):
     return redirect(url_for(".cohort_detail", cohort_id=new_id))
 
 
+COHORT_STATUSES = ["Scheduled", "Completed", "Cancelled"]
+
+
+def _after_cohort_change(cohort_id):
+    """Back to the Programs page when the change was made there, otherwise to
+    the session's own page."""
+    if request.form.get("back") == "programs":
+        return redirect(url_for(".programs_list"))
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
 @crm.route("/cohorts/<int:cohort_id>/dates", methods=["POST"])
 @area_required("contacts")
 @leadership_required
 def cohort_update_dates(cohort_id):
+    """Change ONE scheduled session (its dates and status). Does not touch the
+    program itself or any other session."""
     start = (request.form.get("session_date") or "").strip()
     if not start:
         flash("Please enter a start date. Nothing was changed.")
-        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+        return _after_cohort_change(cohort_id)
     end_date, date_error = _clean_end_date(start, request.form.get("end_date"))
     if date_error:
         flash(date_error)
-        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+        return _after_cohort_change(cohort_id)
+    status = request.form.get("status")
     conn = get_db()
-    conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, cohort_id))
+    if status in COHORT_STATUSES:
+        conn.execute(
+            "UPDATE cohorts SET session_date = ?, end_date = ?, status = ? WHERE id = ?",
+            (start, end_date, status, cohort_id),
+        )
+    else:
+        conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, cohort_id))
     conn.commit()
     conn.close()
-    flash("Session dates saved.")
-    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    flash("Session saved.")
+    return _after_cohort_change(cohort_id)
+
+
+@crm.route("/cohorts/<int:cohort_id>/delete", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def cohort_delete(cohort_id):
+    """Delete ONE scheduled session that has nothing attached to it. A session
+    with enrolled people, staff, or contracts is protected -- the safe choice
+    for those is to mark it Cancelled."""
+    conn = get_db()
+    cohort = conn.execute(
+        """SELECT c.*, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?""",
+        (cohort_id,),
+    ).fetchone()
+    if not cohort:
+        conn.close()
+        flash("That session no longer exists.")
+        return redirect(url_for(".programs_list"))
+    label = f"{cohort['code']} #{cohort['session_number']}"
+    checks = [
+        ("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", "{n} enrolled trainee(s)"),
+        ("SELECT COUNT(*) AS n FROM cohort_staffing WHERE cohort_id = ?", "{n} staff assignment(s)"),
+        ("""SELECT COUNT(*) AS n FROM small_group_staffing sgs
+            JOIN small_groups sg ON sg.id = sgs.small_group_id WHERE sg.cohort_id = ?""",
+         "{n} small-group staff assignment(s)"),
+        ("SELECT COUNT(*) AS n FROM contracts WHERE originating_cohort_id = ?", "{n} contract(s) started in it"),
+    ]
+    blockers = []
+    for sql, text in checks:
+        n = conn.execute(sql, (cohort_id,)).fetchone()["n"]
+        if n:
+            blockers.append(text.format(n=n))
+    if blockers:
+        conn.close()
+        flash(
+            f"Can't delete {label} -- it has " + ", ".join(blockers) + ". "
+            f"To take it off the calendar without losing that history, change its status to Cancelled instead."
+        )
+        return redirect(url_for(".programs_list"))
+    conn.execute("DELETE FROM small_groups WHERE cohort_id = ?", (cohort_id,))
+    conn.execute("DELETE FROM cohorts WHERE id = ?", (cohort_id,))
+    conn.commit()
+    conn.close()
+    print(f"DELETED session {label} (cohort {cohort_id}) by {session.get('staff_name')}", flush=True)
+    flash(f"Deleted the session {label}. The {cohort['code']} program itself is unchanged.")
+    return redirect(url_for(".programs_list"))
 
 
 @crm.route("/cohorts/<int:cohort_id>")
