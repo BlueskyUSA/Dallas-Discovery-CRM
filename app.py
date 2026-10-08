@@ -178,7 +178,7 @@ SESSION_IDLE_TIMEOUT_MINUTES = 30
 
 @crm.before_request
 def require_staff_login():
-    if request.endpoint in ("crm.login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login"):
+    if request.endpoint in ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login"):
         return
     if not session.get("staff_id"):
         return redirect(url_for(".login", next=request.path))
@@ -250,7 +250,7 @@ ACCOUNTING_ROLE = "Accounting"
 ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
 # Accounting & Legal logins are view-only: any form submission is refused except
 # signing in/out and changing their own password.
-ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
+ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
                             "crm.logout", "crm.change_password")
 
 
@@ -424,8 +424,8 @@ def _door_allows(door, staff, is_owner):
 
 
 def _home_door_title(staff):
-    return {"Team": "Team Login", "Leadership": "Leadership Login", ACCOUNTING_ROLE: "Accounting & Legal Login"}.get(
-        staff["role"], "Team Login")
+    return {"Team": "Volunteer Team Login", "Leadership": "Leadership Login", ACCOUNTING_ROLE: "Accounting & Legal Login"}.get(
+        staff["role"], "Volunteer Team Login")
 
 
 def _attempt_login(next_url, door="team"):
@@ -466,7 +466,7 @@ def _attempt_login(next_url, door="team"):
 
 
 LOGIN_PAGES = [
-    ("team", "login", "Team Login"),
+    ("team", "team_login", "Volunteer Team Login"),
     ("leadership", "leadership_login", "Leadership Login"),
     ("accounting", "accounting_login", "Accounting & Legal Login"),
     ("owner", "owner_login", "Owner Login"),
@@ -487,12 +487,37 @@ def _login_page(kind):
     title = next(t for k, _, t in LOGIN_PAGES if k == kind)
     return render_template(
         "login.html", next=next_url, page_title=title,
-        logins=[(t, url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
+        logins=[(LOGIN_BUTTON_TEXT[k], url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
     )
+
+
+LOGIN_BUTTON_TEXT = {
+    "team": "Volunteer Team Members Login Here",
+    "leadership": "Leadership Login Here",
+    "accounting": "Accounting & Legal Login Here",
+    "owner": "Owner Login Here",
+}
 
 
 @crm.route("/login", methods=["GET", "POST"])
 def login():
+    """The front door: a page with one button per login, so each person picks
+    theirs. (A form submitted straight to this address is treated as a Volunteer
+    Team sign-in, which keeps older bookmarks and saved forms working.)"""
+    if session.get("staff_id"):
+        return redirect(url_for(".dashboard"))
+    if request.method == "POST":
+        return _login_page("team")
+    next_url = request.args.get("next")
+    logins = [
+        (LOGIN_BUTTON_TEXT[k], url_for("." + ep, next=next_url) if next_url else url_for("." + ep))
+        for k, ep, t in LOGIN_PAGES
+    ]
+    return render_template("login_choose.html", logins=logins)
+
+
+@crm.route("/team-login", methods=["GET", "POST"])
+def team_login():
     return _login_page("team")
 
 
