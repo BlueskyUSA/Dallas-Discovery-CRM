@@ -51,7 +51,7 @@
     {% for c in cohorts_by_program[p.id] %}
     <tr>
       <td>{{ p.code }} #{{ c.session_number }}</td>
-      <td>{{ c.session_date }}</td>
+      <td>{{ c|date_span }}</td>
       <td>{{ c.status }}</td>
       <td>{% if session.staff_role == 'Leadership' or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}</td>
     </tr>
@@ -60,11 +60,42 @@
     {% endfor %}
   </table>
 
-  <form class="inline" method="post" action="{{ url_for('.cohort_new', program_id=p.id) }}">
-    <label style="margin:0">New session date:</label>
+  <form class="inline sched-form" method="post" action="{{ url_for('.cohort_new', program_id=p.id) }}"
+        data-days="{{ default_days(p.code) }}" data-weekday="{{ usual_weekday[p.code][0] if p.code in usual_weekday else '' }}"
+        data-weekday-name="{{ usual_weekday[p.code][1] if p.code in usual_weekday else '' }}">
+    <label style="margin:0">New session starts:</label>
     <input type="date" name="session_date" required>
+    <label style="margin:0">through (optional):</label>
+    <input type="date" name="end_date">
     <button class="btn secondary" type="submit">Schedule next {{ p.code }} (#{{ (cohorts_by_program[p.id]|map(attribute='session_number')|list|max) + 1 if cohorts_by_program[p.id] else 1 }})</button>
+    <span class="muted sched-hint" style="margin-left:8px"></span>
   </form>
 </div>
 {% endfor %}
+<script>
+// Pre-fill "through" from the training's usual length, and gently flag an unusual weekday.
+document.querySelectorAll('.sched-form').forEach(function (f) {
+  var start = f.querySelector('[name=session_date]');
+  var end = f.querySelector('[name=end_date]');
+  var hint = f.querySelector('.sched-hint');
+  var days = parseInt(f.dataset.days || '1', 10);
+  var touched = false;
+  end.addEventListener('change', function () { touched = true; });
+  start.addEventListener('change', function () {
+    if (!start.value) return;
+    var p = start.value.split('-').map(Number);
+    var d = new Date(p[0], p[1] - 1, p[2]);
+    if (!touched) {
+      if (days > 1) {
+        var e = new Date(p[0], p[1] - 1, p[2] + days - 1);
+        end.value = e.getFullYear() + '-' + String(e.getMonth() + 1).padStart(2, '0') + '-' + String(e.getDate()).padStart(2, '0');
+      } else { end.value = ''; }
+    }
+    hint.textContent = '';
+    if (f.dataset.weekday !== '' && d.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
+      hint.textContent = 'Heads-up: this is not a ' + f.dataset.weekdayName + '. Fine if that is intended.';
+    }
+  });
+});
+</script>
 {% endblock %}
