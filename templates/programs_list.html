@@ -65,7 +65,7 @@
         {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}
         {% if is_lead %}
         <details style="display:inline-block; margin-left:12px; vertical-align:top;">
-          <summary style="cursor:pointer; font-size:0.85rem;">Change or delete this session</summary>
+          <summary style="cursor:pointer; font-size:0.85rem; color:#c0392b; font-weight:600;">Change or Delete a Session</summary>
           <p class="muted" style="margin:6px 0; max-width:360px; font-size:0.82rem;">Affects only {{ p.code }} #{{ c.session_number }}. The {{ p.code }} program and its other sessions are not touched.</p>
           <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px">
             <input type="hidden" name="back" value="programs">
