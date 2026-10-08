@@ -29,7 +29,9 @@
       {% endif %}
       {% if session.staff_role == 'Leadership' %}
       <a href="{{ url_for('.lists_manage') }}">Lists</a>
-      <a href="{{ url_for('.staff_list') }}">Team</a>
+      {% endif %}
+      {% if session.is_owner %}
+      <a href="{{ url_for('.staff_list') }}">Site Access</a>
       {% endif %}
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
