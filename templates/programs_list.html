@@ -23,7 +23,7 @@
 {% endif %}
 
 {% for p in programs %}
-<div class="card">
+<div class="card" id="program-{{ p.id }}">
   <h3 style="margin-top:0">{{ p.name }}</h3>
   {% if p.description %}<p class="muted">{{ p.description }}</p>{% endif %}
   <p><a href="{{ url_for('.program_materials', program_id=p.id) }}">Training materials &rarr;</a>
