@@ -9,11 +9,16 @@
     <div class="field"><label>Password</label><input type="password" name="password" required></div>
     <button class="btn" type="submit" style="width:100%">Log in</button>
   </form>
-  {% if other_login_url %}
-  <p style="margin-top:18px; margin-bottom:0; text-align:center">
-    <a href="{{ other_login_url }}" style="font-size:1.15rem; font-weight:600">{{ other_login_label }} &rarr;</a>
-  </p>
-  {% endif %}
+  <div style="margin-top:20px; padding-top:14px; border-top:1px solid var(--border, #ddd)">
+    <div class="muted" style="font-size:0.85rem; margin-bottom:8px; text-align:center">Not your login? Choose yours:</div>
+    {% for label, url, active in logins %}
+    {% if active %}
+    <div class="btn secondary" style="display:block; text-align:center; margin:8px 0; opacity:0.55; cursor:default">{{ label }} &#10003; (you are here)</div>
+    {% else %}
+    <a class="btn" href="{{ url }}" style="display:block; text-align:center; margin:8px 0; text-decoration:none">{{ label }}</a>
+    {% endif %}
+    {% endfor %}
+  </div>
   <p class="muted" style="margin-top:18px; margin-bottom:0; text-align:center; font-size:0.85rem">
     For security, you'll be logged out automatically after 30 minutes of inactivity.
   </p>

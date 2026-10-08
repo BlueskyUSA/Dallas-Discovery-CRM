@@ -1,0 +1,14 @@
+{% extends "crm_base.html" %}
+{% block title %}Log in — {{ program_name }} CRM{% endblock %}
+{% block content %}
+<h1>Welcome to the {{ program_name }} site</h1>
+<div class="card" style="max-width:420px">
+  <p style="margin-top:0">Choose your login:</p>
+  {% for label, url in logins %}
+  <a class="btn" href="{{ url }}" style="display:block; text-align:center; margin:10px 0; padding:14px 12px; font-size:1.05rem; text-decoration:none">{{ label }}</a>
+  {% endfor %}
+  <p class="muted" style="margin-top:18px; margin-bottom:0; text-align:center; font-size:0.85rem">
+    For security, you'll be logged out automatically after 30 minutes of inactivity.
+  </p>
+</div>
+{% endblock %}
