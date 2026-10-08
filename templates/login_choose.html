@@ -1,14 +1,27 @@
 {% extends "crm_base.html" %}
 {% block title %}Log in — {{ program_name }} CRM{% endblock %}
 {% block content %}
-<h1>Welcome to the {{ program_name }} site</h1>
-<div class="card" style="max-width:420px">
-  <p style="margin-top:0">Choose your login:</p>
-  {% for label, url in logins %}
-  <a class="btn" href="{{ url }}" style="display:block; text-align:center; margin:10px 0; padding:14px 12px; font-size:1.05rem; text-decoration:none">{{ label }}</a>
-  {% endfor %}
-  <p class="muted" style="margin-top:18px; margin-bottom:0; text-align:center; font-size:0.85rem">
-    For security, you'll be logged out automatically after 30 minutes of inactivity.
-  </p>
+<div style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start">
+  <div class="card" style="flex:1 1 460px; max-width:820px; line-height:1.55; margin:0">
+    <h2 style="margin-top:0">Welcome to the Discovery ERP Program</h2>
+    <p>This site is the working home of Discovery: a master database of trainees and leadership history, session scheduling, and the public registration pages. What you see depends on your login.</p>
+    <ul>
+      <li><strong>Volunteer Team</strong> &mdash; administer the details of upcoming sessions, such as rosters, staffing, and day-to-day organization.</li>
+      <li><strong>Accounting &amp; Legal</strong> &mdash; financial records, contracts, and reports, for the accountant, bookkeeper, and attorney. The Owner decides which areas each person can open.</li>
+      <li><strong>Leadership</strong> &mdash; everything in the program, including scheduling, programs, contact lists, and the reports that show Discovery's operational history.</li>
+      <li><strong>Owner</strong> &mdash; everything Leadership can do, plus transferring ownership of the program and deciding who receives Accounting &amp; Legal logins.</li>
+    </ul>
+    <p>The programs on this site are D1, D2, D3, Relationship, Refocus, and Spiritual. New programs, such as a training on managing your finances, can be added at any time.</p>
+    <p style="margin-bottom:0">Trainee and leadership information here is confidential. Please use it only for Discovery.</p>
+  </div>
+  <div class="card" style="flex:0 1 380px; margin:0">
+    <h3 style="margin-top:0">Choose your login</h3>
+    {% for label, url in logins %}
+    <a class="btn" href="{{ url }}" style="display:block; text-align:center; margin:10px 0; padding:14px 12px; font-size:1.05rem; text-decoration:none">{{ label }}</a>
+    {% endfor %}
+    <p class="muted" style="margin-top:18px; margin-bottom:0; text-align:center; font-size:0.85rem">
+      For security, you'll be logged out automatically after 30 minutes of inactivity.
+    </p>
+  </div>
 </div>
 {% endblock %}
