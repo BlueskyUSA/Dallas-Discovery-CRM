@@ -1821,6 +1821,12 @@ def contact_detail(contact_id):
            WHERE m.contact_id = ? ORDER BY l.name""",
         (contact_id,),
     ).fetchall()
+    linked_sponsors = conn.execute(
+        f"""SELECT DISTINCT b.id, {full_name_sql('b')} AS full_name
+            FROM enrollments e JOIN contacts b ON b.id = e.enrolled_by_contact_id
+            WHERE e.contact_id = ? ORDER BY full_name""",
+        (contact_id,),
+    ).fetchall()
     on_ids = {r["id"] for r in member_lists}
     addable_lists = [
         r for r in conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
@@ -1829,7 +1835,7 @@ def contact_detail(contact_id):
     conn.close()
     return render_template(
         "contact_detail.html",
-        member_lists=member_lists,
+        member_lists=member_lists, linked_sponsors=linked_sponsors,
         addable_lists=addable_lists,
         contact=contact,
         enrollments=enrollments,
@@ -1893,6 +1899,32 @@ def requirement_warning(conn, contact_id, role, duty):
         f"{'person' if have == 1 else 'people'}; the {label} requirement is {need}. "
         f"Assigned anyway -- record who they brought in on the session roster to update this."
     )
+
+
+def _fill_sponsor_card(conn, trainee_id, sponsor_id):
+    """When a session roster records who sponsored someone, fill that person's
+    Sponsor details card from the sponsor's own contact record -- so it's entered
+    once. Never overwrites a Sponsor card that already has a name."""
+    t = conn.execute("SELECT sponsor_name FROM contacts WHERE id = ?", (trainee_id,)).fetchone()
+    if not t or (t["sponsor_name"] or "").strip() or not sponsor_id:
+        return False
+    s = conn.execute(
+        f"""SELECT {FULL_NAME_SQL} AS full_name, email, cell_phone, home_phone, work_phone,
+                   street_address, street_address_2, city, state, zip
+            FROM contacts WHERE id = ?""",
+        (sponsor_id,),
+    ).fetchone()
+    if not s:
+        return False
+    conn.execute(
+        """UPDATE contacts SET sponsor_name = ?, sponsor_phone = ?, sponsor_email = ?,
+                               sponsor_street_address = ?, sponsor_street_address_2 = ?,
+                               sponsor_city = ?, sponsor_state = ?, sponsor_zip = ?
+           WHERE id = ?""",
+        (s["full_name"], s["cell_phone"] or s["home_phone"] or s["work_phone"], s["email"],
+         s["street_address"], s["street_address_2"], s["city"], s["state"], s["zip"], trainee_id),
+    )
+    return True
 
 
 def parse_contact_pick(conn, raw):
@@ -2961,6 +2993,8 @@ def enroll(cohort_id):
             "INSERT INTO enrollments (contact_id, cohort_id, enrolled_by_contact_id) VALUES (?, ?, ?)",
             (contact_id, cohort_id, brought_by),
         )
+        if brought_by:
+            _fill_sponsor_card(conn, contact_id, brought_by)
         conn.commit()
         flash("Enrolled.")
     except Exception:
@@ -2994,6 +3028,8 @@ def enrollment_update(enrollment_id):
     if fields:
         set_clause = ", ".join(f"{k} = ?" for k in fields)
         conn.execute(f"UPDATE enrollments SET {set_clause} WHERE id = ?", (*fields.values(), enrollment_id))
+        if fields.get("enrolled_by_contact_id"):
+            _fill_sponsor_card(conn, enr["contact_id"], fields["enrolled_by_contact_id"])
         conn.commit()
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
@@ -3463,6 +3499,7 @@ def brought_in_by_bulk():
                 conn.execute(
                     "UPDATE enrollments SET enrolled_by_contact_id = ? WHERE id = ?", (brought_by, enr_id)
                 )
+                _fill_sponsor_card(conn, enr["contact_id"], brought_by)
                 saved += 1
         conn.commit()
         if saved:
