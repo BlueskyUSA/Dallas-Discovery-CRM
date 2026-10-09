@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ contact.full_name }} — {{ program_name }} CRM{% endblock %}
+{% block title %}{{ contact.full_name }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <div style="display:flex; gap:18px; align-items:flex-start">
   {% if contact.photo_filename %}
@@ -87,7 +87,7 @@
   <h3 style="margin-top:0">Complete-your-profile link</h3>
   <p class="muted" style="margin-top:0">
     Share this link (e.g. by email) so {{ contact.full_name }} can fill in or update their own profile --
-    no CRM login needed. It can't show or change their status or your internal notes.
+    no ERP login needed. It can't show or change their status or your internal notes.
   </p>
   {% if contact.profile_token %}
   <input readonly style="width:100%; font-size:0.85rem" onclick="this.select()"

@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}Contract — {{ program_name }} CRM{% endblock %}
+{% block title %}Contract — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <p><a href="{{ url_for('.contracts_list') }}">&larr; All contracts</a></p>
 <h1>{{ kinds.get(k.kind, k.kind) }} &mdash; {{ k.full_name }}</h1>
