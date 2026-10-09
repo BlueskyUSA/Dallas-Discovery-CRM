@@ -18,7 +18,7 @@
       {% if session.staff_role == 'Leadership' or has_contacts_access %}
       <a href="{{ url_for('.contacts_list') }}">Contacts</a>
       <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
-      <a href="{{ url_for('.leadership_pipeline') }}">Leadership pipeline</a>
+      <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
       <a href="{{ url_for('.calendar_view') }}">Calendar</a>
       {% endif %}
       {% if session.staff_role == 'Leadership' or has_program_access %}
