@@ -12,13 +12,22 @@
   {% for c in all_contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
 </datalist>
 <h1>{{ cohort.code }} #{{ cohort.session_number }}</h1>
-<p class="muted">{{ cohort.name }} &middot; {{ cohort.session_date }} &middot; <span class="badge">{{ cohort.status }}</span></p>
+<p class="muted">{{ cohort.name }} &middot; {{ cohort|date_span }} &middot; <span class="badge">{{ cohort.status }}</span></p>
+{% if session.is_owner or session.staff_role == 'Leadership' %}
+<form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=cohort.id) }}" style="margin:0 0 10px">
+  <label style="margin:0">Starts:</label>
+  <input type="date" name="session_date" value="{{ cohort.session_date }}" required>
+  <label style="margin:0">through (optional):</label>
+  <input type="date" name="end_date" value="{{ cohort.end_date or '' }}">
+  <button class="btn secondary" type="submit">Save dates</button>
+</form>
+{% endif %}
 
 <h2>Roster</h2>
 <div class="card">
   {% if roster %}
   <table>
-    <tr><th>Trainee</th><th>Brought in by</th><th>Group</th><th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
+    <tr><th>Trainee</th><th>Sponsor</th><th>Group</th><th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
     <tr>
       <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
@@ -97,10 +106,10 @@
     </select>
     <span class="muted">or</span>
     <input name="new_contact_name" placeholder="New contact full name">
-    <input name="enrolled_by_pick" list="contact-picks" autocomplete="off" placeholder="Brought in by (optional)" style="width:200px">
+    <input name="enrolled_by_pick" list="contact-picks" autocomplete="off" placeholder="Sponsor (optional)" style="width:200px">
     <button class="btn" type="submit">Enroll</button>
   </form>
-  <p class="muted">D2/D3 prerequisites are checked automatically at enrollment. Record who brought each person in &mdash; a TA needs to have brought in at least {{ TA_MIN }}, a TA Team Captain at least {{ CAPTAIN_MIN }}. See the <a href="{{ url_for('.leadership_pipeline') }}">Leadership pipeline</a>.</p>
+  <p class="muted">D2/D3 prerequisites are checked automatically at enrollment. Record each person's Sponsor (the person who brought them in) &mdash; a TA needs to have brought in at least {{ TA_MIN }}, a TA Team Captain at least {{ CAPTAIN_MIN }}. See the <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>.</p>
 </div>
 
 <h2>Small groups</h2>

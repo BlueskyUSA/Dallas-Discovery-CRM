@@ -143,7 +143,12 @@
     {% endfor %}
   </p>
 
-  <h3>Sponsor</h3>
+  <h3>Sponsor details</h3>
+  {% if linked_sponsors %}
+  <p class="muted" style="margin-top:0">Sponsor on a session roster (counts toward their TA requirement):
+    {% for b in linked_sponsors %}<a href="{{ url_for('.contact_detail', contact_id=b.id) }}">{{ b.full_name }}</a>{{ ', ' if not loop.last }}{% endfor %}.
+    The details below fill in automatically from their record when this card is empty.</p>
+  {% endif %}
   <form method="post" action="{{ url_for('.set_sponsor_name', contact_id=contact.id) }}" autocomplete="off">
     <div class="grid2">
       <div class="field"><label>Name</label><input name="sponsor_name" value="{{ contact.sponsor_name or '' }}" placeholder="Who sponsored/recommended them"></div>
