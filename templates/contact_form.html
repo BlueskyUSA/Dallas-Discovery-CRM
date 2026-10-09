@@ -25,6 +25,7 @@
         <select name="status">
           <option {% if contact and contact.status == 'Interested Party' %}selected{% endif %}>Interested Party</option>
           <option {% if contact and contact.status == 'Volunteer' %}selected{% endif %}>Volunteer</option>
+          <option {% if contact and contact.status == 'Sponsor' %}selected{% endif %}>Sponsor</option>
           <option {% if contact and contact.status == 'Registered' %}selected{% endif %}>Registered</option>
           <option {% if contact and contact.status == 'Attended' %}selected{% endif %}>Attended</option>
           <option {% if contact and contact.status == 'Graduate' %}selected{% endif %}>Graduate</option>
