@@ -149,9 +149,17 @@
     {% for b in linked_sponsors %}<a href="{{ url_for('.contact_detail', contact_id=b.id) }}">{{ b.full_name }}</a>{{ ', ' if not loop.last }}{% endfor %}.
     The details below fill in automatically from their record when this card is empty.</p>
   {% endif %}
+  {% if sponsor_link %}
+  <p style="margin-top:0"><span class="badge good">&#10003; Linked</span> to <a href="{{ url_for('.contact_detail', contact_id=sponsor_link.id) }}">{{ sponsor_link.full_name }}</a> &mdash; this counts toward their Sponsor pipeline and TA requirement.</p>
+  {% elif contact.sponsor_name %}
+  <p class="muted" style="margin-top:0"><span class="badge warn">Not linked</span> This name is only typed text, so it does not count toward the Sponsor pipeline. Retype it and pick the person from the list that appears.</p>
+  {% endif %}
+  <datalist id="sponsor-picks">
+    {% for c in sponsor_choices %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
+  </datalist>
   <form method="post" action="{{ url_for('.set_sponsor_name', contact_id=contact.id) }}" autocomplete="off">
     <div class="grid2">
-      <div class="field"><label>Name</label><input name="sponsor_name" value="{{ contact.sponsor_name or '' }}" placeholder="Who sponsored/recommended them"></div>
+      <div class="field"><label>Name</label><input name="sponsor_name" value="{{ contact.sponsor_name or '' }}" list="sponsor-picks" placeholder="Start typing, then pick from your contacts"></div>
       <div class="field"><label>Phone</label><input name="sponsor_phone" value="{{ contact.sponsor_phone or '' }}" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true"></div>
       <div class="field"><label>Email</label><input type="email" name="sponsor_email" value="{{ contact.sponsor_email or '' }}"></div>
       <div class="field"><label>Street address</label><input name="sponsor_street_address" value="{{ contact.sponsor_street_address or '' }}"></div>
@@ -168,6 +176,9 @@
       <div class="field"><label>Zip</label><input name="sponsor_zip" value="{{ contact.sponsor_zip or '' }}"></div>
     </div>
     <button class="btn secondary" type="submit">Save</button>
+    <button class="btn" type="submit" name="create_contact" value="1" style="margin-left:8px"
+            title="Use when the sponsor is not in your contacts yet">Save &amp; add sponsor as a new contact</button>
+    <p class="muted" style="font-size:0.82rem;margin:6px 0 0">Sponsor not in your contacts yet (for example someone from years ago)? The second button adds them as a contact on the <strong>Past sponsors</strong> list, fills in any details typed above, and counts them in the Sponsor pipeline. If the name already matches a contact, it just links to that person instead.</p>
   </form>
   {% if contact.marketing_source %}<p class="muted">How they heard about us: {{ contact.marketing_source_self_description if contact.marketing_source == 'Prefer to self-describe' and contact.marketing_source_self_description else contact.marketing_source }}</p>{% endif %}
 
