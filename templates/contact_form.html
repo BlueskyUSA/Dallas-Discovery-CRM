@@ -2,25 +2,41 @@
 {% block title %}{{ 'Edit' if contact else 'Add' }} Contact — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <h1>{{ 'Edit contact' if contact else 'Add contact' }}</h1>
+{% if contact %}
+<div class="card" id="contact-summary">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap">
+    <div>
+      <div style="font-size:1.25rem; font-weight:700">{{ contact.full_name }} <span class="badge">{{ contact.status }}</span></div>
+      <table style="margin-top:8px; width:auto">
+        <tr><td class="muted" style="padding-right:18px">Cell</td><td>{{ contact.cell_phone or '—' }}</td></tr>
+        <tr><td class="muted">Email</td><td>{{ contact.email or '—' }}</td></tr>
+        <tr><td class="muted">Location</td><td>{% if contact.city or contact.state %}{{ contact.city or '' }}{{ ', ' if contact.city and contact.state }}{{ contact.state or '' }}{% else %}—{% endif %}</td></tr>
+        <tr><td class="muted">Partner</td><td>{{ contact.partner_name or '—' }}</td></tr>
+        <tr><td class="muted">Sponsor</td><td>{{ contact.sponsor_name or '—' }}</td></tr>
+      </table>
+    </div>
+    <button class="btn" type="button" id="edit-toggle">Edit details</button>
+  </div>
+</div>
+{% endif %}
 {% if for_team_login %}
 <p class="muted">Once this contact is saved, you'll pick their role and set a temporary password to finish adding them as a team member.</p>
 {% endif %}
-<div class="card">
+<div class="card" id="edit-wrap" style="display: {{ 'none' if contact else 'block' }}">
   <form method="post" autocomplete="off" enctype="multipart/form-data">
     {% if not contact %}
     {% if for_team_login %}<input type="hidden" name="for_team_login" value="1">{% endif %}
     {% if link_staff_id %}<input type="hidden" name="link_staff_id" value="{{ link_staff_id }}">{% endif %}
     {% endif %}
+    <datalist id="sponsor-picks">
+      {% for c in sponsor_choices %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
+    </datalist>
+    <div style="margin:4px 0 14px"><button class="btn" type="submit">Save contact</button></div>
+
+    <h3>Basics</h3>
     <div class="grid2">
-      <div class="field"><label>First name *</label><input name="first_name" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
-      <div class="field"><label>Last name</label><input name="last_name" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
-      <div class="field"><label>Email</label><input type="email" name="email" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
-      <div class="field"><label>Secondary email</label><input type="email" name="email_2" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
-      <div class="field"><label>Third email</label><input type="email" name="email_3" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
-      <div class="field"><label>Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
-      <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
-      <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
-      <div class="field"><label>Photo</label><input type="file" name="photo" accept="image/*"></div>
+      <div class="field"><label>First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
+      <div class="field"><label>Last name</label><input name="last_name" autocomplete="off" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
       <div class="field"><label>Status</label>
         <select name="status">
           <option {% if contact and contact.status == 'Interested Party' %}selected{% endif %}>Interested Party</option>
@@ -34,6 +50,26 @@
           <option {% if contact and contact.status == 'Donor' %}selected{% endif %}>Donor</option>
         </select>
       </div>
+      <div class="field"><label>Photo</label><input type="file" name="photo" accept="image/*"></div>
+    </div>
+
+    <h3>How to reach them</h3>
+    <div class="grid2">
+      <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
+      <div class="field"><label>Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
+    </div>
+    <details style="margin-bottom:14px">
+      <summary style="cursor:pointer; font-weight:600">More emails and phone numbers</summary>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field" style="grid-column: 1 / -1;"><label>Secondary email</label><input type="email" name="email_2" style="width:100%" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
+        <div class="field" style="grid-column: 1 / -1;"><label>Third email</label><input type="email" name="email_3" style="width:100%" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
+        <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
+        <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
+      </div>
+    </details>
+
+    <h3>Address</h3>
+    <div class="grid2">
       <div class="field"><label>Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
       <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="street_address_2" autocomplete="off" value="{{ contact.street_address_2 if contact and contact.street_address_2 else '' }}"></div>
       <div class="field"><label>City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
@@ -46,27 +82,20 @@
         </select>
       </div>
       <div class="field"><label>Zip</label><input name="zip" autocomplete="off" value="{{ contact.zip if contact and contact.zip else '' }}"></div>
-      <div class="field"><label>Partner's name</label><input name="partner_name" value="{{ contact.partner_name if contact and contact.partner_name else '' }}"></div>
+    </div>
+
+    <h3>Family and emergency contact</h3>
+    <div class="grid2">
+      <div class="field"><label>Partner's name</label><input name="partner_name" autocomplete="off" value="{{ contact.partner_name if contact and contact.partner_name else '' }}"></div>
       <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
-      <div class="field"><label>Partner's email</label><input type="email" name="partner_email" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
-      <div class="field"><label>Emergency contact name</label><input name="emergency_contact_name" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
+      <div class="field" style="grid-column: 1 / -1;"><label>Partner's email</label><input type="email" name="partner_email" style="width:100%" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
+      <div class="field"><label>Emergency contact name</label><input name="emergency_contact_name" autocomplete="off" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
       <div class="field"><label>Emergency contact cell</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
       <div class="field"><label>Emergency contact home</label><input name="emergency_contact_home" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}"></div>
-      <div class="field"><label>Sponsor name</label><input name="sponsor_name" placeholder="Who sponsored/recommended them" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
-      <div class="field"><label>Sponsor phone</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
-      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
-      <div class="field"><label>Sponsor street address</label><input name="sponsor_street_address" value="{{ contact.sponsor_street_address if contact and contact.sponsor_street_address else '' }}"></div>
-      <div class="field"><label>Sponsor address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="sponsor_street_address_2" value="{{ contact.sponsor_street_address_2 if contact and contact.sponsor_street_address_2 else '' }}"></div>
-      <div class="field"><label>Sponsor city</label><input name="sponsor_city" value="{{ contact.sponsor_city if contact and contact.sponsor_city else '' }}"></div>
-      <div class="field"><label>Sponsor state</label>
-        <select name="sponsor_state">
-          <option value="">Select a state&hellip;</option>
-          {% for code, label in us_states %}
-          <option value="{{ code }}" {% if contact and contact.sponsor_state == code %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field"><label>Sponsor zip</label><input name="sponsor_zip" value="{{ contact.sponsor_zip if contact and contact.sponsor_zip else '' }}"></div>
+    </div>
+
+    <h3>How they found us, and their Sponsor</h3>
+    <div class="grid2">
       <div class="field">
         <label>How did you hear about us</label>
         <select name="marketing_source" class="self-describe-toggle" data-describe-target="marketing_source_self_describe_box">
@@ -86,10 +115,20 @@
         </div>
       </div>
     </div>
-    <div class="field"><label>Notes</label><textarea name="notes" rows="3" style="width:100%">{{ contact.notes if contact and contact.notes else '' }}</textarea></div>
-
-    <h3>Personal information</h3>
+    <p style="margin:10px 0 6px; font-weight:700">So that we can send a &ldquo;Thank you&rdquo; email or text to their Sponsor:</p>
     <div class="grid2">
+      <div class="field" style="grid-column: 1 / -1;"><label>Sponsor name <span class="muted">(start typing, then pick from your contacts)</span></label><input name="sponsor_name" list="sponsor-picks" autocomplete="off" placeholder="Who sponsored/recommended them" style="width:100%" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
+      <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
+      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
+    </div>
+    <p class="muted" style="margin:0 0 12px; font-size:0.85rem">If the sponsor is not in your contacts yet, save this and use the &ldquo;Save &amp; add sponsor as a new contact&rdquo; button on the Sponsor details card of this person&rsquo;s page.</p>
+
+    <h3>Notes</h3>
+    <div class="field"><textarea name="notes" rows="3" style="width:100%">{{ contact.notes if contact and contact.notes else '' }}</textarea></div>
+
+    <details style="margin-bottom:14px">
+      <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Personal background <span class="muted" style="font-weight:400">(gender, age, health, work and more)</span></summary>
+      <div class="grid2" style="margin-top:10px">
       <div class="field">
         <label>Gender</label>
         <select name="gender" class="self-describe-toggle" data-describe-target="gender_self_describe_box">
@@ -214,6 +253,12 @@
         </select>
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
+      </div>
+    </details>
+
+    <details style="margin-bottom:14px" {% if contact and (contact.discovery_attendance == 'Yes') %}open{% endif %}>
+      <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Discovery history</summary>
+      <div class="grid2" style="margin-top:10px">
       <div class="field">
         <div class="field"><label>Previously enrolled in Discovery trainings?</label>
           <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box">
@@ -230,11 +275,25 @@
           <div class="field" style="margin-bottom:0"><label>Relationship Training (Discovery)</label><input name="relationship_training_month_year" placeholder="e.g. July 2024" value="{{ contact.relationship_training_month_year if contact and contact.relationship_training_month_year else '' }}"></div>
         </div>
       </div>
-    </div>
-    <button class="btn" type="submit">Save contact</button>
+      </div>
+    </details>
+
+    <div style="margin:4px 0 14px"><button class="btn" type="submit">Save contact</button></div>
   </form>
 </div>
 {% if contact %}
 <p style="margin-top:14px"><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a></p>
+<script>
+(function () {
+  var btn = document.getElementById("edit-toggle");
+  var wrap = document.getElementById("edit-wrap");
+  if (!btn || !wrap) return;
+  btn.addEventListener("click", function () {
+    var open = wrap.style.display !== "none";
+    wrap.style.display = open ? "none" : "block";
+    btn.textContent = open ? "Edit details" : "Hide details";
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

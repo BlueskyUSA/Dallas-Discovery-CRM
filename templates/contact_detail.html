@@ -160,20 +160,8 @@
   <form method="post" action="{{ url_for('.set_sponsor_name', contact_id=contact.id) }}" autocomplete="off">
     <div class="grid2">
       <div class="field"><label>Name</label><input name="sponsor_name" value="{{ contact.sponsor_name or '' }}" list="sponsor-picks" placeholder="Start typing, then pick from your contacts"></div>
-      <div class="field"><label>Phone</label><input name="sponsor_phone" value="{{ contact.sponsor_phone or '' }}" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true"></div>
+      <div class="field"><label>Cell</label><input name="sponsor_phone" value="{{ contact.sponsor_phone or '' }}" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true"></div>
       <div class="field"><label>Email</label><input type="email" name="sponsor_email" value="{{ contact.sponsor_email or '' }}"></div>
-      <div class="field"><label>Street address</label><input name="sponsor_street_address" value="{{ contact.sponsor_street_address or '' }}"></div>
-      <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="sponsor_street_address_2" value="{{ contact.sponsor_street_address_2 or '' }}"></div>
-      <div class="field"><label>City</label><input name="sponsor_city" value="{{ contact.sponsor_city or '' }}"></div>
-      <div class="field"><label>State</label>
-        <select name="sponsor_state">
-          <option value="">Select a state&hellip;</option>
-          {% for code, label in us_states %}
-          <option value="{{ code }}" {% if contact.sponsor_state == code %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field"><label>Zip</label><input name="sponsor_zip" value="{{ contact.sponsor_zip or '' }}"></div>
     </div>
     <button class="btn secondary" type="submit">Save</button>
     <button class="btn" type="submit" name="create_contact" value="1" style="margin-left:8px"
