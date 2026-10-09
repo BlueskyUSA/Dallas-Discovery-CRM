@@ -1208,6 +1208,72 @@ def contact_profile_values_from_form(form):
     return {name: _clean_contact_field(name, form) for name in CONTACT_PROFILE_FIELDS}
 
 
+def _create_past_sponsor(conn, name, phone, email, note):
+    """Adds a sponsor who is not yet in the database as a new contact (status Sponsor) on the
+    'Past sponsors' list, so they are never mistaken for a new prospect. Returns the new id."""
+    parts = name.split()
+    first, last = (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (name, "")
+    conn.execute(
+        "INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, status) VALUES (?,?,?,?,?,'Sponsor')",
+        (first, last or None, email or None, phone or None, note),
+    )
+    new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
+    lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
+    if not lst:
+        conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", ("Past sponsors", date.today().isoformat()))
+        lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
+    conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?,?,?)",
+                 (new_id, lst["id"], date.today().isoformat()))
+    return new_id
+
+
+def _auto_link_or_add_sponsor(conn, contact_id):
+    """Run when someone finishes the public long form. If they gave a Sponsor name plus a cell or
+    email, link that sponsor to an existing contact (matched by email, then phone, then an exact
+    unique name) or, failing that, add them as a new 'Sponsor' contact. Never duplicates, and does
+    nothing without a name AND some way to reach them. Returns the sponsor's contact id or None."""
+    c = conn.execute(
+        f"SELECT id, {FULL_NAME_SQL} AS full_name, email, email_2, email_3, cell_phone, home_phone, work_phone, "
+        "sponsor_name, sponsor_phone, sponsor_email, sponsor_contact_id FROM contacts WHERE id = ?", (contact_id,)
+    ).fetchone()
+    if not c or c["sponsor_contact_id"]:
+        return None
+    name = (c["sponsor_name"] or "").strip()
+    phone = (c["sponsor_phone"] or "").strip()
+    email = (c["sponsor_email"] or "").strip()
+    if not name or not (phone or email):
+        return None
+    # Someone typing their own email or phone as the "sponsor's" is a slip, not a sponsor.
+    own_emails = {(c[k] or "").strip().lower() for k in ("email", "email_2", "email_3")} - {""}
+    own_phones = {(c[k] or "").strip() for k in ("cell_phone", "home_phone", "work_phone")} - {""}
+    if (email and email.lower() in own_emails) or (phone and phone in own_phones):
+        return None
+    match = None
+    if email:
+        row = conn.execute(
+            """SELECT id FROM contacts WHERE id != ? AND (LOWER(email) = LOWER(?) OR LOWER(email_2) = LOWER(?)
+               OR LOWER(email_3) = LOWER(?)) ORDER BY id LIMIT 1""", (contact_id, email, email, email)
+        ).fetchone()
+        match = row["id"] if row else None
+    if not match and phone:
+        row = conn.execute(
+            "SELECT id FROM contacts WHERE id != ? AND (cell_phone = ? OR home_phone = ? OR work_phone = ?) ORDER BY id LIMIT 1",
+            (contact_id, phone, phone, phone),
+        ).fetchone()
+        match = row["id"] if row else None
+    if not match:
+        rows = conn.execute(
+            f"SELECT id FROM contacts WHERE id != ? AND LOWER({FULL_NAME_SQL}) = LOWER(?)", (contact_id, name)
+        ).fetchall()
+        match = rows[0]["id"] if len(rows) == 1 else None
+    if not match:
+        match = _create_past_sponsor(
+            conn, name, phone, email, f"Added automatically from {c['full_name']}'s long form (their Sponsor)."
+        )
+    conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (match, contact_id))
+    return match
+
+
 def _clean_sponsor_pick(conn, values, self_id=None):
     """The staff form's Sponsor name box offers contacts as 'Full Name [#123]'. Turn that into the
     plain name (and fill a blank sponsor phone/email from that contact). Returns the picked
@@ -1592,6 +1658,9 @@ def public_complete_profile(token):
         # Keep the Sponsor pipeline link in step with the typed sponsor name.
         link_id, _note = _resolve_sponsor_link(conn, contact["id"], values.get("sponsor_name") or "")
         conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact["id"]))
+        if not request.form.get("autosave"):
+            # They clicked Submit (not a background save): make sure their sponsor is a contact.
+            _auto_link_or_add_sponsor(conn, contact["id"])
         conn.commit()
         photo_result = process_contact_photo(request.files.get("photo"))
         if photo_result:
@@ -2261,21 +2330,10 @@ def set_sponsor_name(contact_id):
     if not link_id and raw_name and request.form.get("create_contact") and "[#" not in raw_name:
         # The sponsor isn't in the database yet (e.g. someone who sponsored them years ago):
         # add them as a contact, put them on the "Past sponsors" list, and link them.
-        parts = raw_name.split()
-        first, last = (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (raw_name, "")
-        conn.execute(
-            """INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, status)
-               VALUES (?,?,?,?,?,'Sponsor')""",
-            (first, last or None, vals["sponsor_email"] or None, vals["sponsor_phone"] or None,
-             "Added from a Sponsor details card (a past sponsor)."),
+        link_id = _create_past_sponsor(
+            conn, raw_name, vals["sponsor_phone"], vals["sponsor_email"],
+            "Added from a Sponsor details card (a past sponsor).",
         )
-        link_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
-        lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
-        if not lst:
-            conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", ("Past sponsors", date.today().isoformat()))
-            lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
-        conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?,?,?)",
-                     (link_id, lst["id"], date.today().isoformat()))
         flash(f"Added {raw_name} as a new contact (on the Past sponsors list) and linked as the Sponsor.")
         link_note = None
     if link_id:
