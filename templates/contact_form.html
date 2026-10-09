@@ -215,7 +215,7 @@
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       <div class="field">
-        <div class="field"><label>Discovery attendance (if applicable)</label>
+        <div class="field"><label>Previously enrolled in Discovery trainings?</label>
           <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box">
             <option value="" {% if contact and contact.discovery_attendance == '' %}selected{% endif %}>—</option>
             <option {% if contact and contact.discovery_attendance == 'Yes' %}selected{% endif %}>Yes</option>
