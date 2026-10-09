@@ -47,21 +47,6 @@
       <div class="field"><label>Emergency contact name</label><input name="emergency_contact_name" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
       <div class="field"><label>Emergency contact cell</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
       <div class="field"><label>Emergency contact home</label><input name="emergency_contact_home" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}"></div>
-      <div class="field"><label>Sponsor name</label><input name="sponsor_name" placeholder="Who sponsored/recommended them" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
-      <div class="field"><label>Sponsor phone</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
-      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
-      <div class="field"><label>Sponsor street address</label><input name="sponsor_street_address" value="{{ contact.sponsor_street_address if contact and contact.sponsor_street_address else '' }}"></div>
-      <div class="field"><label>Sponsor address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="sponsor_street_address_2" value="{{ contact.sponsor_street_address_2 if contact and contact.sponsor_street_address_2 else '' }}"></div>
-      <div class="field"><label>Sponsor city</label><input name="sponsor_city" value="{{ contact.sponsor_city if contact and contact.sponsor_city else '' }}"></div>
-      <div class="field"><label>Sponsor state</label>
-        <select name="sponsor_state">
-          <option value="">Select a state&hellip;</option>
-          {% for code, label in us_states %}
-          <option value="{{ code }}" {% if contact and contact.sponsor_state == code %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field"><label>Sponsor zip</label><input name="sponsor_zip" value="{{ contact.sponsor_zip if contact and contact.sponsor_zip else '' }}"></div>
       <div class="field">
         <label>How did you hear about us</label>
         <select name="marketing_source" class="self-describe-toggle" data-describe-target="marketing_source_self_describe_box">
@@ -80,6 +65,10 @@
           <input name="marketing_source_self_description" placeholder="Please specify" value="{{ contact.marketing_source_self_description if contact and contact.marketing_source_self_description else '' }}">
         </div>
       </div>
+      <p style="grid-column: 1 / -1; margin:10px 0 0; font-weight:700">So that we can send a &ldquo;Thank you&rdquo; email or text to your Sponsor:</p>
+      <div class="field"><label>Sponsor name</label><input name="sponsor_name" placeholder="Who sponsored/recommended them" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
+      <div class="field"><label>Sponsor phone</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
+      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
     </div>
 
     <h3>Personal information</h3>
