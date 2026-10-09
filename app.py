@@ -2205,6 +2205,29 @@ def set_sponsor_name(contact_id):
         "sponsor_city", "sponsor_zip")}
     vals["sponsor_state"] = clean_state(request.form.get("sponsor_state")) or ""
     name_to_save = raw_name
+    if not link_id and raw_name and request.form.get("create_contact") and "[#" not in raw_name:
+        # The sponsor isn't in the database yet (e.g. someone who sponsored them years ago):
+        # add them as a contact, put them on the "Past sponsors" list, and link them.
+        parts = raw_name.split()
+        first, last = (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (raw_name, "")
+        conn.execute(
+            """INSERT INTO contacts (first_name, last_name, email, cell_phone, street_address, street_address_2,
+                                     city, state, zip, notes)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (first, last or None, vals["sponsor_email"] or None, vals["sponsor_phone"] or None,
+             vals["sponsor_street_address"] or None, vals["sponsor_street_address_2"] or None,
+             vals["sponsor_city"] or None, vals["sponsor_state"] or None, vals["sponsor_zip"] or None,
+             "Added from a Sponsor details card (a past sponsor)."),
+        )
+        link_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
+        lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
+        if not lst:
+            conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", ("Past sponsors", date.today().isoformat()))
+            lst = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = 'past sponsors'").fetchone()
+        conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?,?,?)",
+                     (link_id, lst["id"], date.today().isoformat()))
+        flash(f"Added {raw_name} as a new contact (on the Past sponsors list) and linked as the Sponsor.")
+        link_note = None
     if link_id:
         # Picked (or uniquely matched) from contacts: save the plain name, and fill any
         # detail left blank from the sponsor's own contact record.
