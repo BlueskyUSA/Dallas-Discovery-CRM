@@ -2212,8 +2212,8 @@ def set_sponsor_name(contact_id):
         first, last = (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (raw_name, "")
         conn.execute(
             """INSERT INTO contacts (first_name, last_name, email, cell_phone, street_address, street_address_2,
-                                     city, state, zip, notes)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                     city, state, zip, notes, status)
+               VALUES (?,?,?,?,?,?,?,?,?,?,'Sponsor')""",
             (first, last or None, vals["sponsor_email"] or None, vals["sponsor_phone"] or None,
              vals["sponsor_street_address"] or None, vals["sponsor_street_address_2"] or None,
              vals["sponsor_city"] or None, vals["sponsor_state"] or None, vals["sponsor_zip"] or None,
