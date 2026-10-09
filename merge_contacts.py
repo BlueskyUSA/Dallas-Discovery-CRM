@@ -49,6 +49,7 @@ CHILD_TABLES = [
     ("small_group_staffing", "contact_id", False),
     ("enrollments", "contact_id", False),
     ("enrollments", "enrolled_by_contact_id", False),
+    ("contacts", "sponsor_contact_id", False),
     ("donations", "contact_id", False),
     ("contracts", "contact_id", True),
     ("contracts", "led_by_contact_id", False),

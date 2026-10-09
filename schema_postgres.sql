@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     sponsor_city TEXT,
     sponsor_state TEXT,          -- 2-letter abbreviation, e.g. TX
     sponsor_zip TEXT,
+    sponsor_contact_id INTEGER REFERENCES contacts(id),  -- the sponsor, when picked from contacts (counts toward their TA requirement)
     street_address TEXT,
     street_address_2 TEXT,          -- apt/suite/unit/floor, optional
     city TEXT,
@@ -86,7 +87,8 @@ CREATE TABLE IF NOT EXISTS cohorts (
     id SERIAL PRIMARY KEY,
     program_id INTEGER NOT NULL REFERENCES programs(id),
     session_number INTEGER NOT NULL,      -- permanent, auto-increment per program
-    session_date TEXT NOT NULL,
+    session_date TEXT NOT NULL,           -- first day
+    end_date TEXT,                        -- last day of a multi-day session (blank = one day)
     status TEXT NOT NULL DEFAULT 'Scheduled',  -- Scheduled, Completed, Cancelled
     UNIQUE(program_id, session_number)
 );

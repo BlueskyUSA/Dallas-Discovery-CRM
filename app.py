@@ -1821,6 +1821,14 @@ def contact_detail(contact_id):
            WHERE m.contact_id = ? ORDER BY l.name""",
         (contact_id,),
     ).fetchall()
+    sponsor_choices = conn.execute(
+        f"SELECT id, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id != ? ORDER BY last_name, first_name",
+        (contact_id,),
+    ).fetchall()
+    sponsor_link = conn.execute(
+        f"SELECT s.id, {full_name_sql('s')} AS full_name FROM contacts c JOIN contacts s ON s.id = c.sponsor_contact_id WHERE c.id = ?",
+        (contact_id,),
+    ).fetchone()
     linked_sponsors = conn.execute(
         f"""SELECT DISTINCT b.id, {full_name_sql('b')} AS full_name
             FROM enrollments e JOIN contacts b ON b.id = e.enrolled_by_contact_id
@@ -1835,7 +1843,7 @@ def contact_detail(contact_id):
     conn.close()
     return render_template(
         "contact_detail.html",
-        member_lists=member_lists, linked_sponsors=linked_sponsors,
+        member_lists=member_lists, linked_sponsors=linked_sponsors, sponsor_choices=sponsor_choices, sponsor_link=sponsor_link,
         addable_lists=addable_lists,
         contact=contact,
         enrollments=enrollments,
@@ -1865,9 +1873,14 @@ CAPTAIN_MIN_ENROLLED = 2
 def people_enrolled_count(conn, contact_id):
     """How many different people this contact has brought into a training."""
     row = conn.execute(
-        """SELECT COUNT(DISTINCT contact_id) c FROM enrollments
-           WHERE enrolled_by_contact_id = ? AND contact_id != ?""",
-        (contact_id, contact_id),
+        """SELECT COUNT(DISTINCT trainee) c FROM (
+               SELECT contact_id AS trainee FROM enrollments
+               WHERE enrolled_by_contact_id = ? AND contact_id != ?
+               UNION ALL
+               SELECT id AS trainee FROM contacts
+               WHERE sponsor_contact_id = ? AND id != ?
+           ) x""",
+        (contact_id, contact_id, contact_id, contact_id),
     ).fetchone()
     return row["c"]
 
@@ -1943,6 +1956,40 @@ def parse_contact_pick(conn, raw):
     return cid, None
 
 
+def _resolve_sponsor_link(conn, contact_id, raw_name):
+    """What contact (if any) the Sponsor name on a card refers to. A name picked from the
+    autocomplete ('Full Name [#123]') links directly. Otherwise a typed name that matches
+    exactly ONE contact's full name is linked automatically; anything else stays plain text
+    (and doesn't count toward anyone's pipeline). Returns (contact_id_or_None, note_or_None)."""
+    import re as _re
+    if not raw_name:
+        return None, None
+    m = _re.search(r"\[#(\d+)\]\s*$", raw_name)
+    if m:
+        cid = int(m.group(1))
+        if cid != contact_id and conn.execute("SELECT 1 FROM contacts WHERE id = ?", (cid,)).fetchone():
+            return cid, None
+        return None, "That sponsor couldn't be linked, so it was saved as plain text."
+    current = conn.execute(
+        f"""SELECT s.id FROM contacts c JOIN contacts s ON s.id = c.sponsor_contact_id
+            WHERE c.id = ? AND LOWER({full_name_sql('s')}) = LOWER(?)""",
+        (contact_id, raw_name),
+    ).fetchone()
+    if current:
+        return current["id"], None  # unchanged name: keep the existing link
+    rows = conn.execute(
+        f"SELECT id FROM contacts WHERE LOWER({FULL_NAME_SQL}) = LOWER(?) AND id != ?",
+        (raw_name, contact_id),
+    ).fetchall()
+    if len(rows) == 1:
+        return rows[0]["id"], None
+    if len(rows) > 1:
+        return None, ("More than one contact has that name, so the Sponsor was saved as plain text and does not "
+                      "count toward a pipeline yet. Start typing the name and pick the right person from the list.")
+    return None, ("Saved as plain text: no contact has exactly that name, so it does not count toward the Sponsor "
+                  "pipeline. To count it, add the sponsor as a contact and pick them from the list.")
+
+
 def _contact_delete_blockers(conn, contact_id):
     """Returns a list of plain-English reasons this contact can't be safely
     deleted yet -- real training/financial history that would otherwise be
@@ -1970,6 +2017,11 @@ def _contact_delete_blockers(conn, contact_id):
     ).fetchone()
     if brought["c"]:
         reasons.append("is recorded as having brought other people into a training")
+    sponsored = conn.execute(
+        "SELECT COUNT(*) c FROM contacts WHERE sponsor_contact_id = ?", (contact_id,)
+    ).fetchone()
+    if sponsored["c"]:
+        reasons.append("is recorded as the Sponsor of other people")
     staff_row = conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone()
     if staff_row:
         reasons.append("is linked to a CRM staff login (unlink it from the Team page first)")
@@ -1996,6 +2048,11 @@ def _contact_history_counts(conn, contact_id):
         (
             "enrollments where they are recorded as having brought the person in (the credit is removed, the other person's enrollment is kept)",
             "SELECT COUNT(*) c FROM enrollments WHERE enrolled_by_contact_id = ?",
+            (contact_id,),
+        ),
+        (
+            "people whose Sponsor card names them (the link is removed, the other person's contact is kept)",
+            "SELECT COUNT(*) c FROM contacts WHERE sponsor_contact_id = ?",
             (contact_id,),
         ),
     ]:
@@ -2028,6 +2085,7 @@ def _clear_contact_history(conn, contact_id):
     conn.execute("UPDATE contracts SET led_by_contact_id = NULL WHERE led_by_contact_id = ?", (contact_id,))
     conn.execute("UPDATE contracts SET assisted_by_contact_id = NULL WHERE assisted_by_contact_id = ?", (contact_id,))
     conn.execute("UPDATE enrollments SET enrolled_by_contact_id = NULL WHERE enrolled_by_contact_id = ?", (contact_id,))
+    conn.execute("UPDATE contacts SET sponsor_contact_id = NULL WHERE sponsor_contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM enrollments WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM donations WHERE contact_id = ?", (contact_id,))
     conn.execute("DELETE FROM cohort_staffing WHERE contact_id = ?", (contact_id,))
@@ -2140,21 +2198,44 @@ def contact_delete(contact_id):
 @area_required("contacts")
 def set_sponsor_name(contact_id):
     conn = get_db()
+    raw_name = request.form.get("sponsor_name", "").strip()
+    link_id, link_note = _resolve_sponsor_link(conn, contact_id, raw_name)
+    vals = {k: request.form.get(k, "").strip() for k in (
+        "sponsor_phone", "sponsor_email", "sponsor_street_address", "sponsor_street_address_2",
+        "sponsor_city", "sponsor_zip")}
+    vals["sponsor_state"] = clean_state(request.form.get("sponsor_state")) or ""
+    name_to_save = raw_name
+    if link_id:
+        # Picked (or uniquely matched) from contacts: save the plain name, and fill any
+        # detail left blank from the sponsor's own contact record.
+        sp = conn.execute(
+            f"""SELECT {FULL_NAME_SQL} AS full_name, email, cell_phone, home_phone, work_phone,
+                       street_address, street_address_2, city, state, zip FROM contacts WHERE id = ?""",
+            (link_id,),
+        ).fetchone()
+        name_to_save = sp["full_name"]
+        fill = {
+            "sponsor_phone": sp["cell_phone"] or sp["home_phone"] or sp["work_phone"],
+            "sponsor_email": sp["email"], "sponsor_street_address": sp["street_address"],
+            "sponsor_street_address_2": sp["street_address_2"], "sponsor_city": sp["city"],
+            "sponsor_state": sp["state"], "sponsor_zip": sp["zip"],
+        }
+        for field, val in fill.items():
+            if not vals[field] and val:
+                vals[field] = val
+    if link_note:
+        flash(link_note)
     conn.execute(
         """UPDATE contacts SET sponsor_name = ?, sponsor_phone = ?, sponsor_email = ?,
                                 sponsor_street_address = ?, sponsor_street_address_2 = ?,
-                                sponsor_city = ?, sponsor_state = ?, sponsor_zip = ?
+                                sponsor_city = ?, sponsor_state = ?, sponsor_zip = ?,
+                                sponsor_contact_id = ?
            WHERE id = ?""",
         (
-            request.form.get("sponsor_name", "").strip() or None,
-            request.form.get("sponsor_phone", "").strip() or None,
-            request.form.get("sponsor_email", "").strip() or None,
-            request.form.get("sponsor_street_address", "").strip() or None,
-            request.form.get("sponsor_street_address_2", "").strip() or None,
-            request.form.get("sponsor_city", "").strip() or None,
-            clean_state(request.form.get("sponsor_state")),
-            request.form.get("sponsor_zip", "").strip() or None,
-            contact_id,
+            name_to_save or None, vals["sponsor_phone"] or None, vals["sponsor_email"] or None,
+            vals["sponsor_street_address"] or None, vals["sponsor_street_address_2"] or None,
+            vals["sponsor_city"] or None, vals["sponsor_state"] or None, vals["sponsor_zip"] or None,
+            link_id, contact_id,
         ),
     )
     conn.commit()
@@ -3178,12 +3259,20 @@ def leadership_pipeline():
     people = {}
 
     for r in conn.execute(
-        """SELECT enrolled_by_contact_id AS cid,
-                  COUNT(DISTINCT contact_id) AS n,
-                  COUNT(DISTINCT CASE WHEN attended = 1 THEN contact_id END) AS attended
-           FROM enrollments
-           WHERE enrolled_by_contact_id IS NOT NULL AND contact_id != enrolled_by_contact_id
-           GROUP BY enrolled_by_contact_id"""
+        """SELECT cid, COUNT(DISTINCT trainee) AS n,
+                  COUNT(DISTINCT CASE WHEN att = 1 THEN trainee END) AS attended
+           FROM (
+               SELECT enrolled_by_contact_id AS cid, contact_id AS trainee, attended AS att
+               FROM enrollments
+               WHERE enrolled_by_contact_id IS NOT NULL AND contact_id != enrolled_by_contact_id
+               UNION ALL
+               SELECT c.sponsor_contact_id, c.id,
+                      CASE WHEN EXISTS (SELECT 1 FROM enrollments e WHERE e.contact_id = c.id AND e.attended = 1)
+                           THEN 1 ELSE 0 END
+               FROM contacts c
+               WHERE c.sponsor_contact_id IS NOT NULL AND c.sponsor_contact_id != c.id
+           ) x
+           GROUP BY cid"""
     ).fetchall():
         people[r["cid"]] = {"enrolled": r["n"], "attended": r["attended"], "ta_times": 0, "captain_times": 0}
 
