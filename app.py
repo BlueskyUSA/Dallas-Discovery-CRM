@@ -725,7 +725,7 @@ def staff_new_for_contact(contact_id):
             return render_template("staff_new_confirm.html", contact=contact)
         temp_password = request.form["password"]
         if not email:
-            flash("Enter an email to use for their CRM login.")
+            flash("Enter an email to use for their ERP login.")
             conn.close()
             return render_template("staff_new_confirm.html", contact=contact)
         try:
@@ -1196,10 +1196,47 @@ def _clean_contact_field(name, form):
     return form.get(name) or None
 
 
+# Sponsor address pieces are not asked on the public long form (staff keep them on the Sponsor card).
+PUBLIC_FORM_SKIPPED_FIELDS = {
+    "sponsor_street_address", "sponsor_street_address_2", "sponsor_city", "sponsor_state", "sponsor_zip",
+}
+
+
 def contact_profile_values_from_form(form):
     """Returns {column: cleaned_value} for every CONTACT_PROFILE_FIELDS
     column, built from a submitted form (internal or public)."""
     return {name: _clean_contact_field(name, form) for name in CONTACT_PROFILE_FIELDS}
+
+
+def _clean_sponsor_pick(conn, values, self_id=None):
+    """The staff form's Sponsor name box offers contacts as 'Full Name [#123]'. Turn that into the
+    plain name (and fill a blank sponsor phone/email from that contact). Returns the picked
+    contact's id, or None when the name was simply typed."""
+    import re as _re
+    raw = (values.get("sponsor_name") or "").strip()
+    m = _re.search(r"\[#(\d+)\]\s*$", raw)
+    if not m:
+        return None
+    pick = int(m.group(1))
+    row = conn.execute(
+        f"SELECT {FULL_NAME_SQL} AS n, email, cell_phone, home_phone, work_phone FROM contacts WHERE id = ?", (pick,)
+    ).fetchone()
+    if not row or pick == self_id:
+        values["sponsor_name"] = _re.sub(r"\s*\[#\d+\]\s*$", "", raw).strip() or None
+        return None
+    values["sponsor_name"] = row["n"]
+    if not values.get("sponsor_phone"):
+        values["sponsor_phone"] = row["cell_phone"] or row["home_phone"] or row["work_phone"] or None
+    if not values.get("sponsor_email"):
+        values["sponsor_email"] = row["email"] or None
+    return pick
+
+
+def _sponsor_choices(conn, exclude_id=None):
+    return conn.execute(
+        f"SELECT id, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id != ? ORDER BY last_name, first_name",
+        (exclude_id or 0,),
+    ).fetchall()
 
 
 # ---------- helpers ----------
@@ -1295,12 +1332,16 @@ def contact_new():
         values["status"] = request.form.get("status") or "Interested Party"
         columns = CONTACT_PROFILE_FIELDS + ["notes", "status"]
         placeholders = ", ".join(["?"] * len(columns))
+        pick_id = _clean_sponsor_pick(conn, values)
         conn.execute(
             f"INSERT INTO contacts ({', '.join(columns)}) VALUES ({placeholders})",
             [values[c] for c in columns],
         )
         conn.commit()
         new_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
+        link_id = pick_id or _resolve_sponsor_link(conn, new_id, values.get("sponsor_name") or "")[0]
+        conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, new_id))
+        conn.commit()
         photo_result = process_contact_photo(request.files.get("photo"))
         if photo_result:
             upsert_contact_photo(conn, new_id, *photo_result)
@@ -1315,10 +1356,14 @@ def contact_new():
 
         flash("Contact added.")
         return redirect(url_for(".contact_detail", contact_id=new_id))
+    conn = get_db()
+    choices = _sponsor_choices(conn)
+    conn.close()
     return render_template(
         "contact_form.html",
         for_team_login=request.args.get("for_team_login"),
         link_staff_id=request.args.get("link_staff_id"),
+        sponsor_choices=choices,
     )
 
 
@@ -1342,12 +1387,16 @@ def contact_edit(contact_id):
         values = contact_profile_values_from_form(request.form)
         values["notes"] = request.form.get("notes") or None
         values["status"] = request.form.get("status") or "Interested Party"
-        columns = CONTACT_PROFILE_FIELDS + ["notes", "status"]
+        pick_id = _clean_sponsor_pick(conn, values, self_id=contact_id)
+        # The staff form no longer asks for the sponsor's address; saved details stay as they are.
+        columns = [c for c in CONTACT_PROFILE_FIELDS if c not in PUBLIC_FORM_SKIPPED_FIELDS] + ["notes", "status"]
         set_clause = ", ".join(f"{c} = ?" for c in columns)
         conn.execute(
             f"UPDATE contacts SET {set_clause} WHERE id = ?",
             [values[c] for c in columns] + [contact_id],
         )
+        link_id = pick_id or _resolve_sponsor_link(conn, contact_id, values.get("sponsor_name") or "")[0]
+        conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact_id))
         conn.commit()
         photo_result = process_contact_photo(request.files.get("photo"))
         if photo_result:
@@ -1357,8 +1406,9 @@ def contact_edit(contact_id):
         flash("Contact updated.")
         return redirect(url_for(".contact_detail", contact_id=contact_id))
 
+    choices = _sponsor_choices(conn, contact_id)
     conn.close()
-    return render_template("contact_form.html", contact=contact)
+    return render_template("contact_form.html", contact=contact, sponsor_choices=choices)
 
 
 @crm.route("/contacts/<int:contact_id>/profile-link/new", methods=["POST"])
@@ -1531,11 +1581,17 @@ def public_complete_profile(token):
 
     if request.method == "POST":
         values = contact_profile_values_from_form(request.form)
-        set_clause = ", ".join(f"{c} = ?" for c in CONTACT_PROFILE_FIELDS)
+        # The public form no longer asks for the sponsor's address, so those saved details
+        # (kept on the staff Sponsor details card) must be left exactly as they are.
+        saved_fields = [c for c in CONTACT_PROFILE_FIELDS if c not in PUBLIC_FORM_SKIPPED_FIELDS]
+        set_clause = ", ".join(f"{c} = ?" for c in saved_fields)
         conn.execute(
             f"UPDATE contacts SET {set_clause} WHERE id = ?",
-            [values[c] for c in CONTACT_PROFILE_FIELDS] + [contact["id"]],
+            [values[c] for c in saved_fields] + [contact["id"]],
         )
+        # Keep the Sponsor pipeline link in step with the typed sponsor name.
+        link_id, _note = _resolve_sponsor_link(conn, contact["id"], values.get("sponsor_name") or "")
+        conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact["id"]))
         conn.commit()
         photo_result = process_contact_photo(request.files.get("photo"))
         if photo_result:
@@ -2024,7 +2080,7 @@ def _contact_delete_blockers(conn, contact_id):
         reasons.append("is recorded as the Sponsor of other people")
     staff_row = conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone()
     if staff_row:
-        reasons.append("is linked to a CRM staff login (unlink it from the Team page first)")
+        reasons.append("is linked to an ERP login (unlink it from Site Access first)")
     return reasons
 
 
@@ -2169,7 +2225,7 @@ def contact_delete(contact_id):
             return redirect(url_for(".contact_delete_confirm", contact_id=contact_id))
         if conn.execute("SELECT 1 FROM staff WHERE contact_id = ?", (contact_id,)).fetchone():
             conn.close()
-            flash("This contact is linked to a CRM staff login -- unlink it from the Team page first. Nothing was changed.")
+            flash("This contact is linked to an ERP login -- unlink it from Site Access first. Nothing was changed.")
             return redirect(url_for(".contact_delete_confirm", contact_id=contact_id))
         history = _contact_history_counts(conn, contact_id)
         _clear_contact_history(conn, contact_id)
@@ -2200,10 +2256,7 @@ def set_sponsor_name(contact_id):
     conn = get_db()
     raw_name = request.form.get("sponsor_name", "").strip()
     link_id, link_note = _resolve_sponsor_link(conn, contact_id, raw_name)
-    vals = {k: request.form.get(k, "").strip() for k in (
-        "sponsor_phone", "sponsor_email", "sponsor_street_address", "sponsor_street_address_2",
-        "sponsor_city", "sponsor_zip")}
-    vals["sponsor_state"] = clean_state(request.form.get("sponsor_state")) or ""
+    vals = {k: request.form.get(k, "").strip() for k in ("sponsor_phone", "sponsor_email")}
     name_to_save = raw_name
     if not link_id and raw_name and request.form.get("create_contact") and "[#" not in raw_name:
         # The sponsor isn't in the database yet (e.g. someone who sponsored them years ago):
@@ -2211,12 +2264,9 @@ def set_sponsor_name(contact_id):
         parts = raw_name.split()
         first, last = (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (raw_name, "")
         conn.execute(
-            """INSERT INTO contacts (first_name, last_name, email, cell_phone, street_address, street_address_2,
-                                     city, state, zip, notes, status)
-               VALUES (?,?,?,?,?,?,?,?,?,?,'Sponsor')""",
+            """INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, status)
+               VALUES (?,?,?,?,?,'Sponsor')""",
             (first, last or None, vals["sponsor_email"] or None, vals["sponsor_phone"] or None,
-             vals["sponsor_street_address"] or None, vals["sponsor_street_address_2"] or None,
-             vals["sponsor_city"] or None, vals["sponsor_state"] or None, vals["sponsor_zip"] or None,
              "Added from a Sponsor details card (a past sponsor)."),
         )
         link_id = conn.execute("SELECT last_insert_rowid() id").fetchone()["id"]
@@ -2232,16 +2282,14 @@ def set_sponsor_name(contact_id):
         # Picked (or uniquely matched) from contacts: save the plain name, and fill any
         # detail left blank from the sponsor's own contact record.
         sp = conn.execute(
-            f"""SELECT {FULL_NAME_SQL} AS full_name, email, cell_phone, home_phone, work_phone,
-                       street_address, street_address_2, city, state, zip FROM contacts WHERE id = ?""",
+            f"""SELECT {FULL_NAME_SQL} AS full_name, email, cell_phone, home_phone, work_phone
+                FROM contacts WHERE id = ?""",
             (link_id,),
         ).fetchone()
         name_to_save = sp["full_name"]
         fill = {
             "sponsor_phone": sp["cell_phone"] or sp["home_phone"] or sp["work_phone"],
-            "sponsor_email": sp["email"], "sponsor_street_address": sp["street_address"],
-            "sponsor_street_address_2": sp["street_address_2"], "sponsor_city": sp["city"],
-            "sponsor_state": sp["state"], "sponsor_zip": sp["zip"],
+            "sponsor_email": sp["email"],
         }
         for field, val in fill.items():
             if not vals[field] and val:
@@ -2250,16 +2298,9 @@ def set_sponsor_name(contact_id):
         flash(link_note)
     conn.execute(
         """UPDATE contacts SET sponsor_name = ?, sponsor_phone = ?, sponsor_email = ?,
-                                sponsor_street_address = ?, sponsor_street_address_2 = ?,
-                                sponsor_city = ?, sponsor_state = ?, sponsor_zip = ?,
                                 sponsor_contact_id = ?
            WHERE id = ?""",
-        (
-            name_to_save or None, vals["sponsor_phone"] or None, vals["sponsor_email"] or None,
-            vals["sponsor_street_address"] or None, vals["sponsor_street_address_2"] or None,
-            vals["sponsor_city"] or None, vals["sponsor_state"] or None, vals["sponsor_zip"] or None,
-            link_id, contact_id,
-        ),
+        (name_to_save or None, vals["sponsor_phone"] or None, vals["sponsor_email"] or None, link_id, contact_id),
     )
     conn.commit()
     conn.close()
