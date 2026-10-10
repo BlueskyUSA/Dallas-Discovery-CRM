@@ -1,0 +1,22 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ material.title }} — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<style>
+  .doc-body { max-width: 860px; line-height: 1.55; }
+  .doc-body h2, .doc-body h3, .doc-body h4 { margin: 1.1em 0 .4em; }
+  .doc-body p { margin: .5em 0; }
+  .doc-body .doc-gap { margin: .2em 0; }
+  .doc-table { border-collapse: collapse; margin: .6em 0; }
+  .doc-table td { border: 1px solid #ccc; padding: 4px 8px; vertical-align: top; }
+  .doc-scroll { overflow-x: auto; }
+  .doc-slide { border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
+</style>
+<h1>{{ material.title }}</h1>
+<p class="muted"><a href="{{ url_for('.program_materials', program_id=program.id) }}">&larr; Back to {{ program.name }} materials</a>
+  &middot; <a class="btn" href="{{ url_for('.program_material_file', program_id=program.id, material_id=material.id) }}">Download original</a></p>
+<div class="card doc-body">
+  {% if body %}{{ body|safe }}
+  {% elif is_old_word %}<p>This is an older Word file (.doc), which can't be shown on the page. Download it, open it in Word, choose <strong>Save As &rarr; Word Document (.docx)</strong>, and upload the .docx version; that one can be read here.</p>
+  {% else %}<p>This file can't be shown on the page. Use <strong>Download original</strong> above.</p>{% endif %}
+</div>
+{% endblock %}

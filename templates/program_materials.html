@@ -14,7 +14,10 @@
     {% for m in by_day[day] %}
     <tr>
       <td>{{ m.title }}</td>
-      <td><a href="{{ url_for('.program_material_file', program_id=program.id, material_id=m.id) }}" target="_blank">{{ m.original_filename }}</a></td>
+      <td>
+        {% set ext = m.original_filename.rsplit('.', 1)[-1].lower() if '.' in m.original_filename else '' %}
+        {% if ext in ['docx','xlsx','pptx','doc'] %}<a class="btn" href="{{ url_for('.program_material_read', program_id=program.id, material_id=m.id) }}">Read</a> {% endif %}
+        <a href="{{ url_for('.program_material_file', program_id=program.id, material_id=m.id) }}" target="_blank">{{ m.original_filename }}</a></td>
       <td class="muted">{{ m.uploaded_at[:10] }}</td>
       <td>
         <form method="post" action="{{ url_for('.program_material_delete', program_id=program.id, material_id=m.id) }}"
