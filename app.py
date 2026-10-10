@@ -2640,6 +2640,24 @@ def program_material_file(program_id, material_id):
     return resp
 
 
+@crm.route("/programs/<int:program_id>/materials/<int:material_id>/read")
+@program_area_required
+def program_material_read(program_id, material_id):
+    """Shows a Word / Excel / PowerPoint material as a readable page (converted on the fly from the stored file)."""
+    import doc_reader
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
+    ).fetchone()
+    program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
+    conn.close()
+    if not row or not row["data"] or not program:
+        abort(404)
+    body = doc_reader.to_html(bytes(row["data"]), row["original_filename"])
+    return render_template("material_read.html", program=program, material=row, body=body,
+                           is_old_word=doc_reader.extension(row["original_filename"]) == "doc")
+
+
 @crm.route("/programs/<int:program_id>/materials/new", methods=["POST"])
 @program_area_required
 def program_material_new(program_id):
