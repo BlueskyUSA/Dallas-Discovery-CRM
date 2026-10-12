@@ -2598,25 +2598,108 @@ def program_delete(program_id):
 
 DAY_LABEL_ORDER = ["Friday Night", "Saturday", "Sunday", "General"]
 
+# Every program's training materials are filed under one of these four
+# headings -- they are the four links shown under each program on the
+# Programs page, and the four tabs across the top of each materials page.
+MATERIAL_CATEGORIES = ["Syllabus", "Music", "Handouts", "Other"]
+MATERIAL_CATEGORY_BLURBS = {
+    "Syllabus": "The run sheet for the training: the schedule and order of activities that facilitators and TAs follow.",
+    "Music": "Song lists used during the training, organized by day and purpose, plus any music files (song sheets, assignment sheets).",
+    "Handouts": "Handouts, worksheets, and resource sheets given to trainees, organized by which day they're used.",
+    "Other": "Anything else for this training that isn't a syllabus, music, or a handout.",
+}
+_SYLLABUS_WORDS = ("syllab", "run sheet", "run-sheet", "runsheet")
+_MUSIC_WORDS = ("song", "music", "playlist")
+_material_category_ready = False
+
+
+def _guess_material_category(title, original_filename):
+    """Best guess at the heading for a file that was uploaded before the
+    four headings existed (or by an import script that doesn't set one)."""
+    text = f"{title or ''} {original_filename or ''}".lower()
+    if any(w in text for w in _SYLLABUS_WORDS):
+        return "Syllabus"
+    if any(w in text for w in _MUSIC_WORDS):
+        return "Music"
+    return "Handouts"
+
+
+def _material_category(row):
+    cat = row["category"]
+    return cat if cat in MATERIAL_CATEGORIES else _guess_material_category(row["title"], row["original_filename"])
+
+
+def _ensure_material_categories(conn):
+    """Adds the program_materials.category column the first time it's needed
+    and files every older upload under a heading, so no separate migration
+    has to be run by hand after deploying. Runs once per server start and is
+    harmless to repeat."""
+    global _material_category_ready
+    if _material_category_ready:
+        return
+    conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS category TEXT")
+    for row in conn.execute(
+        "SELECT id, title, original_filename FROM program_materials WHERE category IS NULL"
+    ).fetchall():
+        conn.execute(
+            "UPDATE program_materials SET category = ? WHERE id = ?",
+            (_guess_material_category(row["title"], row["original_filename"]), row["id"]),
+        )
+    conn.commit()
+    _material_category_ready = True
+
+
+def _materials_url(program_id, category):
+    """Where a heading lives: Music shares a page with the song lists, the
+    other three each get their own page of files."""
+    if category == "Music":
+        return url_for(".program_playlists", program_id=program_id)
+    return url_for(".program_materials", program_id=program_id, category=category)
+
+
+def _load_materials(conn, program_id):
+    """Every material for a program (without the file bytes -- those are only
+    read when a file is actually opened), grouped by heading and then by day.
+    Returns (by_category, counts)."""
+    _ensure_material_categories(conn)
+    rows = conn.execute(
+        """SELECT id, program_id, day_label, title, original_filename, uploaded_at, category
+           FROM program_materials WHERE program_id = ? ORDER BY uploaded_at, id""",
+        (program_id,),
+    ).fetchall()
+    by_category = {c: {} for c in MATERIAL_CATEGORIES}
+    counts = {c: 0 for c in MATERIAL_CATEGORIES}
+    for r in rows:
+        cat = _material_category(r)
+        by_category[cat].setdefault(r["day_label"] or "General", []).append(r)
+        counts[cat] += 1
+    return by_category, counts
+
+
+def _ordered_days(by_day):
+    return [d for d in DAY_LABEL_ORDER if d in by_day] + [d for d in by_day if d not in DAY_LABEL_ORDER]
+
 
 @crm.route("/programs/<int:program_id>/materials")
 @program_area_required
 def program_materials(program_id):
+    category = request.args.get("category", "").strip().title()
+    if category not in MATERIAL_CATEGORIES:
+        category = MATERIAL_CATEGORIES[0]
+    if category == "Music":
+        return redirect(_materials_url(program_id, "Music"))
     conn = get_db()
     program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
-    rows = conn.execute(
-        "SELECT * FROM program_materials WHERE program_id = ? ORDER BY uploaded_at", (program_id,)
-    ).fetchall()
+    if not program:
+        conn.close()
+        abort(404)
+    by_category, counts = _load_materials(conn, program_id)
     conn.close()
-    by_day = {}
-    for r in rows:
-        label = r["day_label"] or "General"
-        by_day.setdefault(label, []).append(r)
-    ordered_days = [d for d in DAY_LABEL_ORDER if d in by_day]
-    ordered_days += [d for d in by_day if d not in DAY_LABEL_ORDER]
+    by_day = by_category[category]
     return render_template(
-        "program_materials.html", program=program, by_day=by_day, ordered_days=ordered_days,
-        day_label_choices=DAY_LABEL_ORDER,
+        "program_materials.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
+        day_label_choices=DAY_LABEL_ORDER, category=category, categories=MATERIAL_CATEGORIES,
+        category_counts=counts, category_blurb=MATERIAL_CATEGORY_BLURBS[category],
     )
 
 
@@ -2646,6 +2729,7 @@ def program_material_read(program_id, material_id):
     """Shows a Word / Excel / PowerPoint material as a readable page (converted on the fly from the stored file)."""
     import doc_reader
     conn = get_db()
+    _ensure_material_categories(conn)
     row = conn.execute(
         "SELECT * FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
     ).fetchone()
@@ -2654,8 +2738,10 @@ def program_material_read(program_id, material_id):
     if not row or not row["data"] or not program:
         abort(404)
     body = doc_reader.to_html(bytes(row["data"]), row["original_filename"])
+    category = _material_category(row)
     return render_template("material_read.html", program=program, material=row, body=body,
-                           is_old_word=doc_reader.extension(row["original_filename"]) == "doc")
+                           is_old_word=doc_reader.extension(row["original_filename"]) == "doc",
+                           category=category, back_url=_materials_url(program_id, category))
 
 
 @crm.route("/programs/<int:program_id>/materials/new", methods=["POST"])
@@ -2663,35 +2749,64 @@ def program_material_read(program_id, material_id):
 def program_material_new(program_id):
     title = request.form.get("title", "").strip()
     day_label = request.form.get("day_label") or None
+    category = request.form.get("category", "")
+    if category not in MATERIAL_CATEGORIES:
+        category = "Other"
     material_result = process_program_material(request.files.get("file"))
     if material_result:
         data, content_type = material_result
         original_filename = request.files["file"].filename
         filename = f"program_{program_id}_{secrets.token_hex(6)}"
         conn = get_db()
+        _ensure_material_categories(conn)
         conn.execute(
             """INSERT INTO program_materials
-               (program_id, day_label, title, filename, original_filename, data, content_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type),
+               (program_id, day_label, title, filename, original_filename, data, content_type, category)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type, category),
         )
         conn.commit()
         conn.close()
-        flash("Material uploaded.")
-    return redirect(url_for(".program_materials", program_id=program_id))
+        flash(f"Uploaded to {category}.")
+    return redirect(_materials_url(program_id, category))
+
+
+@crm.route("/programs/<int:program_id>/materials/<int:material_id>/move", methods=["POST"])
+@program_area_required
+def program_material_move(program_id, material_id):
+    """Re-files a material under a different heading (e.g. Handouts -> Syllabus)."""
+    target = request.form.get("category", "")
+    back = request.form.get("back", "")
+    conn = get_db()
+    _ensure_material_categories(conn)
+    row = conn.execute(
+        "SELECT id, title FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
+    ).fetchone()
+    if row and target in MATERIAL_CATEGORIES:
+        conn.execute("UPDATE program_materials SET category = ? WHERE id = ?", (target, material_id))
+        conn.commit()
+        flash(f"Moved “{row['title']}” to {target}.")
+    conn.close()
+    return redirect(_materials_url(program_id, back if back in MATERIAL_CATEGORIES else MATERIAL_CATEGORIES[0]))
 
 
 @crm.route("/programs/<int:program_id>/materials/<int:material_id>/delete", methods=["POST"])
 @program_area_required
 def program_material_delete(program_id, material_id):
     conn = get_db()
-    row = conn.execute("SELECT * FROM program_materials WHERE id = ?", (material_id,)).fetchone()
+    _ensure_material_categories(conn)
+    row = conn.execute(
+        "SELECT id, title, original_filename, category FROM program_materials WHERE id = ? AND program_id = ?",
+        (material_id, program_id),
+    ).fetchone()
+    category = MATERIAL_CATEGORIES[0]
     if row:
+        category = _material_category(row)
         conn.execute("DELETE FROM program_materials WHERE id = ?", (material_id,))
         conn.commit()
         flash("Material deleted.")
     conn.close()
-    return redirect(url_for(".program_materials", program_id=program_id))
+    return redirect(_materials_url(program_id, category))
 
 
 # ---------- music / playlists ----------
@@ -2701,6 +2816,9 @@ def program_material_delete(program_id, material_id):
 def program_playlists(program_id):
     conn = get_db()
     program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
+    if not program:
+        conn.close()
+        abort(404)
     playlists = conn.execute(
         "SELECT * FROM program_playlists WHERE program_id = ? ORDER BY id", (program_id,)
     ).fetchall()
@@ -2709,16 +2827,19 @@ def program_playlists(program_id):
         songs_by_playlist[pl["id"]] = conn.execute(
             "SELECT * FROM playlist_songs WHERE playlist_id = ? ORDER BY position, id", (pl["id"],)
         ).fetchall()
+    by_category, counts = _load_materials(conn, program_id)
     conn.close()
     by_day = {}
     for pl in playlists:
         label = pl["day_label"] or "General"
         by_day.setdefault(label, []).append(pl)
-    ordered_days = [d for d in DAY_LABEL_ORDER if d in by_day]
-    ordered_days += [d for d in by_day if d not in DAY_LABEL_ORDER]
+    files_by_day = by_category["Music"]
     return render_template(
-        "program_playlists.html", program=program, by_day=by_day, ordered_days=ordered_days,
+        "program_playlists.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
         day_label_choices=DAY_LABEL_ORDER, songs_by_playlist=songs_by_playlist,
+        files_by_day=files_by_day, files_ordered_days=_ordered_days(files_by_day),
+        category="Music", categories=MATERIAL_CATEGORIES, category_counts=counts,
+        category_blurb=MATERIAL_CATEGORY_BLURBS["Music"],
     )
 
 

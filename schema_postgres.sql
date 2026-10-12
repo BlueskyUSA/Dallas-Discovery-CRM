@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS program_materials (
     original_filename TEXT NOT NULL,
     data BYTEA,
     content_type TEXT,
+    category TEXT,                 -- 'Syllabus', 'Music', 'Handouts', or 'Other'
     uploaded_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
 );
 
