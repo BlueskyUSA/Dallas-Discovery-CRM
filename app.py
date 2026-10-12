@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # loads DATABASE_URL from a local .env file, if present
 
-from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response
+from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response, g
 from datetime import date, datetime, timedelta
 import secrets
 import os
@@ -139,7 +139,9 @@ def upsert_contact_photo(conn, contact_id, data, content_type):
 # reason as contact photos above -- these are only ever sent to the browser
 # through the program_material_file route below, which checks program-level
 # authorization first, so they stay just as confidential as they were on disk.
-ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png"}
+ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav"}
+AUDIO_EXTENSIONS = {"mp3", "m4a", "wav"}
+MAX_AUDIO_BYTES = 30 * 1024 * 1024
 
 
 def _material_extension(filename):
@@ -160,6 +162,12 @@ def process_program_material(file_storage):
         flash("That file type isn't supported for training materials.")
         return None
     data = file_storage.stream.read()
+    if ext in AUDIO_EXTENSIONS and len(data) > MAX_AUDIO_BYTES:
+        flash(f"{file_storage.filename} is over 30 MB, so it was not uploaded.")
+        return None
+    if ext in AUDIO_EXTENSIONS:
+        file_storage_type = {"mp3": "audio/mpeg", "m4a": "audio/mp4", "wav": "audio/wav"}[ext]
+        return data, file_storage_type
     content_type = file_storage.mimetype or mimetypes.guess_type(file_storage.filename)[0] or "application/octet-stream"
     return data, content_type
 
@@ -304,14 +312,31 @@ FIXED_ACCESS_AREAS = [
 # exists yet (B1-B4 are today's real programs; B5/B6 are room to grow).
 RESERVED_PROGRAM_AREA_CODES = ["D1", "D2", "D3", "D4", "D5", "D6"]
 
+# Every program's training materials are filed under these four headings,
+# and access is granted per heading per program: the access_grants area_key
+# for "D1's Syllabus" is "D1:Syllabus". (Before this, one grant on "D1"
+# opened all four; those older grants are split into four automatically --
+# see _split_program_grants_by_heading.)
+MATERIAL_CATEGORIES = ["Syllabus", "Music", "Handouts", "Other"]
+PROGRAM_HEADING_AREA_KEYS = [f"{code}:{h}" for code in RESERVED_PROGRAM_AREA_CODES for h in MATERIAL_CATEGORIES]
+
+
+def program_heading_key(program_code, heading):
+    return f"{program_code}:{heading}"
+
 
 def _area_labels_map(conn):
     """area_key -> human label, for every fixed area plus every program
     that actually exists today (e.g. 'B1' -> 'B1 — Bluesky 1')."""
     labels = dict(FIXED_ACCESS_AREAS)
     labels[ACCOUNTING_LOGIN_GRANT] = "Accounting & Legal login"
+    for code in RESERVED_PROGRAM_AREA_CODES:
+        for h in MATERIAL_CATEGORIES:
+            labels[program_heading_key(code, h)] = f"{code}: {h}"
     for row in conn.execute("SELECT code, name FROM programs").fetchall():
         labels[row["code"]] = f"{row['code']} — {row['name']}"
+        for h in MATERIAL_CATEGORIES:
+            labels[program_heading_key(row["code"], h)] = f"{row['code']} — {row['name']}: {h}"
     return labels
 
 
@@ -322,8 +347,54 @@ def _all_areas(conn):
     placeholder before then, so access can be set up ahead of time."""
     area_labels = _area_labels_map(conn)
     return list(FIXED_ACCESS_AREAS) + [
-        (code, area_labels.get(code, code)) for code in RESERVED_PROGRAM_AREA_CODES
+        (key, area_labels.get(key, key)) for key in PROGRAM_HEADING_AREA_KEYS
     ]
+
+
+def _program_area_groups(conn):
+    """[(program label, [(area_key, heading), ...]), ...] -- one group per
+    program slot (D1-D6), for showing the four heading checkboxes together."""
+    area_labels = _area_labels_map(conn)
+    return [
+        (area_labels.get(code, code), [(program_heading_key(code, h), h) for h in MATERIAL_CATEGORIES])
+        for code in RESERVED_PROGRAM_AREA_CODES
+    ]
+
+
+def _allowed_headings(conn, program_code):
+    """Which of Syllabus / Music / Handouts / Other the signed-in account may
+    see for this program, in that order. The Owner sees all four."""
+    if session.get("is_owner"):
+        return list(MATERIAL_CATEGORIES)
+    granted = {
+        row["area_key"]
+        for row in conn.execute(
+            "SELECT area_key FROM access_grants WHERE staff_id = ?", (session.get("staff_id"),)
+        ).fetchall()
+    }
+    return [h for h in MATERIAL_CATEGORIES if program_heading_key(program_code, h) in granted]
+
+
+def _split_program_grants_by_heading(conn):
+    """One-time conversion: an older grant on a whole program (area_key "D1")
+    becomes four grants, one per heading ("D1:Syllabus", "D1:Music", ...), so
+    nobody loses access they already had. Afterwards each heading can be
+    taken away or given separately. Harmless to repeat."""
+    codes = set(RESERVED_PROGRAM_AREA_CODES) | {
+        row["code"] for row in conn.execute("SELECT code FROM programs").fetchall()
+    }
+    for row in conn.execute("SELECT id, area_key, staff_id FROM access_grants").fetchall():
+        if row["area_key"] not in codes:
+            continue
+        for h in MATERIAL_CATEGORIES:
+            key = program_heading_key(row["area_key"], h)
+            exists = conn.execute(
+                "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?", (key, row["staff_id"])
+            ).fetchone()
+            if not exists:
+                conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (key, row["staff_id"]))
+        conn.execute("DELETE FROM access_grants WHERE id = ?", (row["id"],))
+    conn.commit()
 
 
 def _has_area_access(area_key):
@@ -346,9 +417,9 @@ def _has_any_program_access():
     conn = get_db()
     row = conn.execute(
         "SELECT 1 FROM access_grants WHERE staff_id = ? AND area_key IN ({})".format(
-            ",".join("?" for _ in RESERVED_PROGRAM_AREA_CODES)
+            ",".join("?" for _ in PROGRAM_HEADING_AREA_KEYS)
         ),
-        (session.get("staff_id"), *RESERVED_PROGRAM_AREA_CODES),
+        (session.get("staff_id"), *PROGRAM_HEADING_AREA_KEYS),
     ).fetchone()
     conn.close()
     return bool(row)
@@ -368,27 +439,60 @@ def area_required(area_key):
     return decorator
 
 
+def _headings_needed(conn, program_id, kwargs):
+    """Which heading(s) the current request touches, so access can be checked
+    per heading. An empty list means "any heading" (the materials page then
+    opens the first heading this account is allowed to see)."""
+    endpoint = request.endpoint or ""
+    if "playlist" in endpoint:
+        return ["Music"]
+    if endpoint == "crm.program_materials":
+        cat = request.args.get("category", "").strip().title()
+        return [cat] if cat in MATERIAL_CATEGORIES else []
+    if endpoint == "crm.program_material_new":
+        cat = request.form.get("category", "")
+        return [cat if cat in MATERIAL_CATEGORIES else "Other"]
+    needed = []
+    material_id = kwargs.get("material_id")
+    if material_id is not None:
+        _ensure_material_categories(conn)
+        row = conn.execute(
+            "SELECT title, original_filename, category FROM program_materials WHERE id = ? AND program_id = ?",
+            (material_id, program_id),
+        ).fetchone()
+        if row:
+            needed.append(_material_category(row))
+    if endpoint == "crm.program_material_move":
+        target = request.form.get("category", "")
+        if target in MATERIAL_CATEGORIES:
+            needed.append(target)
+    return needed
+
+
 def program_area_required(view):
-    """Gates a program's confidential content (training materials, music
-    playlists) to the Owner, plus any Team/Leadership account authorized
-    for that program's area (looked up by the program's own code, e.g.
-    "D1"). Every wrapped route must take program_id as a URL argument."""
+    """Gates a program's confidential training materials. The Owner sees
+    everything; anyone else needs a grant for each heading involved
+    (e.g. "D1:Syllabus"), set by the Owner from Site Access. Every wrapped
+    route must take program_id as a URL argument. Sets g.allowed_headings."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         program_id = kwargs.get("program_id")
-        if session.get("is_owner"):
-            return view(*args, **kwargs)
         conn = get_db()
-        prog = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()
-        area_key = prog["code"] if prog else None
-        grant = conn.execute(
-            "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?",
-            (area_key, session.get("staff_id")),
-        ).fetchone() if area_key else None
-        conn.close()
-        if grant:
+        try:
+            prog = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()
+            if not prog:
+                abort(404)
+            allowed = _allowed_headings(conn, prog["code"])
+            needed = _headings_needed(conn, program_id, kwargs)
+        finally:
+            conn.close()
+        if allowed and all(h in allowed for h in needed):
+            if request.method == "POST" and not _can_edit_materials():
+                flash("Team accounts can view training materials but can't upload, move, delete or change them.")
+                return redirect(request.referrer or url_for(".programs_list"))
+            g.allowed_headings = allowed
             return view(*args, **kwargs)
-        flash("This program's training materials are restricted. Ask a leadership account to grant you access from the Team page.")
+        flash("You don't have access to that part of this program's training materials. Ask the Owner to grant it from Site Access.")
         return redirect(url_for(".programs_list"))
     return wrapped
 
@@ -575,6 +679,7 @@ def staff_list():
     area_labels = _area_labels_map(conn)
     all_areas = _all_areas(conn)
     grants = conn.execute("SELECT staff_id, area_key FROM access_grants").fetchall()
+    program_groups = _program_area_groups(conn)
     conn.close()
     access_by_staff = {}
     granted_keys_by_staff = {}
@@ -585,6 +690,7 @@ def staff_list():
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
+        fixed_areas=FIXED_ACCESS_AREAS, program_groups=program_groups,
         door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
     )
 
@@ -672,9 +778,11 @@ def staff_access(staff_id):
         row["area_key"]
         for row in conn.execute("SELECT area_key FROM access_grants WHERE staff_id = ?", (staff_id,)).fetchall()
     }
+    program_groups = [] if target["role"] == ACCOUNTING_ROLE else _program_area_groups(conn)
     conn.close()
     return render_template(
         "staff_access.html", target=target, all_areas=all_areas,
+        fixed_areas=[a for a in all_areas if a[0] in dict(FIXED_ACCESS_AREAS)], program_groups=program_groups,
         current_grants=current_grants, max_grants=ACCESS_AREA_MAX_GRANTS,
     )
 
@@ -924,7 +1032,9 @@ def staff_grant_full_access(staff_id):
     conn.execute("UPDATE staff SET role = 'Leadership' WHERE id = ?", (staff_id,))
 
     all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS] + [
-        row["code"] for row in conn.execute("SELECT code FROM programs").fetchall()
+        program_heading_key(row["code"], h)
+        for row in conn.execute("SELECT code FROM programs").fetchall()
+        for h in MATERIAL_CATEGORIES
     ]
     granted, skipped_full = [], []
     for area_key in all_area_keys:
@@ -2510,6 +2620,7 @@ def donation_new(contact_id):
 def programs_list():
     conn = get_db()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
+    headings_by_program = {p["id"]: _allowed_headings(conn, p["code"]) for p in programs}
     cohorts_by_program = {}
     for p in programs:
         cohorts_by_program[p["id"]] = conn.execute(
@@ -2518,6 +2629,7 @@ def programs_list():
     conn.close()
     return render_template(
         "programs_list.html", programs=programs, cohorts_by_program=cohorts_by_program,
+        headings_by_program=headings_by_program,
         default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
         usual_weekday=USUAL_START_WEEKDAY,
     )
@@ -2601,31 +2713,158 @@ DAY_LABEL_ORDER = ["Friday Night", "Saturday", "Sunday", "General"]
 
 def _music_day_labels(program):
     """Sections on a program's Music page: Friday Night / Saturday / Sunday for every program,
-    plus Saturday Evening Dance for Relationship Training."""
-    labels = list(DAY_LABEL_ORDER)
+    plus Saturday Evening Dance for Relationship Training. (General appears only when something is filed there.)"""
+    labels = ["Friday Night", "Saturday", "Sunday"]
     if "relationship" in ((program["name"] if program else "") or "").lower():
-        labels.insert(labels.index("Saturday") + 1, "Saturday Evening Dance")
+        labels.insert(2, "Saturday Evening Dance")
     return labels
+
+# Every program's training materials are filed under one of these four
+# headings -- they are the four links shown under each program on the
+# Programs page, and the four tabs across the top of each materials page.
+MATERIAL_CATEGORY_BLURBS = {
+    "Syllabus": "The run sheet for the training: the schedule and order of activities that facilitators and TAs follow.",
+    "Music": "Song lists used during the training, organized by day and purpose, plus any music files (song sheets, assignment sheets).",
+    "Handouts": "Handouts, worksheets, and resource sheets given to trainees, organized by which day they're used.",
+    "Other": "Anything else for this training that isn't a syllabus, music, or a handout.",
+}
+_SYLLABUS_WORDS = ("syllab", "run sheet", "run-sheet", "runsheet")
+_MUSIC_WORDS = ("song", "music", "playlist")
+_material_category_ready = False
+
+
+def _guess_material_category(title, original_filename):
+    """Best guess at the heading for a file that was uploaded before the
+    four headings existed (or by an import script that doesn't set one)."""
+    text = f"{title or ''} {original_filename or ''}".lower()
+    if any(w in text for w in _SYLLABUS_WORDS):
+        return "Syllabus"
+    if any(w in text for w in _MUSIC_WORDS):
+        return "Music"
+    return "Handouts"
+
+
+def _material_category(row):
+    cat = row["category"]
+    return cat if cat in MATERIAL_CATEGORIES else _guess_material_category(row["title"], row["original_filename"])
+
+
+def _ensure_material_categories(conn):
+    """Adds the program_materials.category column the first time it's needed
+    and files every older upload under a heading, so no separate migration
+    has to be run by hand after deploying. Runs once per server start and is
+    harmless to repeat."""
+    global _material_category_ready
+    if _material_category_ready:
+        return
+    conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS category TEXT")
+    for row in conn.execute(
+        "SELECT id, title, original_filename FROM program_materials WHERE category IS NULL"
+    ).fetchall():
+        conn.execute(
+            "UPDATE program_materials SET category = ? WHERE id = ?",
+            (_guess_material_category(row["title"], row["original_filename"]), row["id"]),
+        )
+    conn.commit()
+    _material_category_ready = True
+
+
+_materials_setup_done = False
+
+
+@crm.before_request
+def _materials_one_time_setup():
+    """Runs the two small database upgrades for training materials (the
+    heading column, and splitting whole-program grants into per-heading
+    grants) once per server start, so nothing has to be run by hand."""
+    global _materials_setup_done
+    if _materials_setup_done or not session.get("staff_id"):
+        return
+    try:
+        conn = get_db()
+        try:
+            _ensure_material_categories(conn)
+            _split_program_grants_by_heading(conn)
+        finally:
+            conn.close()
+        _materials_setup_done = True
+    except Exception:
+        app.logger.exception("Training-materials setup failed; will retry on the next request.")
+
+
+IMAGE_EXTENSIONS = {"jpg", "jpeg", "png"}
+
+
+def _can_edit_materials():
+    """Uploading, moving, deleting and changing training materials (files and
+    song lists) is for the Owner and Leadership accounts. Team accounts with
+    access can only view."""
+    return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
+
+
+@crm.context_processor
+def _inject_materials_edit():
+    return {"can_edit_materials": _can_edit_materials()}
+
+
+def _can_download_materials():
+    """Only the Owner may download training-material files. Everyone else
+    with access can view them on the page but gets no download link."""
+    return bool(session.get("is_owner"))
+
+
+def _materials_url(program_id, category):
+    """Where a heading lives: Music shares a page with the song lists, the
+    other three each get their own page of files."""
+    if category == "Music":
+        return url_for(".program_playlists", program_id=program_id)
+    return url_for(".program_materials", program_id=program_id, category=category)
+
+
+def _load_materials(conn, program_id):
+    """Every material for a program (without the file bytes -- those are only
+    read when a file is actually opened), grouped by heading and then by day.
+    Returns (by_category, counts)."""
+    _ensure_material_categories(conn)
+    rows = conn.execute(
+        """SELECT id, program_id, day_label, title, original_filename, uploaded_at, category
+           FROM program_materials WHERE program_id = ? ORDER BY uploaded_at, id""",
+        (program_id,),
+    ).fetchall()
+    by_category = {c: {} for c in MATERIAL_CATEGORIES}
+    counts = {c: 0 for c in MATERIAL_CATEGORIES}
+    for r in rows:
+        cat = _material_category(r)
+        by_category[cat].setdefault(r["day_label"] or "General", []).append(r)
+        counts[cat] += 1
+    return by_category, counts
+
+
+def _ordered_days(by_day):
+    return [d for d in DAY_LABEL_ORDER if d in by_day] + [d for d in by_day if d not in DAY_LABEL_ORDER]
 
 
 @crm.route("/programs/<int:program_id>/materials")
 @program_area_required
 def program_materials(program_id):
+    allowed = g.allowed_headings
+    requested = request.args.get("category", "").strip().title()
+    category = requested if requested in allowed else allowed[0]
+    if category == "Music":
+        return redirect(_materials_url(program_id, "Music"))
     conn = get_db()
     program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
-    rows = conn.execute(
-        "SELECT * FROM program_materials WHERE program_id = ? ORDER BY uploaded_at", (program_id,)
-    ).fetchall()
+    if not program:
+        conn.close()
+        abort(404)
+    by_category, counts = _load_materials(conn, program_id)
     conn.close()
-    by_day = {}
-    for r in rows:
-        label = r["day_label"] or "General"
-        by_day.setdefault(label, []).append(r)
-    ordered_days = [d for d in DAY_LABEL_ORDER if d in by_day]
-    ordered_days += [d for d in by_day if d not in DAY_LABEL_ORDER]
+    by_day = by_category[category]
     return render_template(
-        "program_materials.html", program=program, by_day=by_day, ordered_days=ordered_days,
-        day_label_choices=DAY_LABEL_ORDER,
+        "program_materials.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
+        day_label_choices=DAY_LABEL_ORDER, category=category, categories=allowed,
+        category_counts=counts, category_blurb=MATERIAL_CATEGORY_BLURBS[category],
+        can_download=_can_download_materials(),
     )
 
 
@@ -2636,6 +2875,7 @@ def program_material_file(program_id, material_id):
     (never from local disk, which Render wipes on every deploy) after
     checking program-level authorization -- never through the public
     /static/ route."""
+    import doc_reader
     conn = get_db()
     row = conn.execute(
         "SELECT * FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
@@ -2643,9 +2883,32 @@ def program_material_file(program_id, material_id):
     conn.close()
     if not row or not row["data"]:
         abort(404)
-    resp = make_response(bytes(row["data"]))
-    resp.headers["Content-Type"] = row["content_type"] or "application/octet-stream"
-    resp.headers["Content-Disposition"] = f'inline; filename="{row["original_filename"]}"'
+    if not _can_download_materials():
+        # View-only accounts: the raw file is only handed to the on-page
+        # viewer (a PDF drawn by the viewer script, or an <img> for a
+        # picture) -- never to a link, a typed-in address, or "save as".
+        ext = doc_reader.extension(row["original_filename"])
+        dest = request.headers.get("Sec-Fetch-Dest", "")
+        same_site = request.headers.get("Sec-Fetch-Site", "") == "same-origin"
+        viewer_request = same_site and ((ext == "pdf" and dest == "empty") or (ext in IMAGE_EXTENSIONS and dest == "image"))
+        if not viewer_request:
+            flash("Training materials can be viewed here but not downloaded.")
+            return redirect(url_for(".program_material_read", program_id=program_id, material_id=material_id))
+    if doc_reader.extension(row["original_filename"]) in AUDIO_EXTENSIONS:
+        # Audio is sent with Range support so the play bar can skip around in a song.
+        from flask import send_file
+        resp = send_file(io.BytesIO(bytes(row["data"])), mimetype=row["content_type"] or "audio/mpeg", conditional=True)
+    else:
+        resp = make_response(bytes(row["data"]))
+        resp.headers["Content-Type"] = row["content_type"] or "application/octet-stream"
+    resp.headers["Cache-Control"] = "no-store, private"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    if _can_download_materials():
+        disposition = "attachment" if request.args.get("download") else "inline"
+        safe_name = row["original_filename"].replace('"', "")
+        resp.headers["Content-Disposition"] = f'{disposition}; filename="{safe_name}"'
+    else:
+        resp.headers["Content-Disposition"] = "inline"
     return resp
 
 
@@ -2655,6 +2918,7 @@ def program_material_read(program_id, material_id):
     """Shows a Word / Excel / PowerPoint material as a readable page (converted on the fly from the stored file)."""
     import doc_reader
     conn = get_db()
+    _ensure_material_categories(conn)
     row = conn.execute(
         "SELECT * FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
     ).fetchone()
@@ -2662,9 +2926,24 @@ def program_material_read(program_id, material_id):
     conn.close()
     if not row or not row["data"] or not program:
         abort(404)
+    ext = doc_reader.extension(row["original_filename"])
     body = doc_reader.to_html(bytes(row["data"]), row["original_filename"])
-    return render_template("material_read.html", program=program, material=row, body=body,
-                           is_old_word=doc_reader.extension(row["original_filename"]) == "doc")
+    if body:
+        kind = "html"
+    elif ext == "txt":
+        import html as _html
+        body = "<pre style=\"white-space:pre-wrap\">" + _html.escape(bytes(row["data"]).decode("utf-8", "replace")) + "</pre>"
+        kind = "html"
+    elif ext == "pdf":
+        kind = "pdf"
+    elif ext in IMAGE_EXTENSIONS:
+        kind = "image"
+    else:
+        kind = "none"
+    category = _material_category(row)
+    return render_template("material_read.html", program=program, material=row, body=body, kind=kind, ext=ext,
+                           is_old_word=ext == "doc", can_download=_can_download_materials(),
+                           category=category, back_url=_materials_url(program_id, category))
 
 
 @crm.route("/programs/<int:program_id>/materials/new", methods=["POST"])
@@ -2672,35 +2951,64 @@ def program_material_read(program_id, material_id):
 def program_material_new(program_id):
     title = request.form.get("title", "").strip()
     day_label = request.form.get("day_label") or None
+    category = request.form.get("category", "")
+    if category not in MATERIAL_CATEGORIES:
+        category = "Other"
     material_result = process_program_material(request.files.get("file"))
     if material_result:
         data, content_type = material_result
         original_filename = request.files["file"].filename
         filename = f"program_{program_id}_{secrets.token_hex(6)}"
         conn = get_db()
+        _ensure_material_categories(conn)
         conn.execute(
             """INSERT INTO program_materials
-               (program_id, day_label, title, filename, original_filename, data, content_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type),
+               (program_id, day_label, title, filename, original_filename, data, content_type, category)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type, category),
         )
         conn.commit()
         conn.close()
-        flash("Material uploaded.")
-    return redirect(url_for(".program_materials", program_id=program_id))
+        flash(f"Uploaded to {category}.")
+    return redirect(_materials_url(program_id, category))
+
+
+@crm.route("/programs/<int:program_id>/materials/<int:material_id>/move", methods=["POST"])
+@program_area_required
+def program_material_move(program_id, material_id):
+    """Re-files a material under a different heading (e.g. Handouts -> Syllabus)."""
+    target = request.form.get("category", "")
+    back = request.form.get("back", "")
+    conn = get_db()
+    _ensure_material_categories(conn)
+    row = conn.execute(
+        "SELECT id, title FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
+    ).fetchone()
+    if row and target in MATERIAL_CATEGORIES:
+        conn.execute("UPDATE program_materials SET category = ? WHERE id = ?", (target, material_id))
+        conn.commit()
+        flash(f"Moved “{row['title']}” to {target}.")
+    conn.close()
+    return redirect(_materials_url(program_id, back if back in MATERIAL_CATEGORIES else MATERIAL_CATEGORIES[0]))
 
 
 @crm.route("/programs/<int:program_id>/materials/<int:material_id>/delete", methods=["POST"])
 @program_area_required
 def program_material_delete(program_id, material_id):
     conn = get_db()
-    row = conn.execute("SELECT * FROM program_materials WHERE id = ?", (material_id,)).fetchone()
+    _ensure_material_categories(conn)
+    row = conn.execute(
+        "SELECT id, title, original_filename, category FROM program_materials WHERE id = ? AND program_id = ?",
+        (material_id, program_id),
+    ).fetchone()
+    category = MATERIAL_CATEGORIES[0]
     if row:
+        category = _material_category(row)
         conn.execute("DELETE FROM program_materials WHERE id = ?", (material_id,))
         conn.commit()
         flash("Material deleted.")
     conn.close()
-    return redirect(url_for(".program_materials", program_id=program_id))
+    return redirect(_materials_url(program_id, category))
 
 
 # ---------- music / playlists ----------
@@ -2710,6 +3018,9 @@ def program_material_delete(program_id, material_id):
 def program_playlists(program_id):
     conn = get_db()
     program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
+    if not program:
+        conn.close()
+        abort(404)
     playlists = conn.execute(
         "SELECT * FROM program_playlists WHERE program_id = ? ORDER BY id", (program_id,)
     ).fetchall()
@@ -2718,38 +3029,25 @@ def program_playlists(program_id):
         songs_by_playlist[pl["id"]] = conn.execute(
             "SELECT * FROM playlist_songs WHERE playlist_id = ? ORDER BY position, id", (pl["id"],)
         ).fetchall()
-    music_files_by_day = {}
-    for mf in conn.execute(
-        "SELECT id, day_label, title, original_filename, uploaded_at FROM program_music_files WHERE program_id = ? ORDER BY id",
-        (program_id,),
-    ).fetchall():
-        music_files_by_day.setdefault(mf["day_label"] or "General", []).append(mf)
+    by_category, counts = _load_materials(conn, program_id)
     conn.close()
     by_day = {}
     for pl in playlists:
         label = pl["day_label"] or "General"
         by_day.setdefault(label, []).append(pl)
-    music_labels = _music_day_labels(program)
-    # Every section shows (even empty) so it is clear where to add songs; "General" only when used.
-    ordered_days = [d for d in music_labels if d in by_day or d != "General"]
-    ordered_days += [d for d in by_day if d not in music_labels]
-    ordered_days += [d for d in music_files_by_day if d not in ordered_days]
-    # Within each day: playlists not in a folder first, then each folder (A-Z) with its playlists.
-    groups_by_day = {}
-    for day in ordered_days:
-        pls = by_day.get(day, [])
-        loose = [p for p in pls if not (p["folder"] or "").strip()]
-        folders = {}
-        for p in pls:
-            fname = (p["folder"] or "").strip()
-            if fname:
-                folders.setdefault(fname, []).append(p)
-        groups_by_day[day] = ([(None, loose)] if loose else []) + sorted(folders.items(), key=lambda kv: kv[0].lower())
-    folder_names = sorted({(p["folder"] or "").strip() for p in playlists if (p["folder"] or "").strip()}, key=str.lower)
+    files_by_day = by_category["Music"]
+    # Every section shows, even when empty, so it is clear where to add songs and music files.
+    labels = _music_day_labels(program)
+    extra_days = [d for d in list(by_day) + list(files_by_day) if d not in labels]
+    all_days = labels + [d for i, d in enumerate(extra_days) if d not in extra_days[:i]]
+    by_day = {d: by_day.get(d, []) for d in all_days}
+    files_by_day = {d: files_by_day.get(d, []) for d in all_days}
     return render_template(
-        "program_playlists.html", program=program, by_day=by_day, ordered_days=ordered_days,
-        groups_by_day=groups_by_day, folder_names=folder_names, music_files_by_day=music_files_by_day,
-        day_label_choices=music_labels, songs_by_playlist=songs_by_playlist,
+        "program_playlists.html", program=program, by_day=by_day, ordered_days=all_days,
+        day_label_choices=all_days, songs_by_playlist=songs_by_playlist,
+        files_by_day=files_by_day, files_ordered_days=all_days,
+        category="Music", categories=g.allowed_headings, category_counts=counts,
+        category_blurb=MATERIAL_CATEGORY_BLURBS["Music"], can_download=_can_download_materials(),
     )
 
 
@@ -2758,97 +3056,15 @@ def program_playlists(program_id):
 def program_playlist_new(program_id):
     category = request.form.get("category", "").strip()
     day_label = request.form.get("day_label") or None
-    folder = request.form.get("folder", "").strip()[:80] or None
     if category:
         conn = get_db()
         conn.execute(
-            "INSERT INTO program_playlists (program_id, day_label, category, folder) VALUES (?, ?, ?, ?)",
-            (program_id, day_label, category, folder),
+            "INSERT INTO program_playlists (program_id, day_label, category) VALUES (?, ?, ?)",
+            (program_id, day_label, category),
         )
         conn.commit()
         conn.close()
         flash("Playlist created.")
-    return redirect(url_for(".program_playlists", program_id=program_id))
-
-
-MAX_MUSIC_FILE_BYTES = 30 * 1024 * 1024
-ALLOWED_MUSIC_EXTENSIONS = {"mp3", "m4a", "wav"}
-
-
-@crm.route("/programs/<int:program_id>/music-files/new", methods=["POST"])
-@program_area_required
-def program_music_file_new(program_id):
-    """Uploads one or more audio files into a Music page section (Friday Night, Saturday, ...)."""
-    day_label = request.form.get("day_label") or None
-    added, skipped = 0, []
-    conn = get_db()
-    for f in request.files.getlist("files"):
-        name = (f.filename or "").strip()
-        if not name:
-            continue
-        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-        data = f.read()
-        if ext not in ALLOWED_MUSIC_EXTENSIONS or not data:
-            skipped.append(name + " (not an mp3/m4a/wav file)")
-            continue
-        if len(data) > MAX_MUSIC_FILE_BYTES:
-            skipped.append(name + " (over 30 MB)")
-            continue
-        title = name.rsplit(".", 1)[0].replace("_", " ").strip() or name
-        ctype = {"mp3": "audio/mpeg", "m4a": "audio/mp4", "wav": "audio/wav"}[ext]
-        conn.execute(
-            """INSERT INTO program_music_files (program_id, day_label, title, original_filename, data, content_type)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (program_id, day_label, title, name, data, ctype),
-        )
-        added += 1
-    conn.commit()
-    conn.close()
-    if added:
-        flash(f"Added {added} music file{'s' if added != 1 else ''}.")
-    if skipped:
-        flash("Not added: " + "; ".join(skipped))
-    return redirect(url_for(".program_playlists", program_id=program_id))
-
-
-@crm.route("/programs/<int:program_id>/music-files/<int:file_id>/play")
-@program_area_required
-def program_music_file_play(program_id, file_id):
-    conn = get_db()
-    row = conn.execute(
-        "SELECT * FROM program_music_files WHERE id = ? AND program_id = ?", (file_id, program_id)
-    ).fetchone()
-    conn.close()
-    if not row or not row["data"]:
-        abort(404)
-    from flask import send_file
-    return send_file(io.BytesIO(bytes(row["data"])), mimetype=row["content_type"] or "audio/mpeg",
-                     download_name=row["original_filename"], conditional=True)
-
-
-@crm.route("/programs/<int:program_id>/music-files/<int:file_id>/delete", methods=["POST"])
-@program_area_required
-def program_music_file_delete(program_id, file_id):
-    conn = get_db()
-    conn.execute("DELETE FROM program_music_files WHERE id = ? AND program_id = ?", (file_id, program_id))
-    conn.commit()
-    conn.close()
-    flash("Music file removed.")
-    return redirect(url_for(".program_playlists", program_id=program_id))
-
-
-@crm.route("/programs/<int:program_id>/playlists/<int:playlist_id>/folder", methods=["POST"])
-@program_area_required
-def program_playlist_folder(program_id, playlist_id):
-    """Puts a playlist into a folder (blank = no folder)."""
-    folder = request.form.get("folder", "").strip()[:80] or None
-    conn = get_db()
-    conn.execute(
-        "UPDATE program_playlists SET folder = ? WHERE id = ? AND program_id = ?",
-        (folder, playlist_id, program_id),
-    )
-    conn.commit()
-    conn.close()
     return redirect(url_for(".program_playlists", program_id=program_id))
 
 
@@ -2927,22 +3143,16 @@ def playlist_song_move(program_id, playlist_id, song_id):
 @owner_required
 def authorized_users_hub():
     conn = get_db()
-    existing_programs = {
-        row["code"]: row["name"] for row in conn.execute("SELECT code, name FROM programs").fetchall()
-    }
+    program_groups = _program_area_groups(conn)
     conn.close()
-    areas = list(FIXED_ACCESS_AREAS)
-    for code in RESERVED_PROGRAM_AREA_CODES:
-        label = code if code not in existing_programs else f"{code} — {existing_programs[code]}"
-        areas.append((code, label))
-    return render_template("authorized_users_hub.html", areas=areas)
+    return render_template("authorized_users_hub.html", areas=list(FIXED_ACCESS_AREAS), program_groups=program_groups)
 
 
 @crm.route("/authorized-users/<area_key>")
 @owner_required
 def authorized_users_area(area_key):
-    area_label = dict(FIXED_ACCESS_AREAS).get(area_key, area_key)
     conn = get_db()
+    area_label = _area_labels_map(conn).get(area_key, area_key)
     grants = conn.execute(
         """SELECT ag.id AS grant_id, s.id AS staff_id, s.name, s.email, s.role
            FROM access_grants ag JOIN staff s ON s.id = ag.staff_id
