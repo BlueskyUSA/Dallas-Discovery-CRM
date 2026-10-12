@@ -13,13 +13,9 @@
     authorized people at a time.
   </p>
   <form method="post">
-    {% for area_key, label in all_areas %}
-    <div class="field" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-      <input type="checkbox" id="area_{{ area_key }}" name="area_key" value="{{ area_key }}"
-             {% if area_key in current_grants %}checked{% endif %}>
-      <label for="area_{{ area_key }}" style="margin:0;">{{ label }}</label>
-    </div>
-    {% endfor %}
+    {% with fixed=fixed_areas, groups=program_groups, granted=current_grants, id_prefix='area_' %}
+    {% include "_access_checkboxes.html" %}
+    {% endwith %}
     {% if not all_areas %}
     <p class="muted">No confidential areas exist yet besides the fixed ones above.</p>
     {% endif %}

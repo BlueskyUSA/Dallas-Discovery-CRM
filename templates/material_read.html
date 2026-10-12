@@ -10,13 +10,62 @@
   .doc-table td { border: 1px solid #ccc; padding: 4px 8px; vertical-align: top; }
   .doc-scroll { overflow-x: auto; }
   .doc-slide { border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
+  .pdf-page { display: block; width: 100%; height: auto; margin: 0 0 14px; box-shadow: 0 1px 4px rgba(0,0,0,.18); background: #fff; }
+  .doc-image { max-width: 100%; height: auto; display: block; }
+  {% if not can_download %}
+  .view-only { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .view-only img, .view-only canvas { pointer-events: none; }
+  .print-note { display: none; }
+  @media print {
+    .view-only { display: none !important; }
+    .print-note { display: block; }
+  }
+  {% endif %}
 </style>
 <h1>{{ material.title }}</h1>
 <p class="muted"><a href="{{ back_url }}">&larr; Back to {{ program.name }} &mdash; {{ category }}</a>
-  &middot; <a class="btn" href="{{ url_for('.program_material_file', program_id=program.id, material_id=material.id) }}">Download original</a></p>
-<div class="card doc-body">
-  {% if body %}{{ body|safe }}
-  {% elif is_old_word %}<p>This is an older Word file (.doc), which can't be shown on the page. Download it, open it in Word, choose <strong>Save As &rarr; Word Document (.docx)</strong>, and upload the .docx version; that one can be read here.</p>
-  {% else %}<p>This file can't be shown on the page. Use <strong>Download original</strong> above.</p>{% endif %}
+  {% if can_download %}&middot; <a class="btn" href="{{ url_for('.program_material_file', program_id=program.id, material_id=material.id, download=1) }}">Download original</a>
+  {% else %}&middot; View only{% endif %}</p>
+<p class="print-note">Training materials can't be printed.</p>
+<div class="card doc-body {{ '' if can_download else 'view-only' }}" {% if not can_download %}oncontextmenu="return false" ondragstart="return false" oncopy="return false"{% endif %}>
+  {% if kind == 'html' %}{{ body|safe }}
+  {% elif kind == 'pdf' %}
+    <div id="pdf-pages"><p class="muted" id="pdf-status">Loading&hellip;</p></div>
+  {% elif kind == 'image' %}
+    <img class="doc-image" src="{{ url_for('.program_material_file', program_id=program.id, material_id=material.id) }}" alt="{{ material.title }}" draggable="false">
+  {% elif is_old_word %}<p>This is an older Word file (.doc), which can't be shown on the page.{% if can_download %} Download it, open it in Word, choose <strong>Save As &rarr; Word Document (.docx)</strong>, and upload the .docx version; that one can be read here.{% else %} Ask the Owner to upload it as a .docx so it can be viewed here.{% endif %}</p>
+  {% else %}<p>This kind of file ({{ ext|upper or 'unknown' }}) can't be shown on the page.{% if can_download %} Use <strong>Download original</strong> above.{% else %} Ask the Owner to upload it as a PDF or Word file so it can be viewed here.{% endif %}</p>{% endif %}
 </div>
+
+{% if kind == 'pdf' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function () {
+  var holder = document.getElementById('pdf-pages');
+  var status = document.getElementById('pdf-status');
+  function fail() { status.textContent = "This PDF couldn't be shown. Refresh the page to try again."; }
+  if (!window.pdfjsLib) { fail(); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  fetch({{ url_for('.program_material_file', program_id=program.id, material_id=material.id)|tojson }}, { credentials: 'same-origin' })
+    .then(function (r) { if (!r.ok) throw new Error('bad status'); return r.arrayBuffer(); })
+    .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
+    .then(async function (pdf) {
+      status.remove();
+      var width = holder.clientWidth || 800;
+      var ratio = Math.min(window.devicePixelRatio || 1, 2);
+      for (var i = 1; i <= pdf.numPages; i++) {
+        var page = await pdf.getPage(i);
+        var base = page.getViewport({ scale: 1 });
+        var vp = page.getViewport({ scale: (width / base.width) * ratio });
+        var canvas = document.createElement('canvas');
+        canvas.className = 'pdf-page';
+        canvas.width = vp.width; canvas.height = vp.height;
+        holder.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      }
+    })
+    .catch(fail);
+})();
+</script>
+{% endif %}
 {% endblock %}

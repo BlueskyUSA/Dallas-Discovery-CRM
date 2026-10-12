@@ -11,16 +11,19 @@
 <div class="card">
   <h4 style="margin:0 0 8px; font-size:1.05rem; display:flex; justify-content:space-between; align-items:center">
     <span>{{ pl.category }}</span>
+    {% if can_edit_materials %}
     <form method="post" action="{{ url_for('.program_playlist_delete', program_id=program.id, playlist_id=pl.id) }}"
           onsubmit='return confirm({{ ("Delete the whole " ~ pl.category ~ " playlist and all its songs?")|tojson }});' style="display:inline">
       <button class="btn danger" type="submit" style="font-size:0.8rem">Delete playlist</button>
     </form>
+    {% endif %}
   </h4>
   <table>
     <tr><th></th><th>Title</th><th>Artist</th><th>Album</th><th>Time</th><th>Notes</th><th></th></tr>
     {% for s in songs_by_playlist[pl.id] %}
     <tr>
       <td style="white-space:nowrap">
+        {% if can_edit_materials %}
         <form method="post" action="{{ url_for('.playlist_song_move', program_id=program.id, playlist_id=pl.id, song_id=s.id) }}" style="display:inline">
           <input type="hidden" name="direction" value="up">
           <button class="btn secondary" type="submit" style="padding:1px 7px">&uarr;</button>
@@ -29,6 +32,7 @@
           <input type="hidden" name="direction" value="down">
           <button class="btn secondary" type="submit" style="padding:1px 7px">&darr;</button>
         </form>
+        {% endif %}
       </td>
       <td>{{ s.title }}</td>
       <td class="muted">{{ s.artist or '' }}</td>
@@ -36,10 +40,12 @@
       <td class="muted">{{ s.duration or '' }}</td>
       <td class="muted">{{ s.notes or '' }}</td>
       <td>
+        {% if can_edit_materials %}
         <form method="post" action="{{ url_for('.playlist_song_delete', program_id=program.id, playlist_id=pl.id, song_id=s.id) }}"
               onsubmit='return confirm({{ ("Remove " ~ s.title ~ "?")|tojson }});' style="display:inline">
           <button class="btn danger" type="submit">Remove</button>
         </form>
+        {% endif %}
       </td>
     </tr>
     {% else %}
@@ -47,6 +53,7 @@
     {% endfor %}
   </table>
 
+  {% if can_edit_materials %}
   <details style="margin-top:10px">
     <summary style="cursor:pointer; color:#345a8f; font-size:0.88rem">Add a song</summary>
     <form class="inline" method="post" action="{{ url_for('.playlist_song_new', program_id=program.id, playlist_id=pl.id) }}" style="margin-top:8px">
@@ -58,12 +65,14 @@
       <button class="btn secondary" type="submit">Add song</button>
     </form>
   </details>
+  {% endif %}
 </div>
 {% endfor %}
 {% else %}
 <p class="muted">No playlists yet.</p>
 {% endfor %}
 
+{% if can_edit_materials %}
 <h3>Add a playlist</h3>
 <div class="card">
   <form class="inline" method="post" action="{{ url_for('.program_playlist_new', program_id=program.id) }}">
@@ -80,6 +89,7 @@
     <button class="btn" type="submit">Create playlist</button>
   </form>
 </div>
+{% endif %}
 
 <h2 id="music-files">Music files</h2>
 {% set file_days = files_by_day %}

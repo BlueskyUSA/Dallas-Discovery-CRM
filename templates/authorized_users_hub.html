@@ -3,9 +3,9 @@
 {% block content %}
 <h1>Authorized Users</h1>
 <p class="muted">
-  Choose an area to see or change who's authorized to view it. Leadership accounts (you, and anyone else
-  you make Leadership) can always see everything &mdash; this is for authorizing specific Team accounts
-  into an otherwise-restricted area. Up to 4 people per area.
+  Choose an area to see or change who's authorized to view it. Only the Owner automatically sees
+  everything; everyone else needs to be authorized here. Up to 4 people per area. For training materials,
+  each heading of each program is set separately, and people you authorize can view the files but not download them.
 </p>
 
 <div class="card">
@@ -15,6 +15,18 @@
     {% endfor %}
   </div>
 </div>
+
+<h2>Training materials</h2>
+{% for program_label, headings in program_groups %}
+<div class="card">
+  <h3 style="margin-top:0">{{ program_label }}</h3>
+  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+    {% for key, heading in headings %}
+    <a class="btn secondary" href="{{ url_for('.authorized_users_area', area_key=key) }}">{{ heading }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
 <style>
   .button-list { display: flex; flex-direction: column; gap: 8px; max-width: 320px; }
   .button-list .btn { text-align: left; }

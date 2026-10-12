@@ -1,0 +1,23 @@
+{# Expects: fixed (list of (key, label)), groups (list of (program label, [(key, heading)])),
+   granted (set of area keys), id_prefix. #}
+{% for area_key, label in fixed %}
+<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+  <input type="checkbox" id="{{ id_prefix }}{{ area_key }}" name="area_key" value="{{ area_key }}" {% if area_key in granted %}checked{% endif %}>
+  <label for="{{ id_prefix }}{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+</div>
+{% endfor %}
+{% if groups %}
+<div style="margin:10px 0 4px; font-size:0.82rem; font-weight:700;">Training materials (Team: view only &middot; Leadership: can also upload, move, delete &middot; only the Owner downloads)</div>
+{% for program_label, headings in groups %}
+<div style="border-top:1px solid #e3e0d4; padding:6px 0;">
+  <div style="font-size:0.86rem; margin-bottom:3px;">{{ program_label }}</div>
+  <div style="display:flex; flex-wrap:wrap; gap:4px 14px;">
+    {% for area_key, heading in headings %}
+    <label style="display:flex; align-items:center; gap:4px; margin:0; font-size:0.84rem; font-weight:400;">
+      <input type="checkbox" name="area_key" value="{{ area_key }}" {% if area_key in granted %}checked{% endif %}> {{ heading }}
+    </label>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}

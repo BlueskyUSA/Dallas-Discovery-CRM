@@ -52,13 +52,9 @@
               {% endif %}
               <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
                 <input type="hidden" name="redirect_to" value="staff_list">
-                {% for area_key, label in (accounting_areas if s.role == 'Accounting' else all_areas) %}
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-                  <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
-                         {% if area_key in granted_keys %}checked{% endif %}>
-                  <label for="area_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
-                </div>
-                {% endfor %}
+                {% with fixed=(accounting_areas if s.role == 'Accounting' else fixed_areas), groups=([] if s.role == 'Accounting' else program_groups), granted=granted_keys, id_prefix='area_' ~ s.id ~ '_' %}
+                {% include "_access_checkboxes.html" %}
+                {% endwith %}
                 <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
               </form>
             </div>

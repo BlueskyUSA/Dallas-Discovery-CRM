@@ -8,10 +8,12 @@
 <div class="card" id="program-{{ p.id }}">
   <h3 style="margin-top:0">{{ p.name }}</h3>
   {% if p.description %}<p class="muted">{{ p.description }}</p>{% endif %}
-  <p><a href="{{ url_for('.program_materials', program_id=p.id, category='Syllabus') }}">Syllabus &rarr;</a>
-    &middot; <a href="{{ url_for('.program_playlists', program_id=p.id) }}">Music &rarr;</a>
-    &middot; <a href="{{ url_for('.program_materials', program_id=p.id, category='Handouts') }}">Handouts &rarr;</a>
-    &middot; <a href="{{ url_for('.program_materials', program_id=p.id, category='Other') }}">Other &rarr;</a></p>
+  {% set headings = headings_by_program[p.id] %}
+  {% if headings %}
+  <p>{% for h in headings %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url_for('.program_playlists', program_id=p.id) if h == 'Music' else url_for('.program_materials', program_id=p.id, category=h) }}">{{ h }} &rarr;</a>{% endfor %}</p>
+  {% else %}
+  <p class="muted">You haven't been given access to this program's training materials.</p>
+  {% endif %}
 
   {% if is_lead %}
   <details style="background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:14px;">
