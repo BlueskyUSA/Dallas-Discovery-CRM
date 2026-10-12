@@ -1,0 +1,57 @@
+{# The list of uploaded files under one heading, plus the upload form for it.
+   Expects: program, category, categories, file_days (day -> files),
+   file_day_order, day_label_choices. #}
+{% for day in file_day_order %}
+<h3>{{ day }}</h3>
+<div class="card">
+  <table>
+    <tr><th>Title</th><th>File</th><th>Uploaded</th><th>Move to</th><th></th></tr>
+    {% for m in file_days[day] %}
+    <tr>
+      <td>{{ m.title }}</td>
+      <td>
+        {% set ext = m.original_filename.rsplit('.', 1)[-1].lower() if '.' in m.original_filename else '' %}
+        {% if ext in ['docx','xlsx','pptx','doc'] %}<a class="btn" href="{{ url_for('.program_material_read', program_id=program.id, material_id=m.id) }}">Read</a> {% endif %}
+        <a href="{{ url_for('.program_material_file', program_id=program.id, material_id=m.id) }}" target="_blank">{{ m.original_filename }}</a></td>
+      <td class="muted">{{ m.uploaded_at[:10] }}</td>
+      <td>
+        <form class="inline" method="post" action="{{ url_for('.program_material_move', program_id=program.id, material_id=m.id) }}" style="margin:0">
+          <input type="hidden" name="back" value="{{ category }}">
+          <select name="category" aria-label="Move {{ m.title }} to another heading" onchange="this.form.submit()">
+            <option value="">{{ category }}</option>
+            {% for c in categories if c != category %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('.program_material_delete', program_id=program.id, material_id=m.id) }}"
+              onsubmit='return confirm({{ ("Delete " ~ m.title ~ "?")|tojson }});' style="display:inline">
+          <button class="btn danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<p class="muted">Nothing filed under {{ category }} yet.</p>
+{% endfor %}
+
+<h3>Upload to {{ category }}</h3>
+<div class="card">
+  <form method="post" action="{{ url_for('.program_material_new', program_id=program.id) }}" enctype="multipart/form-data">
+    <input type="hidden" name="category" value="{{ category }}">
+    <div class="grid2">
+      <div class="field"><label>Title</label><input name="title" placeholder="{{ upload_placeholder or 'Leave blank to use the file name' }}"></div>
+      <div class="field"><label>Day</label>
+        <select name="day_label">
+          {% for d in day_label_choices %}
+          <option value="{{ d }}" {{ 'selected' if d == default_day else '' }}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>File</label><input type="file" name="file" required></div>
+    </div>
+    <button class="btn" type="submit">Upload to {{ category }}</button>
+  </form>
+</div>

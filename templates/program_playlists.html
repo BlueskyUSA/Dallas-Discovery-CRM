@@ -1,22 +1,21 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ program.code }} Music — {{ program_name }} ERP{% endblock %}
 {% block content %}
-<h1>{{ program.name }} &mdash; Music &amp; Playlists</h1>
-<p class="muted">Song lists used during the weekend, organized by day and purpose. Add, edit, or reorder songs directly here. <a href="{{ url_for('.programs_list') }}">&larr; Back to Programs</a>
-  {% if session.staff_role == 'Leadership' %} &middot; <a href="{{ url_for('.authorized_users_area', area_key=program.code) }}">Manage who can see this ({{ program.code }}) &rarr;</a>{% endif %}
-</p>
+<h1>{{ program.name }} &mdash; Music</h1>
+{% include "_material_tabs.html" %}
 
+<h2>Playlists</h2>
 {% for day in ordered_days %}
-<h2>{{ day }}</h2>
+<h3>{{ day }}</h3>
 {% for pl in by_day[day] %}
 <div class="card">
-  <h3 style="margin-top:0; display:flex; justify-content:space-between; align-items:center">
+  <h4 style="margin:0 0 8px; font-size:1.05rem; display:flex; justify-content:space-between; align-items:center">
     <span>{{ pl.category }}</span>
     <form method="post" action="{{ url_for('.program_playlist_delete', program_id=program.id, playlist_id=pl.id) }}"
-          onsubmit="return confirm('Delete the whole {{ pl.category }} playlist and all its songs?');" style="display:inline">
+          onsubmit='return confirm({{ ("Delete the whole " ~ pl.category ~ " playlist and all its songs?")|tojson }});' style="display:inline">
       <button class="btn danger" type="submit" style="font-size:0.8rem">Delete playlist</button>
     </form>
-  </h3>
+  </h4>
   <table>
     <tr><th></th><th>Title</th><th>Artist</th><th>Album</th><th>Time</th><th>Notes</th><th></th></tr>
     {% for s in songs_by_playlist[pl.id] %}
@@ -38,7 +37,7 @@
       <td class="muted">{{ s.notes or '' }}</td>
       <td>
         <form method="post" action="{{ url_for('.playlist_song_delete', program_id=program.id, playlist_id=pl.id, song_id=s.id) }}"
-              onsubmit="return confirm('Remove {{ s.title }}?');" style="display:inline">
+              onsubmit='return confirm({{ ("Remove " ~ s.title ~ "?")|tojson }});' style="display:inline">
           <button class="btn danger" type="submit">Remove</button>
         </form>
       </td>
@@ -65,7 +64,7 @@
 <p class="muted">No playlists yet.</p>
 {% endfor %}
 
-<h2>Add a playlist</h2>
+<h3>Add a playlist</h3>
 <div class="card">
   <form class="inline" method="post" action="{{ url_for('.program_playlist_new', program_id=program.id) }}">
     <div class="grid2">
@@ -81,4 +80,11 @@
     <button class="btn" type="submit">Create playlist</button>
   </form>
 </div>
+
+<h2 id="music-files">Music files</h2>
+{% set file_days = files_by_day %}
+{% set file_day_order = files_ordered_days %}
+{% set upload_placeholder = 'e.g. Stretch Song Assignment Sheet' %}
+{% set default_day = 'General' %}
+{% include "_material_files.html" %}
 {% endblock %}

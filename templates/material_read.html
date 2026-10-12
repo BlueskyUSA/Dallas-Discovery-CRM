@@ -12,7 +12,7 @@
   .doc-slide { border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
 </style>
 <h1>{{ material.title }}</h1>
-<p class="muted"><a href="{{ url_for('.program_materials', program_id=program.id) }}">&larr; Back to {{ program.name }} materials</a>
+<p class="muted"><a href="{{ back_url }}">&larr; Back to {{ program.name }} &mdash; {{ category }}</a>
   &middot; <a class="btn" href="{{ url_for('.program_material_file', program_id=program.id, material_id=material.id) }}">Download original</a></p>
 <div class="card doc-body">
   {% if body %}{{ body|safe }}
