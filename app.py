@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # loads DATABASE_URL from a local .env file, if present
 
-from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response
+from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response, g
 from datetime import date, datetime, timedelta
 import secrets
 import os
@@ -304,14 +304,31 @@ FIXED_ACCESS_AREAS = [
 # exists yet (B1-B4 are today's real programs; B5/B6 are room to grow).
 RESERVED_PROGRAM_AREA_CODES = ["D1", "D2", "D3", "D4", "D5", "D6"]
 
+# Every program's training materials are filed under these four headings,
+# and access is granted per heading per program: the access_grants area_key
+# for "D1's Syllabus" is "D1:Syllabus". (Before this, one grant on "D1"
+# opened all four; those older grants are split into four automatically --
+# see _split_program_grants_by_heading.)
+MATERIAL_CATEGORIES = ["Syllabus", "Music", "Handouts", "Other"]
+PROGRAM_HEADING_AREA_KEYS = [f"{code}:{h}" for code in RESERVED_PROGRAM_AREA_CODES for h in MATERIAL_CATEGORIES]
+
+
+def program_heading_key(program_code, heading):
+    return f"{program_code}:{heading}"
+
 
 def _area_labels_map(conn):
     """area_key -> human label, for every fixed area plus every program
     that actually exists today (e.g. 'B1' -> 'B1 — Bluesky 1')."""
     labels = dict(FIXED_ACCESS_AREAS)
     labels[ACCOUNTING_LOGIN_GRANT] = "Accounting & Legal login"
+    for code in RESERVED_PROGRAM_AREA_CODES:
+        for h in MATERIAL_CATEGORIES:
+            labels[program_heading_key(code, h)] = f"{code}: {h}"
     for row in conn.execute("SELECT code, name FROM programs").fetchall():
         labels[row["code"]] = f"{row['code']} — {row['name']}"
+        for h in MATERIAL_CATEGORIES:
+            labels[program_heading_key(row["code"], h)] = f"{row['code']} — {row['name']}: {h}"
     return labels
 
 
@@ -322,8 +339,54 @@ def _all_areas(conn):
     placeholder before then, so access can be set up ahead of time."""
     area_labels = _area_labels_map(conn)
     return list(FIXED_ACCESS_AREAS) + [
-        (code, area_labels.get(code, code)) for code in RESERVED_PROGRAM_AREA_CODES
+        (key, area_labels.get(key, key)) for key in PROGRAM_HEADING_AREA_KEYS
     ]
+
+
+def _program_area_groups(conn):
+    """[(program label, [(area_key, heading), ...]), ...] -- one group per
+    program slot (D1-D6), for showing the four heading checkboxes together."""
+    area_labels = _area_labels_map(conn)
+    return [
+        (area_labels.get(code, code), [(program_heading_key(code, h), h) for h in MATERIAL_CATEGORIES])
+        for code in RESERVED_PROGRAM_AREA_CODES
+    ]
+
+
+def _allowed_headings(conn, program_code):
+    """Which of Syllabus / Music / Handouts / Other the signed-in account may
+    see for this program, in that order. The Owner sees all four."""
+    if session.get("is_owner"):
+        return list(MATERIAL_CATEGORIES)
+    granted = {
+        row["area_key"]
+        for row in conn.execute(
+            "SELECT area_key FROM access_grants WHERE staff_id = ?", (session.get("staff_id"),)
+        ).fetchall()
+    }
+    return [h for h in MATERIAL_CATEGORIES if program_heading_key(program_code, h) in granted]
+
+
+def _split_program_grants_by_heading(conn):
+    """One-time conversion: an older grant on a whole program (area_key "D1")
+    becomes four grants, one per heading ("D1:Syllabus", "D1:Music", ...), so
+    nobody loses access they already had. Afterwards each heading can be
+    taken away or given separately. Harmless to repeat."""
+    codes = set(RESERVED_PROGRAM_AREA_CODES) | {
+        row["code"] for row in conn.execute("SELECT code FROM programs").fetchall()
+    }
+    for row in conn.execute("SELECT id, area_key, staff_id FROM access_grants").fetchall():
+        if row["area_key"] not in codes:
+            continue
+        for h in MATERIAL_CATEGORIES:
+            key = program_heading_key(row["area_key"], h)
+            exists = conn.execute(
+                "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?", (key, row["staff_id"])
+            ).fetchone()
+            if not exists:
+                conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (key, row["staff_id"]))
+        conn.execute("DELETE FROM access_grants WHERE id = ?", (row["id"],))
+    conn.commit()
 
 
 def _has_area_access(area_key):
@@ -346,9 +409,9 @@ def _has_any_program_access():
     conn = get_db()
     row = conn.execute(
         "SELECT 1 FROM access_grants WHERE staff_id = ? AND area_key IN ({})".format(
-            ",".join("?" for _ in RESERVED_PROGRAM_AREA_CODES)
+            ",".join("?" for _ in PROGRAM_HEADING_AREA_KEYS)
         ),
-        (session.get("staff_id"), *RESERVED_PROGRAM_AREA_CODES),
+        (session.get("staff_id"), *PROGRAM_HEADING_AREA_KEYS),
     ).fetchone()
     conn.close()
     return bool(row)
@@ -368,27 +431,60 @@ def area_required(area_key):
     return decorator
 
 
+def _headings_needed(conn, program_id, kwargs):
+    """Which heading(s) the current request touches, so access can be checked
+    per heading. An empty list means "any heading" (the materials page then
+    opens the first heading this account is allowed to see)."""
+    endpoint = request.endpoint or ""
+    if "playlist" in endpoint:
+        return ["Music"]
+    if endpoint == "crm.program_materials":
+        cat = request.args.get("category", "").strip().title()
+        return [cat] if cat in MATERIAL_CATEGORIES else []
+    if endpoint == "crm.program_material_new":
+        cat = request.form.get("category", "")
+        return [cat if cat in MATERIAL_CATEGORIES else "Other"]
+    needed = []
+    material_id = kwargs.get("material_id")
+    if material_id is not None:
+        _ensure_material_categories(conn)
+        row = conn.execute(
+            "SELECT title, original_filename, category FROM program_materials WHERE id = ? AND program_id = ?",
+            (material_id, program_id),
+        ).fetchone()
+        if row:
+            needed.append(_material_category(row))
+    if endpoint == "crm.program_material_move":
+        target = request.form.get("category", "")
+        if target in MATERIAL_CATEGORIES:
+            needed.append(target)
+    return needed
+
+
 def program_area_required(view):
-    """Gates a program's confidential content (training materials, music
-    playlists) to the Owner, plus any Team/Leadership account authorized
-    for that program's area (looked up by the program's own code, e.g.
-    "D1"). Every wrapped route must take program_id as a URL argument."""
+    """Gates a program's confidential training materials. The Owner sees
+    everything; anyone else needs a grant for each heading involved
+    (e.g. "D1:Syllabus"), set by the Owner from Site Access. Every wrapped
+    route must take program_id as a URL argument. Sets g.allowed_headings."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         program_id = kwargs.get("program_id")
-        if session.get("is_owner"):
-            return view(*args, **kwargs)
         conn = get_db()
-        prog = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()
-        area_key = prog["code"] if prog else None
-        grant = conn.execute(
-            "SELECT 1 FROM access_grants WHERE area_key = ? AND staff_id = ?",
-            (area_key, session.get("staff_id")),
-        ).fetchone() if area_key else None
-        conn.close()
-        if grant:
+        try:
+            prog = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()
+            if not prog:
+                abort(404)
+            allowed = _allowed_headings(conn, prog["code"])
+            needed = _headings_needed(conn, program_id, kwargs)
+        finally:
+            conn.close()
+        if allowed and all(h in allowed for h in needed):
+            if request.method == "POST" and not _can_edit_materials():
+                flash("Team accounts can view training materials but can't upload, move, delete or change them.")
+                return redirect(request.referrer or url_for(".programs_list"))
+            g.allowed_headings = allowed
             return view(*args, **kwargs)
-        flash("This program's training materials are restricted. Ask a leadership account to grant you access from the Team page.")
+        flash("You don't have access to that part of this program's training materials. Ask the Owner to grant it from Site Access.")
         return redirect(url_for(".programs_list"))
     return wrapped
 
@@ -575,6 +671,7 @@ def staff_list():
     area_labels = _area_labels_map(conn)
     all_areas = _all_areas(conn)
     grants = conn.execute("SELECT staff_id, area_key FROM access_grants").fetchall()
+    program_groups = _program_area_groups(conn)
     conn.close()
     access_by_staff = {}
     granted_keys_by_staff = {}
@@ -585,6 +682,7 @@ def staff_list():
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
+        fixed_areas=FIXED_ACCESS_AREAS, program_groups=program_groups,
         door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
     )
 
@@ -672,9 +770,11 @@ def staff_access(staff_id):
         row["area_key"]
         for row in conn.execute("SELECT area_key FROM access_grants WHERE staff_id = ?", (staff_id,)).fetchall()
     }
+    program_groups = [] if target["role"] == ACCOUNTING_ROLE else _program_area_groups(conn)
     conn.close()
     return render_template(
         "staff_access.html", target=target, all_areas=all_areas,
+        fixed_areas=[a for a in all_areas if a[0] in dict(FIXED_ACCESS_AREAS)], program_groups=program_groups,
         current_grants=current_grants, max_grants=ACCESS_AREA_MAX_GRANTS,
     )
 
@@ -924,7 +1024,9 @@ def staff_grant_full_access(staff_id):
     conn.execute("UPDATE staff SET role = 'Leadership' WHERE id = ?", (staff_id,))
 
     all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS] + [
-        row["code"] for row in conn.execute("SELECT code FROM programs").fetchall()
+        program_heading_key(row["code"], h)
+        for row in conn.execute("SELECT code FROM programs").fetchall()
+        for h in MATERIAL_CATEGORIES
     ]
     granted, skipped_full = [], []
     for area_key in all_area_keys:
@@ -2510,6 +2612,7 @@ def donation_new(contact_id):
 def programs_list():
     conn = get_db()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
+    headings_by_program = {p["id"]: _allowed_headings(conn, p["code"]) for p in programs}
     cohorts_by_program = {}
     for p in programs:
         cohorts_by_program[p["id"]] = conn.execute(
@@ -2518,6 +2621,7 @@ def programs_list():
     conn.close()
     return render_template(
         "programs_list.html", programs=programs, cohorts_by_program=cohorts_by_program,
+        headings_by_program=headings_by_program,
         default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
         usual_weekday=USUAL_START_WEEKDAY,
     )
@@ -2601,7 +2705,6 @@ DAY_LABEL_ORDER = ["Friday Night", "Saturday", "Sunday", "General"]
 # Every program's training materials are filed under one of these four
 # headings -- they are the four links shown under each program on the
 # Programs page, and the four tabs across the top of each materials page.
-MATERIAL_CATEGORIES = ["Syllabus", "Music", "Handouts", "Other"]
 MATERIAL_CATEGORY_BLURBS = {
     "Syllabus": "The run sheet for the training: the schedule and order of activities that facilitators and TAs follow.",
     "Music": "Song lists used during the training, organized by day and purpose, plus any music files (song sheets, assignment sheets).",
@@ -2649,6 +2752,50 @@ def _ensure_material_categories(conn):
     _material_category_ready = True
 
 
+_materials_setup_done = False
+
+
+@crm.before_request
+def _materials_one_time_setup():
+    """Runs the two small database upgrades for training materials (the
+    heading column, and splitting whole-program grants into per-heading
+    grants) once per server start, so nothing has to be run by hand."""
+    global _materials_setup_done
+    if _materials_setup_done or not session.get("staff_id"):
+        return
+    try:
+        conn = get_db()
+        try:
+            _ensure_material_categories(conn)
+            _split_program_grants_by_heading(conn)
+        finally:
+            conn.close()
+        _materials_setup_done = True
+    except Exception:
+        app.logger.exception("Training-materials setup failed; will retry on the next request.")
+
+
+IMAGE_EXTENSIONS = {"jpg", "jpeg", "png"}
+
+
+def _can_edit_materials():
+    """Uploading, moving, deleting and changing training materials (files and
+    song lists) is for the Owner and Leadership accounts. Team accounts with
+    access can only view."""
+    return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
+
+
+@crm.context_processor
+def _inject_materials_edit():
+    return {"can_edit_materials": _can_edit_materials()}
+
+
+def _can_download_materials():
+    """Only the Owner may download training-material files. Everyone else
+    with access can view them on the page but gets no download link."""
+    return bool(session.get("is_owner"))
+
+
 def _materials_url(program_id, category):
     """Where a heading lives: Music shares a page with the song lists, the
     other three each get their own page of files."""
@@ -2683,9 +2830,9 @@ def _ordered_days(by_day):
 @crm.route("/programs/<int:program_id>/materials")
 @program_area_required
 def program_materials(program_id):
-    category = request.args.get("category", "").strip().title()
-    if category not in MATERIAL_CATEGORIES:
-        category = MATERIAL_CATEGORIES[0]
+    allowed = g.allowed_headings
+    requested = request.args.get("category", "").strip().title()
+    category = requested if requested in allowed else allowed[0]
     if category == "Music":
         return redirect(_materials_url(program_id, "Music"))
     conn = get_db()
@@ -2698,8 +2845,9 @@ def program_materials(program_id):
     by_day = by_category[category]
     return render_template(
         "program_materials.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
-        day_label_choices=DAY_LABEL_ORDER, category=category, categories=MATERIAL_CATEGORIES,
+        day_label_choices=DAY_LABEL_ORDER, category=category, categories=allowed,
         category_counts=counts, category_blurb=MATERIAL_CATEGORY_BLURBS[category],
+        can_download=_can_download_materials(),
     )
 
 
@@ -2710,6 +2858,7 @@ def program_material_file(program_id, material_id):
     (never from local disk, which Render wipes on every deploy) after
     checking program-level authorization -- never through the public
     /static/ route."""
+    import doc_reader
     conn = get_db()
     row = conn.execute(
         "SELECT * FROM program_materials WHERE id = ? AND program_id = ?", (material_id, program_id)
@@ -2717,9 +2866,27 @@ def program_material_file(program_id, material_id):
     conn.close()
     if not row or not row["data"]:
         abort(404)
+    if not _can_download_materials():
+        # View-only accounts: the raw file is only handed to the on-page
+        # viewer (a PDF drawn by the viewer script, or an <img> for a
+        # picture) -- never to a link, a typed-in address, or "save as".
+        ext = doc_reader.extension(row["original_filename"])
+        dest = request.headers.get("Sec-Fetch-Dest", "")
+        same_site = request.headers.get("Sec-Fetch-Site", "") == "same-origin"
+        viewer_request = same_site and ((ext == "pdf" and dest == "empty") or (ext in IMAGE_EXTENSIONS and dest == "image"))
+        if not viewer_request:
+            flash("Training materials can be viewed here but not downloaded.")
+            return redirect(url_for(".program_material_read", program_id=program_id, material_id=material_id))
     resp = make_response(bytes(row["data"]))
     resp.headers["Content-Type"] = row["content_type"] or "application/octet-stream"
-    resp.headers["Content-Disposition"] = f'inline; filename="{row["original_filename"]}"'
+    resp.headers["Cache-Control"] = "no-store, private"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    if _can_download_materials():
+        disposition = "attachment" if request.args.get("download") else "inline"
+        safe_name = row["original_filename"].replace('"', "")
+        resp.headers["Content-Disposition"] = f'{disposition}; filename="{safe_name}"'
+    else:
+        resp.headers["Content-Disposition"] = "inline"
     return resp
 
 
@@ -2737,10 +2904,23 @@ def program_material_read(program_id, material_id):
     conn.close()
     if not row or not row["data"] or not program:
         abort(404)
+    ext = doc_reader.extension(row["original_filename"])
     body = doc_reader.to_html(bytes(row["data"]), row["original_filename"])
+    if body:
+        kind = "html"
+    elif ext == "txt":
+        import html as _html
+        body = "<pre style=\"white-space:pre-wrap\">" + _html.escape(bytes(row["data"]).decode("utf-8", "replace")) + "</pre>"
+        kind = "html"
+    elif ext == "pdf":
+        kind = "pdf"
+    elif ext in IMAGE_EXTENSIONS:
+        kind = "image"
+    else:
+        kind = "none"
     category = _material_category(row)
-    return render_template("material_read.html", program=program, material=row, body=body,
-                           is_old_word=doc_reader.extension(row["original_filename"]) == "doc",
+    return render_template("material_read.html", program=program, material=row, body=body, kind=kind, ext=ext,
+                           is_old_word=ext == "doc", can_download=_can_download_materials(),
                            category=category, back_url=_materials_url(program_id, category))
 
 
@@ -2838,8 +3018,8 @@ def program_playlists(program_id):
         "program_playlists.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
         day_label_choices=DAY_LABEL_ORDER, songs_by_playlist=songs_by_playlist,
         files_by_day=files_by_day, files_ordered_days=_ordered_days(files_by_day),
-        category="Music", categories=MATERIAL_CATEGORIES, category_counts=counts,
-        category_blurb=MATERIAL_CATEGORY_BLURBS["Music"],
+        category="Music", categories=g.allowed_headings, category_counts=counts,
+        category_blurb=MATERIAL_CATEGORY_BLURBS["Music"], can_download=_can_download_materials(),
     )
 
 
@@ -2935,22 +3115,16 @@ def playlist_song_move(program_id, playlist_id, song_id):
 @owner_required
 def authorized_users_hub():
     conn = get_db()
-    existing_programs = {
-        row["code"]: row["name"] for row in conn.execute("SELECT code, name FROM programs").fetchall()
-    }
+    program_groups = _program_area_groups(conn)
     conn.close()
-    areas = list(FIXED_ACCESS_AREAS)
-    for code in RESERVED_PROGRAM_AREA_CODES:
-        label = code if code not in existing_programs else f"{code} — {existing_programs[code]}"
-        areas.append((code, label))
-    return render_template("authorized_users_hub.html", areas=areas)
+    return render_template("authorized_users_hub.html", areas=list(FIXED_ACCESS_AREAS), program_groups=program_groups)
 
 
 @crm.route("/authorized-users/<area_key>")
 @owner_required
 def authorized_users_area(area_key):
-    area_label = dict(FIXED_ACCESS_AREAS).get(area_key, area_key)
     conn = get_db()
+    area_label = _area_labels_map(conn).get(area_key, area_key)
     grants = conn.execute(
         """SELECT ag.id AS grant_id, s.id AS staff_id, s.name, s.email, s.role
            FROM access_grants ag JOIN staff s ON s.id = ag.staff_id
