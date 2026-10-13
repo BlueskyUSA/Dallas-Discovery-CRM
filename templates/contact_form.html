@@ -246,7 +246,7 @@
           <option {% if contact and contact.education == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
         </select>
       </div>
-      <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
+      <div class="field" style="grid-column: 1 / -1"><label>If you intend to Volunteer, please describe overall health and health limitations/injuries, if any.</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       </div>
     </div>
 
