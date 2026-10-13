@@ -544,3 +544,58 @@ def contract_request_content(first_name, contracts_url):
         "Have a great day,\nKent Hafemann"
     )
     return html_content, text_content
+
+
+# ---- Automatic completion letters (sent after a session's last day, to that session's roster) ----
+# D1 uses Kent's own letter above. The others are drafts in the same voice, for Kent to review.
+# D5 (Refocus) has no contract, so it sends nothing.
+COMPLETION_LETTER_ASK = {
+    "D2": "your D2 Poem and any updates to your Contract",
+    "D3": "the Vision you have for your Future, and any updates to your Contract",
+    "D4": "your Couples Relationship Contract and the Relationship Song you chose for your partner",
+    "D6": "your Spiritual Contract",
+}
+COMPLETION_LETTER_CODES = ("D1",) + tuple(COMPLETION_LETTER_ASK)
+
+
+def completion_letter_content(first_name, contracts_url, program_code, program_name=None):
+    """Returns (subject, html_content, text_content) for the letter sent after a training ends.
+    Returns None for a program that has no letter."""
+    import html as _html
+    code = (program_code or "").strip().upper()
+    if code == "D1":
+        html_content, text_content = contract_request_content(first_name, contracts_url)
+        return CONTRACT_REQUEST_SUBJECT, html_content, text_content
+    ask = COMPLETION_LETTER_ASK.get(code)
+    if not ask:
+        return None
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    g = _html.escape(greeting)
+    subject = f"Congratulations on completing {code}!"
+    body = (
+        f"Congratulations on completing {code} training... Woohoo!!! Let's keep going!!! "
+        f"Would you please help the Discovery staff by taking a few minutes to type in {ask}? "
+        "Our volunteers would otherwise have to type all of this into our records by hand, which "
+        "takes many hours. We would be so grateful."
+    )
+    bullets = [
+        "No password is needed, this link is just for you.",
+        "Your words save automatically as you type, so you can stop and come back anytime using the same link.",
+        "Fill in what you have so far and leave the rest blank.",
+        "What you write is kept confidential and is used only for your training.",
+    ]
+    html_content = (
+        f"<p>Dear {g},</p><p>{_html.escape(body)}</p>"
+        f'<p style="margin:18px 0"><a href="{contracts_url}" style="background:#3f5643; color:#ffffff; '
+        'padding:12px 22px; border-radius:6px; text-decoration:none; font-weight:bold">Open my contact page</a></p>'
+        "<ul>" + "".join(f"<li>{_html.escape(b)}</li>" for b in bullets) + "</ul>"
+        "<p>Thank you for helping us, and for the courage you are showing in this work.</p>"
+        "<p>Have a great day,<br>Kent Hafemann</p>"
+    )
+    text_content = (
+        f"Dear {greeting},\n\n{body}\n\nOpen my contact page:\n{contracts_url}\n\n"
+        + "".join(f"- {b}\n" for b in bullets)
+        + "\nThank you for helping us, and for the courage you are showing in this work.\n\n"
+        "Have a great day,\nKent Hafemann"
+    )
+    return subject, html_content, text_content
