@@ -10,6 +10,9 @@
   <h2 style="margin-top:0">How to use this program</h2>
   <p class="muted" style="margin-top:0">You see only the steps for the areas your login can open. The top bar is your menu.</p>
   <ol style="padding-left:20px">
+    {% if session.is_owner %}
+    <li><strong>Control who has access.</strong> <em>Site Access</em> is where you add logins, choose which areas each person can open, and reset passwords.</li>
+    {% endif %}
     {% if session.staff_role == 'Leadership' or has_contacts_access %}
     <li><strong>Find a person.</strong> Open <em>Admin</em>, then <em>Contacts</em>, and search by name or email. Click a name to see the person's page, then <em>Edit contact</em> to open their <em>Contact Information</em>: details, Discovery history, and notes.</li>
     {% endif %}
@@ -35,9 +38,6 @@
     <li><strong>Record contracts.</strong> A person's contracts are at the bottom of their <em>Contact Information</em> page, once Discovery attendance is Yes. They save themselves as you type.</li>
     {% endif %}
     <li><strong>Read the mission and the business plan.</strong> <em>Mission</em> shows our mission and the Preliminary Business Plan. To send the plan to an interested person, open <em>Admin</em>, then <em>Contacts</em>, and open that person (Leadership only).</li>
-    {% if session.is_owner %}
-    <li><strong>Control who has access.</strong> <em>Site Access</em> is where you add logins, choose which areas each person can open, and reset passwords.</li>
-    {% endif %}
     <li><strong>Keep your login safe.</strong> Use <em>Change password</em> at the top right, and <em>Log out</em> when you finish. You are logged out automatically after 30 minutes of inactivity.</li>
   </ol>
   {% if session.staff_role == 'Accounting' %}
