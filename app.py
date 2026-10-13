@@ -1169,6 +1169,7 @@ US_STATES = [
 # separate free-text entry -- shown on the contact page only for contacts
 # who attended Discovery, since these are Discovery training artifacts.
 CONTRACT_KINDS = {
+    "D1P": "Your D1 Pseudo Name",
     "D1": "Your Contract",
     "D1S": "Your Stretch Song",
     "D2": "Your Poem",
@@ -1179,7 +1180,7 @@ CONTRACT_KINDS = {
 }
 
 # Kinds that get a single-line input instead of a multi-row textarea.
-CONTRACT_SINGLE_LINE_KINDS = {"D1", "D1S", "D6S"}
+CONTRACT_SINGLE_LINE_KINDS = {"D1P", "D1", "D1S", "D6S"}
 
 # Example text shown as a placeholder for the kinds Kent gave an example
 # for. Kinds not listed here just get an empty textarea -- there wasn't a
@@ -1741,6 +1742,26 @@ def contact_send_business_plan(contact_id):
         print(f"EmailSendError sending business plan to {contact['email']}: {e}", flush=True)
         flash(f"Couldn't send the business plan: {e}")
     return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+
+@crm.route("/contacts/<int:contact_id>/preview-contract-request")
+@area_required("contacts")
+@leadership_required
+def contact_preview_contract_request(contact_id):
+    """Shows Leadership exactly what the Contract Information Request email says, without sending anything."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    if contact["profile_token"]:
+        link = url_for("public_complete_profile", token=contact["profile_token"], contracts=1, _external=True)
+    else:
+        link = request.host_url.rstrip("/") + "/complete-profile/(their-private-link)?contracts=1"
+    html_content, _text = contract_request_content(contact["first_name"], link)
+    return render_template(
+        "contract_request_preview.html", contact=contact, subject=CONTRACT_REQUEST_SUBJECT, letter_html=html_content,
+    )
 
 
 @crm.route("/contacts/<int:contact_id>/send-contract-request", methods=["POST"])
