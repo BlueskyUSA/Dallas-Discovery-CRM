@@ -1,0 +1,37 @@
+{% extends "crm_base.html" %}
+{% block title %}Programs — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Programs</h1>
+<p class="muted">Click a program to open it: training materials, music, sessions and scheduling.</p>
+{% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
+<div class="card">
+  <table>
+    <tr><th>Program</th><th>Upcoming sessions</th></tr>
+    {% for p in programs %}
+    <tr>
+      <td><a href="{{ url_for('.program_open', program_id=p.id) }}"><strong>{{ p.name }}</strong></a>{% if p.description %}<br><span class="muted">{{ p.description }}</span>{% endif %}</td>
+      <td>{{ upcoming[p.id] or '&mdash;'|safe }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2" class="muted">No programs yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% if is_lead %}
+<div class="card">
+  <h3 style="margin-top:0">Add a new program</h3>
+  <form class="inline" method="post" action="{{ url_for('.program_new') }}">
+    <input name="code" placeholder="Code (e.g. T5)" style="width:90px" required>
+    <input name="name" placeholder="Full name (e.g. T5 — Refocus)" style="width:220px" required>
+    <input name="description" placeholder="Description (optional)" style="width:260px">
+    <select name="prerequisite_program_id">
+      <option value="">No prerequisite</option>
+      {% for p in programs %}
+      <option value="{{ p.id }}">Requires {{ p.code }} first</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Add program</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

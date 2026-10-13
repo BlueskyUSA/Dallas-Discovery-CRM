@@ -1,19 +1,15 @@
 {% extends "crm_base.html" %}
-{% block title %}Programs — {{ program_name }} CRM{% endblock %}
+{% block title %}Programs — {{ program_name }} ERP{% endblock %}
 {% block content %}
-<h1>Programs</h1>
+<p><a href="{{ url_for('.programs_list') }}">&larr; All programs</a></p>
+<h1>{{ programs[0].name }}</h1>
 
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 {% for p in programs %}
 <div class="card" id="program-{{ p.id }}">
-  <h3 style="margin-top:0">{{ p.name }}</h3>
   {% if p.description %}<p class="muted">{{ p.description }}</p>{% endif %}
-  {% set headings = headings_by_program[p.id] %}
-  {% if headings %}
-  <p>{% for h in headings %}{% if not loop.first %} &middot; {% endif %}<a href="{{ url_for('.program_playlists', program_id=p.id) if h == 'Music' else url_for('.program_materials', program_id=p.id, category=h) }}">{{ h }} &rarr;</a>{% endfor %}</p>
-  {% else %}
-  <p class="muted">You haven't been given access to this program's training materials.</p>
-  {% endif %}
+  <p><a href="{{ url_for('.program_materials', program_id=p.id) }}">Training materials &rarr;</a>
+    &middot; <a href="{{ url_for('.program_playlists', program_id=p.id) }}">Music &amp; playlists &rarr;</a></p>
 
   {% if is_lead %}
   <details style="background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:14px;">
@@ -25,7 +21,7 @@
       <input name="description" value="{{ p.description or '' }}" style="width:280px" placeholder="Description">
       <select name="prerequisite_program_id">
         <option value="">No prerequisite</option>
-        {% for other in programs if other.id != p.id %}
+        {% for other in all_programs if other.id != p.id %}
         <option value="{{ other.id }}" {{ 'selected' if p.prerequisite_program_id == other.id else '' }}>Requires {{ other.code }} first</option>
         {% endfor %}
       </select>
@@ -99,23 +95,6 @@
 </div>
 {% endfor %}
 
-{% if is_lead %}
-<div class="card">
-  <h3 style="margin-top:0">Add a new program</h3>
-  <form class="inline" method="post" action="{{ url_for('.program_new') }}">
-    <input name="code" placeholder="Code (e.g. T5)" style="width:90px" required>
-    <input name="name" placeholder="Full name (e.g. T5 — Refocus)" style="width:220px" required>
-    <input name="description" placeholder="Description (optional)" style="width:260px">
-    <select name="prerequisite_program_id">
-      <option value="">No prerequisite</option>
-      {% for p in programs %}
-      <option value="{{ p.id }}">Requires {{ p.code }} first</option>
-      {% endfor %}
-    </select>
-    <button class="btn" type="submit">Add program</button>
-  </form>
-</div>
-{% endif %}
 
 {% if is_lead %}
 <script>
