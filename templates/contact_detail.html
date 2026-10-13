@@ -111,8 +111,11 @@
 <div class="card">
   <h3 style="margin-top:0">Contract Information Request <span class="muted" style="font-weight:400; font-size:0.8rem">(Leadership only)</span></h3>
   <p class="muted" style="margin-top:0">
-    Emails {{ contact.full_name }} a letter asking, as a favor, to type in their own Contract, Stretch Song,
-    Poem and the rest, to save Discovery staff time. Best sent as they complete D1. It goes out immediately.
+    Upon completion of each training, automatically emails {{ contact.full_name }} a letter asking, as a favor,
+    to type in their own Contract, Stretch Song, Poem and the rest, to save Discovery staff time.
+    {% if auto_letters_on %}Automatic sending is <strong>on</strong>.{% else %}Automatic sending is currently <strong>off</strong>.{% endif %}
+    {% if letters_sent %}Already sent: {% for l in letters_sent %}{{ l.program_code }} ({{ l.sent_at[:10] }}){% if not loop.last %}, {% endif %}{% endfor %}.{% endif %}
+    The button below sends one right now.
   </p>
   {% if contact.email %}
   <form method="post" action="{{ url_for('.contact_send_contract_request', contact_id=contact.id) }}"
