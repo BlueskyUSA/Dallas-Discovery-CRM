@@ -1582,6 +1582,15 @@ def contact_edit(contact_id):
             [values[c] for c in columns] + [contact_id],
         )
         link_id = pick_id or _resolve_sponsor_link(conn, contact_id, values.get("sponsor_name") or "")[0]
+        sp_name = (values.get("sponsor_name") or "").strip()
+        if not link_id and sp_name and request.form.get("create_sponsor") and "[#" not in sp_name:
+            # The sponsor isn't in the database yet (e.g. someone from years ago): add them as a
+            # contact on the "Past sponsors" list and link them.
+            link_id = _create_past_sponsor(
+                conn, sp_name, values.get("sponsor_phone") or "", values.get("sponsor_email") or "",
+                "Added from a contact's Edit page (a past sponsor).",
+            )
+            flash(f"Added {sp_name} as a new contact (on the Past sponsors list) and linked as the Sponsor.")
         conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact_id))
         conn.commit()
         photo_result = process_contact_photo(request.files.get("photo"))
@@ -1593,8 +1602,26 @@ def contact_edit(contact_id):
         return redirect(url_for(".contact_detail", contact_id=contact_id))
 
     choices = _sponsor_choices(conn, contact_id)
+    sponsor_link = conn.execute(
+        f"SELECT s.id, {full_name_sql('s')} AS full_name FROM contacts c JOIN contacts s ON s.id = c.sponsor_contact_id WHERE c.id = ?",
+        (contact_id,),
+    ).fetchone()
+    linked_sponsors = conn.execute(
+        f"""SELECT DISTINCT b.id, {full_name_sql('b')} AS full_name
+            FROM enrollments e JOIN contacts b ON b.id = e.enrolled_by_contact_id
+            WHERE e.contact_id = ? ORDER BY full_name""",
+        (contact_id,),
+    ).fetchall()
+    contracts_by_kind = {}
+    for kind in CONTRACT_KINDS:
+        row = conn.execute("SELECT * FROM contracts WHERE contact_id = ? AND kind = ?", (contact_id, kind)).fetchone()
+        contracts_by_kind[kind] = {"contract": row}
     conn.close()
-    return render_template("contact_form.html", contact=contact, sponsor_choices=choices)
+    return render_template(
+        "contact_form.html", contact=contact, sponsor_choices=choices, sponsor_link=sponsor_link,
+        linked_sponsors=linked_sponsors, contract_kinds=CONTRACT_KINDS, contract_examples=CONTRACT_EXAMPLES,
+        contract_single_line_kinds=CONTRACT_SINGLE_LINE_KINDS, contracts_by_kind=contracts_by_kind,
+    )
 
 
 @crm.route("/contacts/<int:contact_id>/profile-link/new", methods=["POST"])
