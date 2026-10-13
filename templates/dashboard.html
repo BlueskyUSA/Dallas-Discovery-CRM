@@ -1,49 +1,48 @@
 {% extends "crm_base.html" %}
-{% block title %}Dashboard — {{ program_name }} CRM{% endblock %}
+{% block title %}Dashboard — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
-<p class="muted">{{ program_name }} — CRM &amp; registration</p>
+<p class="muted">{{ program_name }} — ERP &amp; registration</p>
 
-<div class="card" style="max-width:820px; line-height:1.55">
-  <h2 style="margin-top:0">Welcome to the Discovery ERP Program</h2>
-  <p>This site is the working home of Discovery: a master database of trainees and leadership history, session scheduling, and the public registration pages. What you see depends on your login.</p>
-  <ul>
-    <li><strong>Volunteer Team</strong> &mdash; administer the details of upcoming sessions, such as rosters, staffing, and day-to-day organization.</li>
-    <li><strong>Accounting &amp; Legal</strong> &mdash; financial records, contracts, and reports, for the accountant, bookkeeper, and attorney. The Owner decides which areas each person can open.</li>
-    <li><strong>Leadership</strong> &mdash; everything in the program, including scheduling, programs, contact lists, and the reports that show Discovery's operational history.</li>
-    <li><strong>Owner</strong> &mdash; everything Leadership can do, plus transferring ownership of the program, deciding who receives Accounting &amp; Legal logins, and approving any change to the CRM code.</li>
-  </ul>
-  <p>The programs on this site are D1, D2, D3, Relationship, Refocus, and Spiritual. New programs, such as a training on managing your finances, can be added at any time.</p>
-  <p style="margin-bottom:0">Trainee and leadership information here is confidential. Please use it only for Discovery.</p>
+{% set can_contacts = session.staff_role != 'Accounting' and (session.staff_role == 'Leadership' or has_contacts_access) %}
+{% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
+<div class="card" style="max-width:860px; line-height:1.55">
+  <h2 style="margin-top:0">How to use this program</h2>
+  <p class="muted" style="margin-top:0">You see only the steps for the areas your login can open. The top bar is your menu.</p>
+  <ol style="padding-left:20px">
+    {% if session.staff_role == 'Leadership' or has_contacts_access %}
+    <li><strong>Find a person.</strong> Open <em>Contacts</em> and search by name or email. Click a name for the whole record: history, trainings attended, notes, and the contract.</li>
+    {% endif %}
+    {% if can_contacts %}
+    <li><strong>Add someone new.</strong> Use <em>+ Add contact</em> on the Contacts page. Check first that they are not already there, so no one is entered twice.</li>
+    <li><strong>Answer requests.</strong> <em>Contact requests</em> lists people who asked, on the public site, to be contacted. Follow up, then mark each one handled.</li>
+    {% endif %}
+    {% if is_lead or has_program_access %}
+    <li><strong>Schedule a training.</strong> Open <em>Programs</em>, find the training, and follow the three red steps: pick the first day, check the last day, then click <em>Schedule this session</em>. Nothing is saved until Step 3.</li>
+    {% endif %}
+    {% if session.staff_role == 'Leadership' or has_contacts_access %}
+    <li><strong>See the year at a glance.</strong> <em>Calendar</em> shows every scheduled training by month. The public registration page shows the same calendar.</li>
+    <li><strong>Run a session.</strong> Click <em>Open</em> beside a session (here, or on Programs) to enroll people, assign small groups, and staff the weekend.</li>
+    <li><strong>Track leaders.</strong> <em>Sponsor pipeline</em> shows who is ready to TA or serve as a TA Team Captain, based on how many people they have brought in.</li>
+    {% endif %}
+    {% if session.staff_role == 'Leadership' %}
+    <li><strong>Organize contact lists.</strong> <em>Lists</em> records where contacts came from, such as a personal list or an imported database.</li>
+    {% endif %}
+    {% if session.staff_role == 'Leadership' or has_donations_access %}
+    <li><strong>Review donations.</strong> <em>Donations</em> lists every recorded gift, with totals.</li>
+    {% endif %}
+    {% if has_contracts_access %}
+    <li><strong>Read contracts and the business plan.</strong> <em>Contracts</em> shows each recorded contract with its history, and the preliminary business plan as people receive it. These pages are view-only.</li>
+    {% endif %}
+    {% if session.is_owner %}
+    <li><strong>Control who has access.</strong> <em>Site Access</em> is where you add logins, choose which areas each person can open, and reset passwords.</li>
+    {% endif %}
+    <li><strong>Keep your login safe.</strong> Use <em>Change password</em> at the top right, and <em>Log out</em> when you finish. You are logged out automatically after 30 minutes of inactivity.</li>
+  </ol>
+  {% if session.staff_role == 'Accounting' %}
+  <p>Your login is <strong>view-only</strong>. You can read everything you have been given, but nothing you do here changes the records.</p>
+  {% endif %}
+  <p style="margin-bottom:0">Trainee and leadership information here is confidential. Please use it only for Discovery. Questions or something not working? Tell the Owner.</p>
 </div>
 
-<h2>Upcoming sessions</h2>
-<div class="card">
-  {% if upcoming %}
-  <table>
-    <tr><th>Program</th><th>Session #</th><th>Date</th><th></th></tr>
-    {% for c in upcoming %}
-    <tr>
-      <td>{{ c.code }}</td>
-      <td>#{{ c.session_number }}</td>
-      <td>{{ c|date_span }}</td>
-      <td>{% if session.staff_role == 'Leadership' or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p class="muted">No upcoming sessions scheduled yet.
-    {% if session.staff_role == 'Leadership' or has_program_access %}<a href="{{ url_for('.programs_list') }}">Schedule one</a>.{% endif %}
-  </p>
-  {% endif %}
-</div>
-
-<div class="stat-row">
-  {% if session.staff_role == 'Leadership' or has_contacts_access %}
-  <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
-  {% endif %}
-  {% if session.staff_role == 'Leadership' or has_program_access %}
-  <a class="btn secondary" href="{{ url_for('.programs_list') }}">Schedule a session</a>
-  {% endif %}
-</div>
 {% endblock %}
