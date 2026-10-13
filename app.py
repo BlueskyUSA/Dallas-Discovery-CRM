@@ -1575,7 +1575,9 @@ def contact_edit(contact_id):
         values["status"] = request.form.get("status") or "Interested Party"
         pick_id = _clean_sponsor_pick(conn, values, self_id=contact_id)
         # The staff form no longer asks for the sponsor's address; saved details stay as they are.
-        columns = [c for c in CONTACT_PROFILE_FIELDS if c not in PUBLIC_FORM_SKIPPED_FIELDS] + ["notes", "status"]
+        # email_2 / email_3 are no longer on this form: leave any saved values untouched (they still help
+        # match a returning person to their record).
+        columns = [c for c in CONTACT_PROFILE_FIELDS if c not in PUBLIC_FORM_SKIPPED_FIELDS and c not in ("email_2", "email_3")] + ["notes", "status"]
         set_clause = ", ".join(f"{c} = ?" for c in columns)
         conn.execute(
             f"UPDATE contacts SET {set_clause} WHERE id = ?",
