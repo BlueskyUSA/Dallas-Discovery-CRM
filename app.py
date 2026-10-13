@@ -139,13 +139,12 @@ def upsert_contact_photo(conn, contact_id, data, content_type):
 # reason as contact photos above -- these are only ever sent to the browser
 # through the program_material_file route below, which checks program-level
 # authorization first, so they stay just as confidential as they were on disk.
-ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav", "mp4", "mov", "m4v"}
+ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav"}
 AUDIO_EXTENSIONS = {"mp3", "m4a", "wav"}
-VIDEO_EXTENSIONS = {"mp4", "mov", "m4v"}
 # The database server is small (256 MB of memory), and a file is held in memory several times over while it is
 # saved, so a big upload can make the database drop its connection. Keep audio/video small; use links for big films.
 MAX_AUDIO_BYTES = 8 * 1024 * 1024
-MAX_VIDEO_BYTES = 8 * 1024 * 1024
+
 
 
 def _material_extension(filename):
@@ -169,11 +168,6 @@ def process_program_material(file_storage):
     if ext in AUDIO_EXTENSIONS and len(data) > MAX_AUDIO_BYTES:
         flash(f"{file_storage.filename} is over 8 MB, so it was not uploaded.")
         return None
-    if ext in VIDEO_EXTENSIONS:
-        if len(data) > MAX_VIDEO_BYTES:
-            flash(f"{file_storage.filename} is over 8 MB, so it was not uploaded. Add it to the movie list as a link instead (YouTube, Vimeo or Dropbox).")
-            return None
-        return data, ("video/quicktime" if ext == "mov" else "video/mp4")
     if ext in AUDIO_EXTENSIONS:
         file_storage_type = {"mp3": "audio/mpeg", "m4a": "audio/mp4", "wav": "audio/wav"}[ext]
         return data, file_storage_type
@@ -2736,13 +2730,12 @@ def _music_day_labels(program):
 MATERIAL_CATEGORY_BLURBS = {
     "Syllabus": "The run sheet for the training: the schedule and order of activities that facilitators and TAs follow.",
     "Music": "Song lists used during the training, organized by day and purpose, plus any music files (song sheets, assignment sheets).",
-    "Movies": "Movies and film clips used in the training: a list of what is shown and when (with links), plus any short clips uploaded here.",
+    "Movies": "Movies and film clips used in the training: a list of what is shown and when, with a link to watch each one (YouTube, Vimeo, Dropbox).",
     "Handouts": "Handouts, worksheets, and resource sheets given to trainees, organized by which day they're used.",
     "Other": "Anything else for this training that isn't a syllabus, music, or a handout.",
 }
 _SYLLABUS_WORDS = ("syllab", "run sheet", "run-sheet", "runsheet")
 _MUSIC_WORDS = ("song", "music", "playlist")
-_MOVIE_WORDS = ("movie", "film", "video", "clip")
 _material_category_ready = False
 
 
@@ -2754,8 +2747,6 @@ def _guess_material_category(title, original_filename):
         return "Syllabus"
     if any(w in text for w in _MUSIC_WORDS):
         return "Music"
-    if any(w in text for w in _MOVIE_WORDS) or (original_filename or "").lower().rsplit(".", 1)[-1] in VIDEO_EXTENSIONS:
-        return "Movies"
     return "Handouts"
 
 
@@ -2911,8 +2902,8 @@ def program_material_file(program_id, material_id):
         if not viewer_request:
             flash("Training materials can be viewed here but not downloaded.")
             return redirect(url_for(".program_material_read", program_id=program_id, material_id=material_id))
-    if doc_reader.extension(row["original_filename"]) in (AUDIO_EXTENSIONS | VIDEO_EXTENSIONS):
-        # Audio and video are sent with Range support so the play bar can skip around.
+    if doc_reader.extension(row["original_filename"]) in AUDIO_EXTENSIONS:
+        # Audio is sent with Range support so the play bar can skip around in a song.
         from flask import send_file
         resp = send_file(io.BytesIO(bytes(row["data"])), mimetype=row["content_type"] or "application/octet-stream", conditional=True)
     else:
@@ -3076,19 +3067,18 @@ def program_movies(program_id):
         abort(404)
     _ensure_movies_table(conn)
     movies = conn.execute("SELECT * FROM program_movies WHERE program_id = ? ORDER BY id", (program_id,)).fetchall()
-    by_category, counts = _load_materials(conn, program_id)
+    _, counts = _load_materials(conn, program_id)
     conn.close()
     labels = _music_day_labels(program)
-    movies_by_day, files_by_day = {}, by_category["Movies"]
+    movies_by_day = {}
     for m in movies:
         movies_by_day.setdefault(m["day_label"] or "General", []).append(m)
-    extra = [d for d in list(movies_by_day) + list(files_by_day) if d not in labels]
-    all_days = labels + [d for i, d in enumerate(extra) if d not in extra[:i]]
+    extra = [d for d in movies_by_day if d not in labels]
+    all_days = labels + extra
     movies_by_day = {d: movies_by_day.get(d, []) for d in all_days}
-    files_by_day = {d: files_by_day.get(d, []) for d in all_days}
     return render_template(
         "program_movies.html", program=program, movies_by_day=movies_by_day, ordered_days=all_days,
-        day_label_choices=all_days, files_by_day=files_by_day, files_ordered_days=all_days,
+        day_label_choices=all_days,
         category="Movies", categories=g.allowed_headings, category_counts=counts,
         category_blurb=MATERIAL_CATEGORY_BLURBS["Movies"], can_download=_can_download_materials(),
     )
