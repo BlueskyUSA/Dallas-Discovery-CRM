@@ -4221,13 +4221,36 @@ def brought_in_by_bulk():
 def contracts_list():
     conn = get_db()
     rows = conn.execute(
-        f"""SELECT k.id, k.kind, k.created_at, {full_name_sql('c')} AS full_name,
-                   (SELECT MAX(r.revised_at) FROM contract_revisions r WHERE r.contract_id = k.id) AS last_revised
+        f"""SELECT k.contact_id, {full_name_sql('c')} AS full_name, COUNT(*) AS n
             FROM contracts k JOIN contacts c ON c.id = k.contact_id
-            ORDER BY c.last_name, c.first_name, k.kind"""
+            GROUP BY k.contact_id, c.last_name, c.first_name
+            ORDER BY c.last_name, c.first_name"""
     ).fetchall()
     conn.close()
-    return render_template("contracts_list.html", contracts=rows, kinds=CONTRACT_KINDS)
+    return render_template("contracts_list.html", people=rows)
+
+
+@crm.route("/contracts/person/<int:contact_id>")
+@area_required("contracts")
+def contracts_person(contact_id):
+    conn = get_db()
+    person = conn.execute(
+        f"SELECT {full_name_sql('c')} AS full_name FROM contacts c WHERE c.id = ?", (contact_id,)
+    ).fetchone()
+    if not person:
+        conn.close()
+        abort(404)
+    rows = conn.execute(
+        "SELECT * FROM contracts WHERE contact_id = ? ORDER BY kind", (contact_id,)
+    ).fetchall()
+    items = []
+    for k in rows:
+        revs = conn.execute(
+            "SELECT * FROM contract_revisions WHERE contract_id = ? ORDER BY revised_at DESC, id DESC", (k["id"],)
+        ).fetchall()
+        items.append({"k": k, "revisions": revs})
+    conn.close()
+    return render_template("contracts_person.html", person=person, items=items, kinds=CONTRACT_KINDS)
 
 
 @crm.route("/contracts/business-plan")
