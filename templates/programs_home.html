@@ -9,7 +9,7 @@
     <tr><th>Program</th><th>Upcoming sessions</th></tr>
     {% for p in programs %}
     <tr>
-      <td><a href="{{ url_for('.program_open', program_id=p.id) }}"><strong>{{ p.name }}</strong></a>{% if p.description %}<br><span class="muted">{{ p.description }}</span>{% endif %}</td>
+      <td><a href="{{ url_for('.program_open', program_id=p.id) }}"><strong>{{ p.name }}</strong></a>{% if p.code == 'D4' or 'relationship' in p.name|lower %} <span style="color:#3f5643; font-weight:600">&mdash; In Process</span>{% else %} <span style="color:#a15c00; font-weight:600">&mdash; Under Development</span>{% endif %}{% if p.description %}<br><span class="muted">{{ p.description }}</span>{% endif %}</td>
       <td>{{ upcoming[p.id] or '&mdash;'|safe }}</td>
     </tr>
     {% else %}
