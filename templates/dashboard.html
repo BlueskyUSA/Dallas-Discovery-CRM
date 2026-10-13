@@ -13,33 +13,34 @@
     {% if session.is_owner %}
     <li><strong>Control who has access.</strong> <em>Site Access</em> is where you add logins, choose which areas each person can open, and reset passwords.</li>
     {% endif %}
-    {% if session.staff_role == 'Leadership' or has_contacts_access %}
-    <li><strong>Find a person.</strong> Open <em>Admin</em>, then <em>Contacts</em>, and search by name or email. Click a name to see the person's page, then <em>Edit contact</em> to open their <em>Contact Information</em>: details, Discovery history, and notes.</li>
-    {% endif %}
     {% if can_contacts %}
-    <li><strong>Add someone new.</strong> Open <em>Admin</em>, then <em>Contacts</em>, and use <em>+ Add contact</em>. Check first that they are not already there, so no one is entered twice.</li>
-    <li><strong>Answer requests.</strong> Under <em>Admin</em>, <em>Contact requests</em> lists people who asked, on the public site, to be contacted. Follow up, then mark each one handled.</li>
+    <li><strong>Admin menu</strong>
+      <ol type="a" style="padding-left:20px; margin:4px 0">
+        <li><strong>Contacts</strong> &ndash; Find, Edit, and Add Contacts to the database.</li>
+        <li><strong>Send Emails or Text Messages</strong> (from a contact's page) that:
+          <ol style="padding-left:20px; margin:4px 0">
+            <li><strong>Excitement Letter</strong> &ndash; opening Discovery;</li>
+            <li><strong>Generate Link</strong> &ndash; requesting completion of Contact form;</li>
+            <li><strong>Business Plan</strong> &ndash; Sent to those who are interested;</li>
+            <li><strong>Contract Information Request</strong> &ndash; Automatic email updating contact form.</li>
+          </ol>
+        </li>
+        <li><strong>Contact Requests</strong> &ndash; reach out to interested parties who want to be contacted by leadership.</li>
+        <li><strong>Sponsor Pipeline</strong> &ndash; track sponsorships.</li>
+        {% if session.staff_role == 'Leadership' %}<li><strong>Data Sources</strong> &ndash; tracks data downloads for custom emails.</li>{% endif %}
+      </ol>
+    </li>
     {% endif %}
-    {% if is_lead or has_program_access %}
-    <li><strong>Schedule a training.</strong> Open <em>Programs</em>, find the training, and follow the three red steps: pick the first day, check the last day, then click <em>Schedule this session</em>. Nothing is saved until Step 3.</li>
-    {% endif %}
-    {% if session.staff_role == 'Leadership' or has_contacts_access %}
-    <li><strong>See the year at a glance.</strong> <em>Calendar</em> shows every scheduled training by month. The public registration page shows the same calendar.</li>
-    <li><strong>Run a session.</strong> Click <em>Open</em> beside a session on <em>Programs</em> to enroll people, assign small groups, and staff the weekend.</li>
-    <li><strong>Track leaders.</strong> Under <em>Admin</em>, <em>Sponsor pipeline</em> shows who is ready to TA or serve as a TA Team Captain, based on how many people they have brought in.</li>
-    {% endif %}
-    {% if session.staff_role == 'Leadership' %}
-    <li><strong>Organize data sources.</strong> Under <em>Admin</em>, <em>Data Sources</em> records where contacts came from, such as a personal list or an imported database.</li>
+    {% if session.staff_role == 'Leadership' or has_contacts_access or is_lead or has_program_access %}
+    <li><strong>Calendar</strong> &ndash; A year at a glance &ndash; schedule the program dates for each training.</li>
     {% endif %}
     {% if session.staff_role == 'Leadership' or has_donations_access %}
-    <li><strong>Review donations.</strong> <em>Donations</em> lists every recorded gift, with totals.</li>
+    <li><strong>Donations</strong> &ndash; Under Development &ndash; link to Accounting software.</li>
     {% endif %}
-    {% if session.staff_role == 'Leadership' %}
-    <li><strong>Record contracts.</strong> A person's contracts are at the bottom of their <em>Contact Information</em> page, once Discovery attendance is Yes. They save themselves as you type.</li>
-    {% endif %}
-    <li><strong>Read the mission and the business plan.</strong> <em>Mission</em> shows our mission and the Preliminary Business Plan. To send the plan to an interested person, open <em>Admin</em>, then <em>Contacts</em>, and open that person (Leadership only).</li>
-    <li><strong>Keep your login safe.</strong> Use <em>Change password</em> at the top right, and <em>Log out</em> when you finish. You are logged out automatically after 30 minutes of inactivity.</li>
+    <li><strong>Marketing</strong> &ndash; Under Development &ndash; link to Marketing software.</li>
+    <li><strong>Public Site</strong> &ndash; Under Development &ndash; link to URL.</li>
   </ol>
+  <p><strong>Please keep your login safe.</strong> Use <em>Change password</em> at the top right, and <em>Log out</em> when you finish. You are logged out automatically after 30 minutes of inactivity.</p>
   {% if session.staff_role == 'Accounting' %}
   <p>Your login is <strong>view-only</strong>. You can read everything you have been given, but nothing you do here changes the records.</p>
   {% endif %}
