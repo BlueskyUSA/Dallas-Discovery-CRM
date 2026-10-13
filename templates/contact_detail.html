@@ -64,6 +64,8 @@
   {% if contact.profile_token %}
   <input readonly style="width:100%; font-size:0.85rem" onclick="this.select()"
          value="{{ request.host_url.rstrip('/') }}{{ url_for('public_complete_profile', token=contact.profile_token) }}">
+  <p style="margin:10px 0 0"><a class="btn secondary" target="_blank" rel="noopener" href="{{ url_for('public_complete_profile', token=contact.profile_token) }}">Preview letter</a>
+  <span class="muted" style="font-size:0.85rem">Opens the page {{ contact.first_name or 'they' }} will see (nothing is sent).</span></p>
   {% else %}
   <form method="post" action="{{ url_for('.contact_profile_link_new', contact_id=contact.id) }}">
     <button class="btn secondary" type="submit">Generate link</button>
@@ -80,6 +82,7 @@
   {% if contact.email %}
   <form method="post" action="{{ url_for('.contact_send_excitement_email', contact_id=contact.id) }}">
     <button class="btn secondary" type="submit">Send excitement email</button>
+    <a class="btn secondary" href="{{ url_for('.contact_preview_excitement_email', contact_id=contact.id) }}" style="margin-left:8px">Preview letter</a>
   </form>
   {% else %}
   <p class="muted" style="margin:0">No email on file for this contact.</p>
@@ -100,6 +103,7 @@
   <form method="post" action="{{ url_for('.contact_send_business_plan', contact_id=contact.id) }}"
         onsubmit='return confirm({{ ("Send the Preliminary Business Plan to " ~ contact.full_name ~ " at " ~ contact.email ~ (" (last sent " ~ contact.business_plan_sent_at ~ ")" if contact.business_plan_sent_at else "") ~ " now?")|tojson }});'>
     <button class="btn secondary" type="submit">Send business plan</button>
+    <a class="btn secondary" href="{{ url_for('.contact_preview_business_plan', contact_id=contact.id) }}" style="margin-left:8px">Preview letter</a>
   </form>
   {% else %}
   <p class="muted" style="margin:0">No email on file for this contact.</p>
