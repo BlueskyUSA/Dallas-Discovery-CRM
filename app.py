@@ -1175,6 +1175,7 @@ CONTRACT_KINDS = {
     "D1": "Your Contract",
     "D1S": "Your Stretch Song",
     "D2": "Your Poem",
+    "D2G": "The Five Gifts I see in You",
     "D3": "The Vision you have for your Future",
     "D6": "Your Couples Relationship Contract",
     "D6S": "Relationship Song Chosen for your Partner",
@@ -1183,7 +1184,7 @@ CONTRACT_KINDS = {
 
 # The numbers people see in headings. Saved contracts keep their original internal keys (so no stored data
 # had to change); the training order is D1, D2, D3, 4 = Relationship Training, 5 = Refocus, 6 = Spiritual.
-CONTRACT_DISPLAY_CODES = {"D1B": "D1", "D1P": "D1", "D6": "D4", "D6S": "D4S", "D5": "D6"}
+CONTRACT_DISPLAY_CODES = {"D1B": "D1", "D1P": "D1", "D2G": "D2", "D6": "D4", "D6S": "D4S", "D5": "D6"}
 
 # Kinds that get a single-line input instead of a multi-row textarea.
 CONTRACT_SINGLE_LINE_KINDS = {"D1B", "D1P", "D1", "D1S", "D6S"}
