@@ -1170,6 +1170,7 @@ US_STATES = [
 # separate free-text entry -- shown on the contact page only for contacts
 # who attended Discovery, since these are Discovery training artifacts.
 CONTRACT_KINDS = {
+    "D1B": "The Name of your Buddy in D1",
     "D1P": "Your Pseudo Name",
     "D1": "Your Contract",
     "D1S": "Your Stretch Song",
@@ -1182,10 +1183,10 @@ CONTRACT_KINDS = {
 
 # The numbers people see in headings. Saved contracts keep their original internal keys (so no stored data
 # had to change); the training order is D1, D2, D3, 4 = Relationship Training, 5 = Refocus, 6 = Spiritual.
-CONTRACT_DISPLAY_CODES = {"D1P": "D1", "D6": "D4", "D6S": "D4S", "D5": "D6"}
+CONTRACT_DISPLAY_CODES = {"D1B": "D1", "D1P": "D1", "D6": "D4", "D6S": "D4S", "D5": "D6"}
 
 # Kinds that get a single-line input instead of a multi-row textarea.
-CONTRACT_SINGLE_LINE_KINDS = {"D1P", "D1", "D1S", "D6S"}
+CONTRACT_SINGLE_LINE_KINDS = {"D1B", "D1P", "D1", "D1S", "D6S"}
 
 # Example text shown as a placeholder for the kinds Kent gave an example
 # for. Kinds not listed here just get an empty textarea -- there wasn't a
@@ -1752,24 +1753,63 @@ def contact_send_business_plan(contact_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
-@crm.route("/contacts/<int:contact_id>/preview-contract-request")
-@area_required("contacts")
-@leadership_required
-def contact_preview_contract_request(contact_id):
-    """Shows Leadership exactly what the Contract Information Request email says, without sending anything."""
+def _render_letter_preview(contact_id, title, subject, letter_html, send_endpoint, send_label, leadership_only=False):
     conn = get_db()
     contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
     conn.close()
     if not contact:
         abort(404)
-    if contact["profile_token"]:
-        link = url_for("public_complete_profile", token=contact["profile_token"], contracts=1, _external=True)
-    else:
-        link = request.host_url.rstrip("/") + "/complete-profile/(their-private-link)?contracts=1"
-    html_content, _text = contract_request_content(contact["first_name"], link)
     return render_template(
-        "contract_request_preview.html", contact=contact, subject=CONTRACT_REQUEST_SUBJECT, letter_html=html_content,
+        "contract_request_preview.html", contact=contact, title=title, subject=subject, letter_html=letter_html,
+        send_endpoint=send_endpoint, send_label=send_label,
     )
+
+
+def _contract_link_for(contact_id):
+    conn = get_db()
+    c = conn.execute("SELECT profile_token FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if c and c["profile_token"]:
+        return url_for("public_complete_profile", token=c["profile_token"], contracts=1, _external=True)
+    return request.host_url.rstrip("/") + "/complete-profile/(their-private-link)?contracts=1"
+
+
+def _first_name_of(contact_id):
+    conn = get_db()
+    c = conn.execute("SELECT first_name FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not c:
+        abort(404)
+    return c["first_name"]
+
+
+@crm.route("/contacts/<int:contact_id>/preview-contract-request")
+@area_required("contacts")
+@leadership_required
+def contact_preview_contract_request(contact_id):
+    """Shows Leadership exactly what the Contract Information Request email says, without sending anything."""
+    html_content, _t = contract_request_content(_first_name_of(contact_id), _contract_link_for(contact_id))
+    return _render_letter_preview(contact_id, "Contract Information Request", CONTRACT_REQUEST_SUBJECT, html_content,
+                                  ".contact_send_contract_request", "Send Contract Information Request")
+
+
+@crm.route("/contacts/<int:contact_id>/preview-excitement-email")
+@area_required("contacts")
+def contact_preview_excitement_email(contact_id):
+    """Shows the Excitement email exactly as it would be sent, without sending anything."""
+    html_content, _t = excitement_blast_content(_first_name_of(contact_id))
+    return _render_letter_preview(contact_id, "Excitement email", EXCITEMENT_BLAST_SUBJECT, html_content,
+                                  ".contact_send_excitement_email", "Send excitement email")
+
+
+@crm.route("/contacts/<int:contact_id>/preview-business-plan")
+@area_required("contacts")
+@leadership_required
+def contact_preview_business_plan(contact_id):
+    """Shows the business-plan email exactly as it would be sent, without sending anything."""
+    html_content, _t = preliminary_plan_content(_first_name_of(contact_id))
+    return _render_letter_preview(contact_id, "Business plan email", PRELIMINARY_PLAN_SUBJECT, html_content,
+                                  ".contact_send_business_plan", "Send business plan")
 
 
 @crm.route("/contacts/<int:contact_id>/send-contract-request", methods=["POST"])
@@ -4793,7 +4833,7 @@ app.register_blueprint(crm)
 
 # ---------------------------------------------------------------------------
 # Automatic completion letters
-# After a session's last day has passed, everyone on that session's roster gets the
+# After a session's last day has passed, everyone on that session's roster who is marked attended gets the
 # Contract Information Request letter for that training, once. Off unless the
 # AUTO_COMPLETION_LETTERS_START environment variable holds a date (YYYY-MM-DD):
 # only sessions whose last day is on/after that date are ever considered, so old
@@ -4841,6 +4881,7 @@ def send_due_completion_letters(today=None):
                JOIN programs p ON p.id = k.program_id
                JOIN contacts c ON c.id = e.contact_id
                WHERE COALESCE(k.status, '') <> 'Cancelled'
+                 AND e.attended = 1
                  AND c.email IS NOT NULL AND c.email <> ''
                  AND NOT EXISTS (SELECT 1 FROM completion_letters l WHERE l.enrollment_id = e.id)"""
         ).fetchall()
