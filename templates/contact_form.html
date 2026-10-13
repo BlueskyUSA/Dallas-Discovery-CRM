@@ -120,8 +120,8 @@
     <h3>Notes</h3>
     <div class="field"><textarea name="notes" rows="3" style="width:100%">{{ contact.notes if contact and contact.notes else '' }}</textarea></div>
 
-    <details style="margin-bottom:14px">
-      <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Personal background <span class="muted" style="font-weight:400">(gender, age, health, work and more)</span></summary>
+    <div style="margin-bottom:14px">
+      <h3>Personal background <span class="muted" style="font-weight:400">(gender, age, health, work and more)</span></h3>
       <div class="grid2" style="margin-top:10px">
       <div class="field">
         <label>Gender</label>
@@ -248,7 +248,7 @@
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       </div>
-    </details>
+    </div>
 
     <details style="margin-bottom:14px" {% if contact and (contact.discovery_attendance == 'Yes') %}open{% endif %}>
       <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Discovery history</summary>
