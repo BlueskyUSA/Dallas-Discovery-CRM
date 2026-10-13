@@ -1,0 +1,25 @@
+{% extends "crm_base.html" %}
+{% block title %}Contracts — {{ person.full_name }} — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contracts_list') }}">&larr; All contracts</a></p>
+<h1>{{ person.full_name }}</h1>
+{% for it in items %}
+<div class="card">
+  <h3 style="margin-top:0">{{ kinds.get(it.k.kind, it.k.kind) }}</h3>
+  <div style="white-space:pre-wrap">{{ it.k.current_text }}</div>
+  {% if it.revisions %}
+  <details style="margin-top:12px">
+    <summary class="muted">Revision history ({{ it.revisions|length }})</summary>
+    {% for r in it.revisions %}
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #ddd">
+      <p class="muted" style="margin:0 0 4px">{{ r.revised_at }}{% if r.context %} &middot; {{ r.context }}{% endif %}</p>
+      <div style="white-space:pre-wrap">{{ r.text }}</div>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% else %}
+<p class="muted">No contracts recorded for this person.</p>
+{% endfor %}
+{% endblock %}

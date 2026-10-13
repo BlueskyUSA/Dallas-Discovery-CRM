@@ -9,17 +9,13 @@
 </div>
 <div class="card">
   <h3 style="margin-top:0">Recorded contracts</h3>
+  <p class="muted" style="margin-top:0">Click a name to see that person's contracts.</p>
   <table>
-    <tr><th>Person</th><th>Contract</th><th>Last revised</th><th></th></tr>
-    {% for k in contracts %}
-    <tr>
-      <td>{{ k.full_name }}</td>
-      <td>{{ kinds.get(k.kind, k.kind) }}</td>
-      <td>{{ k.last_revised or k.created_at }}</td>
-      <td><a href="{{ url_for('.contract_view', contract_id=k.id) }}">Read &rarr;</a></td>
-    </tr>
+    <tr><th>Person</th></tr>
+    {% for p in people %}
+    <tr><td><a href="{{ url_for('.contracts_person', contact_id=p.contact_id) }}">{{ p.full_name }}</a></td></tr>
     {% else %}
-    <tr><td colspan="4" class="muted">No contracts recorded yet.</td></tr>
+    <tr><td class="muted">No contracts recorded yet.</td></tr>
     {% endfor %}
   </table>
 </div>
