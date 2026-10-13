@@ -2657,8 +2657,29 @@ def donation_new(contact_id):
 
 @crm.route("/programs")
 def programs_list():
+    """Front page of Programs: one line per program, click a name to open it."""
     conn = get_db()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
+    upcoming = {}
+    for p in programs:
+        upcoming[p["id"]] = conn.execute(
+            "SELECT COUNT(*) AS n FROM cohorts WHERE program_id = ? AND COALESCE(end_date, session_date) >= date('now')",
+            (p["id"],),
+        ).fetchone()["n"]
+    conn.close()
+    return render_template("programs_home.html", programs=programs, upcoming=upcoming)
+
+
+@crm.route("/programs/<int:program_id>")
+def program_open(program_id):
+    """One program: its materials, music, sessions and (for Leadership) scheduling and settings."""
+    conn = get_db()
+    all_programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
+    programs = [p for p in all_programs if p["id"] == program_id]
+    if not programs:
+        conn.close()
+        flash("That program no longer exists.")
+        return redirect(url_for(".programs_list"))
     headings_by_program = {p["id"]: _allowed_headings(conn, p["code"]) for p in programs}
     cohorts_by_program = {}
     for p in programs:
@@ -2667,7 +2688,7 @@ def programs_list():
         ).fetchall()
     conn.close()
     return render_template(
-        "programs_list.html", programs=programs, cohorts_by_program=cohorts_by_program,
+        "programs_list.html", programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
         headings_by_program=headings_by_program,
         default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
         usual_weekday=USUAL_START_WEEKDAY,
@@ -2711,7 +2732,7 @@ def program_edit(program_id):
     conn.commit()
     conn.close()
     flash(f"Program {code} updated.")
-    return redirect(url_for(".programs_list"))
+    return redirect(url_for(".program_open", program_id=program_id))
 
 
 @crm.route("/programs/<int:program_id>/delete", methods=["POST"])
@@ -3382,7 +3403,7 @@ def cohort_new(program_id):
     code = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()["code"]
     conn.close()
     flash(f"Scheduled {code} #{max_num + 1} for {_short_span(date.fromisoformat(session_date), date.fromisoformat(end_date or session_date))}. It now appears in the {code} list below and on the calendar.")
-    return redirect(url_for(".programs_list") + f"#program-{program_id}")
+    return redirect(url_for(".program_open", program_id=program_id))
 
 
 COHORT_STATUSES = ["Scheduled", "Completed", "Cancelled"]
