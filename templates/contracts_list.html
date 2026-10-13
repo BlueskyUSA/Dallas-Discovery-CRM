@@ -1,12 +1,8 @@
 {% extends "crm_base.html" %}
 {% block title %}Contracts — {{ program_name }} ERP{% endblock %}
 {% block content %}
-<h1>Contracts &amp; business plan</h1>
+<h1>Contracts</h1>
 <p class="muted">View-only. Contracts are changed by Leadership from each person's contact page.</p>
-<div class="card">
-  <h3 style="margin-top:0">Preliminary business plan</h3>
-  <p>The plan as it is sent to interested people. <a href="{{ url_for('.business_plan_view') }}">Read it &rarr;</a></p>
-</div>
 <div class="card">
   <h3 style="margin-top:0">Recorded contracts</h3>
   <p class="muted" style="margin-top:0">Click a name to see that person's contracts.</p>
