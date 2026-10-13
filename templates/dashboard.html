@@ -11,29 +11,30 @@
   <p class="muted" style="margin-top:0">You see only the steps for the areas your login can open. The top bar is your menu.</p>
   <ol style="padding-left:20px">
     {% if session.staff_role == 'Leadership' or has_contacts_access %}
-    <li><strong>Find a person.</strong> Open <em>Contacts</em> and search by name or email. Click a name for the whole record: history, trainings attended, notes, and the contract.</li>
+    <li><strong>Find a person.</strong> Open <em>Admin</em>, then <em>Contacts</em>, and search by name or email. Click a name to see the person's page, then <em>Edit contact</em> to open their <em>Contact Information</em>: details, Discovery history, and notes.</li>
     {% endif %}
     {% if can_contacts %}
-    <li><strong>Add someone new.</strong> Use <em>+ Add contact</em> on the Contacts page. Check first that they are not already there, so no one is entered twice.</li>
-    <li><strong>Answer requests.</strong> <em>Contact requests</em> lists people who asked, on the public site, to be contacted. Follow up, then mark each one handled.</li>
+    <li><strong>Add someone new.</strong> Open <em>Admin</em>, then <em>Contacts</em>, and use <em>+ Add contact</em>. Check first that they are not already there, so no one is entered twice.</li>
+    <li><strong>Answer requests.</strong> Under <em>Admin</em>, <em>Contact requests</em> lists people who asked, on the public site, to be contacted. Follow up, then mark each one handled.</li>
     {% endif %}
     {% if is_lead or has_program_access %}
     <li><strong>Schedule a training.</strong> Open <em>Programs</em>, find the training, and follow the three red steps: pick the first day, check the last day, then click <em>Schedule this session</em>. Nothing is saved until Step 3.</li>
     {% endif %}
     {% if session.staff_role == 'Leadership' or has_contacts_access %}
     <li><strong>See the year at a glance.</strong> <em>Calendar</em> shows every scheduled training by month. The public registration page shows the same calendar.</li>
-    <li><strong>Run a session.</strong> Click <em>Open</em> beside a session (here, or on Programs) to enroll people, assign small groups, and staff the weekend.</li>
-    <li><strong>Track leaders.</strong> <em>Sponsor pipeline</em> shows who is ready to TA or serve as a TA Team Captain, based on how many people they have brought in.</li>
+    <li><strong>Run a session.</strong> Click <em>Open</em> beside a session on <em>Programs</em> to enroll people, assign small groups, and staff the weekend.</li>
+    <li><strong>Track leaders.</strong> Under <em>Admin</em>, <em>Sponsor pipeline</em> shows who is ready to TA or serve as a TA Team Captain, based on how many people they have brought in.</li>
     {% endif %}
     {% if session.staff_role == 'Leadership' %}
-    <li><strong>Organize contact lists.</strong> <em>Lists</em> records where contacts came from, such as a personal list or an imported database.</li>
+    <li><strong>Organize data sources.</strong> Under <em>Admin</em>, <em>Data Sources</em> records where contacts came from, such as a personal list or an imported database.</li>
     {% endif %}
     {% if session.staff_role == 'Leadership' or has_donations_access %}
     <li><strong>Review donations.</strong> <em>Donations</em> lists every recorded gift, with totals.</li>
     {% endif %}
-    {% if has_contracts_access %}
-    <li><strong>Read contracts and the business plan.</strong> <em>Contracts</em> shows each recorded contract with its history, and the preliminary business plan as people receive it. These pages are view-only.</li>
+    {% if session.staff_role == 'Leadership' %}
+    <li><strong>Record contracts.</strong> A person's contracts are at the bottom of their <em>Contact Information</em> page, once Discovery attendance is Yes. They save themselves as you type.</li>
     {% endif %}
+    <li><strong>Read the mission and the business plan.</strong> <em>Mission</em> shows our mission and the Preliminary Business Plan. To send the plan to an interested person, open <em>Admin</em>, then <em>Contacts</em>, and open that person (Leadership only).</li>
     {% if session.is_owner %}
     <li><strong>Control who has access.</strong> <em>Site Access</em> is where you add logins, choose which areas each person can open, and reset passwords.</li>
     {% endif %}
