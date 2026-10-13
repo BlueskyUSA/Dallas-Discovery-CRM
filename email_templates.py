@@ -493,3 +493,59 @@ Kent Hafemann
 """
 
     return html_content, text_content
+
+
+CONTRACT_REQUEST_SUBJECT = "A small favor as you complete D1"
+
+
+def contract_request_content(first_name, contracts_url):
+    """Returns (html_content, text_content) for the Contract Information Request --
+    sent only when Leadership clicks the button on a contact's page. Asks the trainee,
+    as a favor, to type in their own Contract, Stretch Song, Poem and the rest, so
+    Discovery staff don't have to."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>Congratulations on your progress in {PROGRAM_NAME}! As you complete your D1
+        training, I have a small favor to ask.</p>
+        <p>During the training you write some very personal things &mdash; your Contract,
+        your Stretch Song, your Poem, and others as you go on. Our volunteer staff would
+        otherwise have to type all of these into our records by hand, which takes many hours.</p>
+        <p><strong>Would you be willing to type them in yourself?</strong> It only takes a few
+        minutes, and it frees our volunteers to spend their time on you and on the next
+        trainees. I would be so grateful.</p>
+        <p>The link below opens your own contact page. Your Contract, Stretch Song, Poem and the
+        rest are at the bottom, and it's a good time to check that your contact information is
+        up to date too.</p>
+        <p style="margin:18px 0"><a href="{contracts_url}" style="background:#3f5643; color:#ffffff;
+        padding:12px 22px; border-radius:6px; text-decoration:none; font-weight:bold">Open my contact page</a></p>
+        <p>Or copy this link into your browser:<br><a href="{contracts_url}">{contracts_url}</a></p>
+        <ul>
+            <li>No password is needed &mdash; this link is just for you.</li>
+            <li>Your words save automatically as you type, so you can stop and come back anytime
+            using the same link.</li>
+            <li>Fill in what you have so far and leave the rest blank &mdash; you can add to it
+            after your later trainings.</li>
+            <li>What you write is kept confidential and is used only for your training.</li>
+        </ul>
+        <p>Thank you for helping us, and for the courage you are showing in this work.</p>
+        <p>Blessings,<br>Kent Hafemann</p>
+    """
+    text_content = (
+        f"Dear {greeting},\n\n"
+        f"Congratulations on your progress in {PROGRAM_NAME}! As you complete your D1 training, "
+        "I have a small favor to ask.\n\n"
+        "During the training you write some very personal things -- your Contract, your Stretch "
+        "Song, your Poem, and others as you go on. Our volunteer staff would otherwise have to type "
+        "all of these into our records by hand, which takes many hours.\n\n"
+        "Would you be willing to type them in yourself? It only takes a few minutes, and it frees "
+        "our volunteers to spend their time on you and on the next trainees. I would be so grateful.\n\n"
+        f"Your personal contact page (your Contract, Stretch Song, Poem and the rest are at the bottom; a good time to check your contact information too):\n{contracts_url}\n\n"
+        "- No password is needed -- this link is just for you.\n"
+        "- Your words save automatically as you type, so you can stop and come back anytime using the same link.\n"
+        "- Fill in what you have so far and leave the rest blank -- you can add to it after your later trainings.\n"
+        "- What you write is kept confidential and is used only for your training.\n\n"
+        "Thank you for helping us, and for the courage you are showing in this work.\n\n"
+        "Blessings,\nKent Hafemann"
+    )
+    return html_content, text_content

@@ -27,6 +27,8 @@ from email_templates import (
     LONGFORM_THANKYOU_SUBJECT,
     preliminary_plan_content,
     PRELIMINARY_PLAN_SUBJECT,
+    CONTRACT_REQUEST_SUBJECT,
+    contract_request_content,
 )
 
 app = Flask(__name__)
@@ -1741,6 +1743,46 @@ def contact_send_business_plan(contact_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
+@crm.route("/contacts/<int:contact_id>/send-contract-request", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def contact_send_contract_request(contact_id):
+    """Leadership-only: emails this person the "Contract Information Request" -- a favor-asking letter
+    with their personal link to a page where they type in their own Contract, Stretch Song, Poem and
+    the rest, so Discovery staff don't have to."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    if not contact:
+        conn.close()
+        abort(404)
+    if not contact["email"]:
+        conn.close()
+        flash("Can't send -- this contact has no email address on file.")
+        return redirect(url_for(".contact_detail", contact_id=contact_id))
+    token = contact["profile_token"]
+    if not token:
+        token = secrets.token_urlsafe(24)
+        conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, contact_id))
+        conn.commit()
+    conn.close()
+    contracts_url = url_for("public_complete_profile", token=token, contracts=1, _external=True)
+    html_content, text_content = contract_request_content(contact["first_name"], contracts_url)
+    try:
+        send_email(
+            to_email=contact["email"],
+            to_name=contact["first_name"],
+            subject=CONTRACT_REQUEST_SUBJECT,
+            html_content=html_content,
+            text_content=text_content,
+        )
+        print(f"SENT contract information request to contact {contact_id} ({contact['email']}) by {session.get('staff_name')}", flush=True)
+        flash(f"Contract Information Request sent to {contact['first_name']} ({contact['email']}).")
+    except EmailSendError as e:
+        print(f"EmailSendError sending contract request to {contact['email']}: {e}", flush=True)
+        flash(f"Couldn't send the request: {e}")
+    return redirect(url_for(".contact_detail", contact_id=contact_id))
+
+
 PROFILE_TOKEN_COOKIE = "bsky_profile_token"
 PROFILE_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
 
@@ -1863,6 +1905,7 @@ def public_complete_profile(token):
         contract_examples=CONTRACT_EXAMPLES,
         contract_single_line_kinds=CONTRACT_SINGLE_LINE_KINDS,
         contracts_by_kind=contracts_by_kind,
+        force_contracts=bool(request.args.get("contracts")),
     ))
     resp.set_cookie(PROFILE_TOKEN_COOKIE, token, max_age=PROFILE_TOKEN_COOKIE_MAX_AGE, samesite="Lax")
     return resp
