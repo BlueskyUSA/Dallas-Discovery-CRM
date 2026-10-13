@@ -1631,9 +1631,10 @@ def contact_edit(contact_id):
     for kind in CONTRACT_KINDS:
         row = conn.execute("SELECT * FROM contracts WHERE contact_id = ? AND kind = ?", (contact_id, kind)).fetchone()
         contracts_by_kind[kind] = {"contract": row}
+    rel_profiles = _relationship_profiles_for(conn, contact_id)
     conn.close()
     return render_template(
-        "contact_form.html", contact=contact, sponsor_choices=choices, sponsor_link=sponsor_link,
+        "contact_form.html", rel_profiles=rel_profiles, contact=contact, sponsor_choices=choices, sponsor_link=sponsor_link,
         linked_sponsors=linked_sponsors, contract_kinds=CONTRACT_KINDS, contract_examples=CONTRACT_EXAMPLES,
         contract_single_line_kinds=CONTRACT_SINGLE_LINE_KINDS, contracts_by_kind=contracts_by_kind,
     )
@@ -3791,6 +3792,40 @@ RELATIONSHIP_PROFILE_FIELDS = [
     "childhood_patterns", "emotional_milestone", "relationship_strengths",
     "relationship_weaknesses", "stress_points", "song_artist", "song_feelings", "other_info",
 ]
+
+
+RELATIONSHIP_PROFILE_QUESTIONS = [
+    ("first_time_attending", "Is this your first time attending the Relationship Training?"),
+    ("training_goals", "What do you want to get out of the Relationship Training?"),
+    ("relationship_length", "How long have you been in your relationship?"),
+    ("how_met", "How did you meet your partner and what attracted you to them?"),
+    ("childhood_patterns", "Does this relationship have patterns similar to what you experienced with your parents in your childhood?"),
+    ("emotional_milestone", "Describe a significant emotional milestone within your relationship."),
+    ("relationship_strengths", "What are the strengths within the relationship?"),
+    ("relationship_weaknesses", "What are the weaknesses within the relationship?"),
+    ("stress_points", "Are there any stress points within the relationship? Please explain."),
+    ("song_artist", "List one song and artist that describes the way you feel about your partner."),
+    ("song_feelings", "Briefly describe how the song above makes you feel toward your partner."),
+    ("other_info", "Please provide other information you believe is important to this relationship."),
+]
+
+
+def _relationship_profiles_for(conn, contact_id):
+    """One entry per Relationship Training (D4) enrollment of this contact, with the profile answers and a
+    status: Not started / In progress (n of 12) / Complete."""
+    out = []
+    rows = conn.execute(
+        """SELECT e.id AS enrollment_id, k.session_number, k.session_date, k.end_date, p.name AS program_name
+           FROM enrollments e JOIN cohorts k ON k.id = e.cohort_id JOIN programs p ON p.id = k.program_id
+           WHERE e.contact_id = ? AND p.code = 'D4' ORDER BY k.session_date DESC""", (contact_id,)).fetchall()
+    for r in rows:
+        prof = conn.execute("SELECT * FROM training_profiles WHERE enrollment_id = ?", (r["enrollment_id"],)).fetchone()
+        answers = [(label, (prof[f] if prof and prof[f] else "")) for f, label in RELATIONSHIP_PROFILE_QUESTIONS]
+        n = sum(1 for _l, v in answers if v)
+        status = "Not started" if n == 0 else ("Complete" if n == len(answers) else f"In progress ({n} of {len(answers)})")
+        out.append({"enrollment_id": r["enrollment_id"], "session_number": r["session_number"],
+                    "session_date": r["session_date"], "end_date": r["end_date"], "status": status, "answers": answers})
+    return out
 
 
 @crm.route("/enrollments/<int:enrollment_id>/relationship-profile", methods=["GET", "POST"])
