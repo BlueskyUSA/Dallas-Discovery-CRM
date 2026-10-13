@@ -29,6 +29,7 @@ from email_templates import (
     PRELIMINARY_PLAN_SUBJECT,
     CONTRACT_REQUEST_SUBJECT,
     contract_request_content,
+    completion_letter_content,
 )
 
 app = Flask(__name__)
@@ -1173,7 +1174,7 @@ CONTRACT_KINDS = {
     "D1": "Your Contract",
     "D1S": "Your Stretch Song",
     "D2": "Your Poem",
-    "D3": "Your Future",
+    "D3": "The Vision you have for your Future",
     "D6": "Your Couples Relationship Contract",
     "D6S": "Relationship Song Chosen for your Partner",
     "D5": "Spiritual Contract",
@@ -2185,9 +2186,17 @@ def contact_detail(contact_id):
         r for r in conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
         if r["id"] not in on_ids
     ]
+    try:
+        _ensure_completion_letters_table(conn)
+        letters_sent = conn.execute(
+            "SELECT program_code, sent_at FROM completion_letters WHERE contact_id = ? ORDER BY sent_at", (contact_id,)
+        ).fetchall()
+    except Exception:
+        letters_sent = []
     conn.close()
     return render_template(
         "contact_detail.html",
+        letters_sent=letters_sent, auto_letters_on=bool(_auto_letters_start()),
         member_lists=member_lists, linked_sponsors=linked_sponsors, sponsor_choices=sponsor_choices, sponsor_link=sponsor_link,
         addable_lists=addable_lists,
         contact=contact,
@@ -4780,6 +4789,117 @@ def inject_area_access():
 
 app.jinja_env.globals["role_label"] = role_label
 app.register_blueprint(crm)
+
+
+# ---------------------------------------------------------------------------
+# Automatic completion letters
+# After a session's last day has passed, everyone on that session's roster gets the
+# Contract Information Request letter for that training, once. Off unless the
+# AUTO_COMPLETION_LETTERS_START environment variable holds a date (YYYY-MM-DD):
+# only sessions whose last day is on/after that date are ever considered, so old
+# rosters are never emailed. Safe with several workers: the completion_letters
+# table's UNIQUE enrollment_id lets exactly one claim each send.
+# ---------------------------------------------------------------------------
+COMPLETION_LETTER_WINDOW_DAYS = 14
+
+
+def _ensure_completion_letters_table(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS completion_letters (
+        id SERIAL PRIMARY KEY,
+        enrollment_id INTEGER NOT NULL UNIQUE,
+        contact_id INTEGER NOT NULL,
+        program_code TEXT,
+        sent_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )""")
+    conn.commit()
+
+
+def _auto_letters_start():
+    raw = (os.environ.get("AUTO_COMPLETION_LETTERS_START") or "").strip()
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date() if raw else None
+    except ValueError:
+        return None
+
+
+def send_due_completion_letters(today=None):
+    """Sends any completion letters that are due. Returns the number sent."""
+    start = _auto_letters_start()
+    if not start:
+        return 0
+    today = today or date.today()
+    earliest = max(start, today - timedelta(days=COMPLETION_LETTER_WINDOW_DAYS))
+    conn = get_db()
+    try:
+        _ensure_completion_letters_table(conn)
+        rows = conn.execute(
+            """SELECT e.id AS enrollment_id, c.id AS contact_id, c.first_name, c.email, c.profile_token,
+                      p.code AS program_code, p.name AS program_name,
+                      k.session_date, k.end_date
+               FROM enrollments e
+               JOIN cohorts k ON k.id = e.cohort_id
+               JOIN programs p ON p.id = k.program_id
+               JOIN contacts c ON c.id = e.contact_id
+               WHERE COALESCE(k.status, '') <> 'Cancelled'
+                 AND c.email IS NOT NULL AND c.email <> ''
+                 AND NOT EXISTS (SELECT 1 FROM completion_letters l WHERE l.enrollment_id = e.id)"""
+        ).fetchall()
+        sent = 0
+        for r in rows:
+            try:
+                last_day = datetime.strptime((r["end_date"] or r["session_date"])[:10], "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                continue
+            if not (earliest <= last_day < today):
+                continue
+            code = (r["program_code"] or "").upper()
+            token = r["profile_token"]
+            if not token:
+                token = secrets.token_urlsafe(24)
+                conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ? AND profile_token IS NULL",
+                             (token, r["contact_id"]))
+                conn.commit()
+                token = conn.execute("SELECT profile_token FROM contacts WHERE id = ?", (r["contact_id"],)).fetchone()["profile_token"]
+            with app.test_request_context(base_url=os.environ.get("PUBLIC_BASE_URL", "https://dallas-discovery-crm.onrender.com")):
+                url = url_for("public_complete_profile", token=token, contracts=1, _external=True)
+            letter = completion_letter_content(r["first_name"], url, code, r["program_name"])
+            if not letter:
+                continue
+            claim = conn.execute(
+                "INSERT INTO completion_letters (enrollment_id, contact_id, program_code) VALUES (?, ?, ?) ON CONFLICT (enrollment_id) DO NOTHING",
+                (r["enrollment_id"], r["contact_id"], code))
+            conn.commit()
+            if claim.rowcount != 1:
+                continue
+            subject, html_content, text_content = letter
+            try:
+                send_email(to_email=r["email"], to_name=r["first_name"], subject=subject,
+                           html_content=html_content, text_content=text_content)
+                sent += 1
+                print(f"AUTO-SENT {code} completion letter to contact {r['contact_id']} ({r['email']})", flush=True)
+            except EmailSendError as e:
+                conn.execute("DELETE FROM completion_letters WHERE enrollment_id = ?", (r["enrollment_id"],))
+                conn.commit()
+                print(f"EmailSendError auto-sending completion letter to {r['email']}: {e}", flush=True)
+        return sent
+    finally:
+        conn.close()
+
+
+def _completion_letter_loop():
+    import time
+    time.sleep(60)
+    while True:
+        try:
+            send_due_completion_letters()
+        except Exception as e:  # never let the loop die
+            print(f"completion letter check failed: {e}", flush=True)
+        time.sleep(3600)
+
+
+if _auto_letters_start() and not os.environ.get("DISABLE_BACKGROUND_THREADS"):
+    import threading
+    threading.Thread(target=_completion_letter_loop, daemon=True).start()
 
 
 if __name__ == "__main__":
