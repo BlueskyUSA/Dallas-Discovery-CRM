@@ -104,7 +104,18 @@
       <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
       <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
     </div>
-    <p class="muted" style="margin:0 0 12px; font-size:0.85rem">If the sponsor is not in your contacts yet, save this and use the &ldquo;Save &amp; add sponsor as a new contact&rdquo; button on the Sponsor details card of this person&rsquo;s page.</p>
+    {% if contact %}
+      {% if linked_sponsors %}
+      <p class="muted" style="margin:0 0 8px">Sponsor on a session roster (counts toward their TA requirement):
+        {% for b in linked_sponsors %}<a href="{{ url_for('.contact_detail', contact_id=b.id) }}">{{ b.full_name }}</a>{{ ', ' if not loop.last }}{% endfor %}.</p>
+      {% endif %}
+      {% if sponsor_link %}
+      <p style="margin:0 0 8px"><span class="badge good">&#10003; Linked</span> to <a href="{{ url_for('.contact_detail', contact_id=sponsor_link.id) }}">{{ sponsor_link.full_name }}</a> &mdash; this counts toward their Sponsor pipeline and TA requirement.</p>
+      {% elif contact.sponsor_name %}
+      <p class="muted" style="margin:0 0 8px"><span class="badge warn">Not linked</span> This name is only typed text, so it does not count toward the Sponsor pipeline. Retype it and pick the person from the list that appears.</p>
+      {% endif %}
+      <p class="muted" style="margin:0 0 12px; font-size:0.85rem">Sponsor not in your contacts yet (for example someone from years ago)? Use the button at the bottom, <strong>Save &amp; add sponsor as a new contact</strong>. It adds them to the <strong>Past sponsors</strong> list and counts them in the Sponsor pipeline.</p>
+    {% endif %}
 
     <h3>Notes</h3>
     <div class="field"><textarea name="notes" rows="3" style="width:100%">{{ contact.notes if contact and contact.notes else '' }}</textarea></div>
@@ -261,9 +272,39 @@
       </div>
     </details>
 
-    <div style="margin:4px 0 14px"><button class="btn" type="submit">Save contact</button></div>
+    <div style="margin:4px 0 14px">
+      <button class="btn" type="submit">Save contact</button>
+      {% if contact %}<button class="btn secondary" type="submit" name="create_sponsor" value="1" style="margin-left:8px">Save &amp; add sponsor as a new contact</button>{% endif %}
+    </div>
   </form>
 </div>
+{% if contact and session.staff_role == 'Leadership' %}
+{% set has_discovery_dates = contact.d1_month_year or contact.d2_month_year or contact.d3_month_year or contact.refocus_month_year or contact.relationship_training_month_year %}
+<div id="contract_fields_section" style="display: {{ '' if (contact.discovery_attendance == 'Yes' or has_discovery_dates) else 'none' }}">
+<p class="muted" style="margin:14px 0 0">Contracts save themselves as you type.</p>
+{% for kind, label in contract_kinds.items() %}
+{% set entry = contracts_by_kind[kind] %}
+<h2>{{ kind }}: {{ label }}</h2>
+<div class="card">
+  <form method="post" class="contract-autosave-form" action="{{ url_for('.contract_upsert', contact_id=contact.id) }}">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <div class="field">
+      {% if kind in contract_single_line_kinds %}
+      <input name="text" style="width:100%"
+        placeholder="{{ 'e.g. ' ~ contract_examples[kind] if kind in contract_examples else '' }}"
+        value="{{ entry.contract.current_text if entry.contract else '' }}">
+      {% else %}
+      <textarea name="text" rows="6" style="width:100%"
+        placeholder="{{ 'e.g. ' ~ contract_examples[kind] if kind in contract_examples else '' }}"
+      >{{ entry.contract.current_text if entry.contract else '' }}</textarea>
+      {% endif %}
+    </div>
+    <p class="muted contract-save-status" style="min-height:1.2em; margin:0"></p>
+  </form>
+</div>
+{% endfor %}
+</div>
+{% endif %}
 {% if contact %}
 <p style="margin-top:14px"><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a></p>
 {% endif %}
