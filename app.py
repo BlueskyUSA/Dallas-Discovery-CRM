@@ -142,8 +142,10 @@ def upsert_contact_photo(conn, contact_id, data, content_type):
 ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav", "mp4", "mov", "m4v"}
 AUDIO_EXTENSIONS = {"mp3", "m4a", "wav"}
 VIDEO_EXTENSIONS = {"mp4", "mov", "m4v"}
-MAX_AUDIO_BYTES = 30 * 1024 * 1024
-MAX_VIDEO_BYTES = 50 * 1024 * 1024
+# The database server is small (256 MB of memory), and a file is held in memory several times over while it is
+# saved, so a big upload can make the database drop its connection. Keep audio/video small; use links for big films.
+MAX_AUDIO_BYTES = 8 * 1024 * 1024
+MAX_VIDEO_BYTES = 8 * 1024 * 1024
 
 
 def _material_extension(filename):
@@ -165,11 +167,11 @@ def process_program_material(file_storage):
         return None
     data = file_storage.stream.read()
     if ext in AUDIO_EXTENSIONS and len(data) > MAX_AUDIO_BYTES:
-        flash(f"{file_storage.filename} is over 30 MB, so it was not uploaded.")
+        flash(f"{file_storage.filename} is over 8 MB, so it was not uploaded.")
         return None
     if ext in VIDEO_EXTENSIONS:
         if len(data) > MAX_VIDEO_BYTES:
-            flash(f"{file_storage.filename} is over 50 MB, so it was not uploaded. Add it to the movie list as a link instead.")
+            flash(f"{file_storage.filename} is over 8 MB, so it was not uploaded. Add it to the movie list as a link instead (YouTube, Vimeo or Dropbox).")
             return None
         return data, ("video/quicktime" if ext == "mov" else "video/mp4")
     if ext in AUDIO_EXTENSIONS:
