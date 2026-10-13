@@ -291,6 +291,27 @@
 {% endfor %}
 </div>
 {% endif %}
+{% if rel_profiles %}
+<h2>Relationship Profile</h2>
+{% for rp in rel_profiles %}
+<div class="card">
+  <p style="margin:0 0 6px"><strong>Relationship Training #{{ rp.session_number }}</strong>
+    <span class="muted">&middot; {{ rp | date_span }}</span>
+    &nbsp;<strong style="color:{{ "#3f5643" if rp.status == "Complete" else "#a15c00" }}">[{{ rp.status }}]</strong></p>
+  {% if rp.status == 'Not started' %}
+  <p class="muted" style="margin:0 0 10px">No answers recorded yet.</p>
+  {% else %}
+  <dl style="margin:8px 0 12px">
+    {% for q, a in rp.answers %}
+    <dt style="font-weight:600; margin-top:8px">{{ loop.index }}. {{ q }}</dt>
+    <dd style="margin:2px 0 0 0; white-space:pre-wrap">{% if a %}{{ a }}{% else %}<span class="muted">&mdash;</span>{% endif %}</dd>
+    {% endfor %}
+  </dl>
+  {% endif %}
+  <a class="btn secondary" href="{{ url_for('.relationship_profile', enrollment_id=rp.enrollment_id) }}">{{ 'Enter answers' if rp.status == 'Not started' else 'Edit answers' }}</a>
+</div>
+{% endfor %}
+{% endif %}
 {% if contact %}
 <div class="card" style="margin-top:18px">
   <h3 style="margin-top:0">Notes</h3>
