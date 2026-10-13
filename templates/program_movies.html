@@ -1,0 +1,69 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ program.code }} Movies — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>{{ program.name }} &mdash; Movies</h1>
+{% include "_material_tabs.html" %}
+
+<h2>Movie list</h2>
+{% for day in ordered_days %}
+<h3>{{ day }}</h3>
+{% for mv in movies_by_day[day] %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px">
+    <div>
+      <strong>{{ mv.title }}</strong>
+      {% if mv.link_url %} &middot; <a href="{{ mv.link_url }}" target="_blank" rel="noopener noreferrer">Open link &rarr;</a>{% endif %}
+      {% if mv.scene_notes %}<div class="muted" style="margin-top:4px; white-space:pre-wrap">{{ mv.scene_notes }}</div>{% endif %}
+    </div>
+    {% if can_edit_materials %}
+    <form method="post" action="{{ url_for('.program_movie_delete', program_id=program.id, movie_id=mv.id) }}"
+          onsubmit='return confirm({{ ("Remove " ~ mv.title ~ " from the list?")|tojson }});' style="display:inline">
+      <button class="btn danger" type="submit" style="font-size:0.8rem">Remove</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<p class="muted" style="margin:4px 0 12px">No movies in {{ day }} yet.</p>
+{% endfor %}
+{% endfor %}
+
+{% if can_edit_materials %}
+<h3>Add a movie to the list</h3>
+<div class="card">
+  <form method="post" action="{{ url_for('.program_movie_new', program_id=program.id) }}">
+    <div class="grid2">
+      <div class="field"><label>Day</label>
+        <select name="day_label">{% for d in day_label_choices %}<option value="{{ d }}">{{ d }}</option>{% endfor %}</select>
+      </div>
+      <div class="field"><label>Title</label><input name="title" placeholder="e.g. The Notebook (final scene)" required maxlength="200"></div>
+      <div class="field"><label>Link (optional)</label><input name="link_url" placeholder="YouTube, Vimeo, Dropbox..." maxlength="500"></div>
+      <div class="field"><label>When / scene / notes</label><textarea name="scene_notes" rows="2" placeholder="e.g. Show at 4:15, scene starts 1:12:30, stop at 1:18:00"></textarea></div>
+    </div>
+    <button class="btn" type="submit">Add to list</button>
+  </form>
+</div>
+{% endif %}
+
+<h2 id="movie-files">Movie clips</h2>
+<p class="muted">Short clips (up to 50 MB each; mp4, mov or m4v) can be uploaded and played here. For anything longer, add it to the list above with a link.</p>
+<div id="movie-files-wrap">
+{% set file_days = files_by_day %}
+{% set file_day_order = files_ordered_days %}
+{% set upload_placeholder = 'e.g. Clip: opening scene' %}
+{% set default_day = 'General' %}
+{% include "_material_files.html" %}
+</div>
+{% if can_download %}
+<script>
+// Adds a video player under each clip (mp4 / mov / m4v) in the Movie clips list.
+document.querySelectorAll('#movie-files-wrap a[href*="/file"]').forEach(function (a) {
+  if (!/\.(mp4|mov|m4v)\s*$/i.test(a.textContent)) return;
+  var v = document.createElement('video');
+  v.controls = true; v.preload = 'none'; v.src = a.href;
+  v.style.cssText = 'display:block; margin-top:6px; max-width:100%; width:480px';
+  a.parentNode.appendChild(v);
+});
+</script>
+{% endif %}
+{% endblock %}
