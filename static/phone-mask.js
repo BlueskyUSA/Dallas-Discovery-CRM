@@ -151,7 +151,7 @@
     const isYes = !!select && select.value === "Yes";
     // The public long form shows this section ONLY for "Yes". (Leadership's contact page
     // also keeps it open for a "No" contact who still has dates on file.)
-    const showsSection = isYes || (!section.hasAttribute("data-yes-only") && hasDates);
+    const showsSection = section.hasAttribute("data-always") || isYes || (!section.hasAttribute("data-yes-only") && hasDates);
     section.style.display = showsSection ? "" : "none";
 
     // On the public long form, the Finish button lives above this section by
