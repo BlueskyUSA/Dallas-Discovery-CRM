@@ -4261,7 +4261,6 @@ def contracts_person(contact_id):
 
 
 @crm.route("/contracts/business-plan")
-@area_required("contracts")
 def business_plan_view():
     html_content, _text = preliminary_plan_content("")
     return render_template("business_plan_view.html", subject=PRELIMINARY_PLAN_SUBJECT, plan_html=html_content)
