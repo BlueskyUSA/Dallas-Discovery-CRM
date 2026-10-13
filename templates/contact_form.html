@@ -1,28 +1,11 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ 'Edit' if contact else 'Add' }} Contact — {{ program_name }} ERP{% endblock %}
 {% block content %}
-<h1>{{ 'Edit contact' if contact else 'Add contact' }}</h1>
-{% if contact %}
-<div class="card" id="contact-summary">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap">
-    <div>
-      <div style="font-size:1.25rem; font-weight:700">{{ contact.full_name }} <span class="badge">{{ contact.status }}</span></div>
-      <table style="margin-top:8px; width:auto">
-        <tr><td class="muted" style="padding-right:18px">Cell</td><td>{{ contact.cell_phone or '—' }}</td></tr>
-        <tr><td class="muted">Email</td><td>{{ contact.email or '—' }}</td></tr>
-        <tr><td class="muted">Location</td><td>{% if contact.city or contact.state %}{{ contact.city or '' }}{{ ', ' if contact.city and contact.state }}{{ contact.state or '' }}{% else %}—{% endif %}</td></tr>
-        <tr><td class="muted">Partner</td><td>{{ contact.partner_name or '—' }}</td></tr>
-        <tr><td class="muted">Sponsor</td><td>{{ contact.sponsor_name or '—' }}</td></tr>
-      </table>
-    </div>
-    <button class="btn" type="button" id="edit-toggle">Edit details</button>
-  </div>
-</div>
-{% endif %}
+<h1>{{ 'Edit contact: ' ~ contact.full_name if contact else 'Add contact' }}</h1>
 {% if for_team_login %}
 <p class="muted">Once this contact is saved, you'll pick their role and set a temporary password to finish adding them as a team member.</p>
 {% endif %}
-<div class="card" id="edit-wrap" style="display: {{ 'none' if contact else 'block' }}">
+<div class="card" id="edit-wrap">
   <form method="post" autocomplete="off" enctype="multipart/form-data">
     {% if not contact %}
     {% if for_team_login %}<input type="hidden" name="for_team_login" value="1">{% endif %}
@@ -283,17 +266,5 @@
 </div>
 {% if contact %}
 <p style="margin-top:14px"><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a></p>
-<script>
-(function () {
-  var btn = document.getElementById("edit-toggle");
-  var wrap = document.getElementById("edit-wrap");
-  if (!btn || !wrap) return;
-  btn.addEventListener("click", function () {
-    var open = wrap.style.display !== "none";
-    wrap.style.display = open ? "none" : "block";
-    btn.textContent = open ? "Edit details" : "Hide details";
-  });
-})();
-</script>
 {% endif %}
 {% endblock %}
