@@ -1169,15 +1169,19 @@ US_STATES = [
 # separate free-text entry -- shown on the contact page only for contacts
 # who attended Discovery, since these are Discovery training artifacts.
 CONTRACT_KINDS = {
-    "D1P": "Your D1 Pseudo Name",
+    "D1P": "Your Pseudo Name",
     "D1": "Your Contract",
     "D1S": "Your Stretch Song",
     "D2": "Your Poem",
     "D3": "Your Future",
-    "D5": "Spiritual Contract",
     "D6": "Your Couples Relationship Contract",
     "D6S": "Relationship Song Chosen for your Partner",
+    "D5": "Spiritual Contract",
 }
+
+# The numbers people see in headings. Saved contracts keep their original internal keys (so no stored data
+# had to change); the training order is D1, D2, D3, 4 = Relationship Training, 5 = Refocus, 6 = Spiritual.
+CONTRACT_DISPLAY_CODES = {"D1P": "D1", "D6": "D4", "D6S": "D4S", "D5": "D6"}
 
 # Kinds that get a single-line input instead of a multi-row textarea.
 CONTRACT_SINGLE_LINE_KINDS = {"D1P", "D1", "D1S", "D6S"}
@@ -1188,6 +1192,9 @@ CONTRACT_SINGLE_LINE_KINDS = {"D1P", "D1", "D1S", "D6S"}
 CONTRACT_EXAMPLES = {
     "D1": "I am a Strong, Confident Man",
 }
+
+
+app.jinja_env.globals["contract_code"] = lambda kind: CONTRACT_DISPLAY_CODES.get(kind, kind)
 
 
 @app.template_filter("date_span")
