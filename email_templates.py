@@ -500,7 +500,7 @@ CONTRACT_REQUEST_SUBJECT = "Congratulations on completing your training!"
 _LETTER_PARAS = (
     "Congratulations on completing your training... Woohoo!!! Let's keep going!!! "
     "From D1 through D3, what you learned in each training is the foundation for the next. "
-    "All these programs are fabulous and we are very excited and look forward to seeing you there. "
+    "All these programs are fabulous and we look forward to seeing you there. "
     "Meanwhile, would you please help the Discovery staff by taking a few minutes to update your "
     "D1 Pseudo name, Contract and as needed, other information from these programs. "
     "Our volunteers would otherwise have to type all of this into our records by hand, which "
