@@ -125,7 +125,6 @@
   <form method="post" action="{{ url_for('.contact_send_contract_request', contact_id=contact.id) }}"
         onsubmit='return confirm({{ ("Send the Contract Information Request to " ~ contact.full_name ~ " at " ~ contact.email ~ " now?")|tojson }});'>
     <button class="btn secondary" type="submit">Send Contract Information Request</button>
-    <a class="btn secondary" href="{{ url_for('.contact_preview_contract_request', contact_id=contact.id) }}" style="margin-left:8px">Preview letter</a>
   </form>
   {% else %}
   <p class="muted" style="margin:0">No email on file for this contact.</p>
