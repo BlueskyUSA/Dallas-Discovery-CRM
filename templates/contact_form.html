@@ -14,7 +14,6 @@
     <datalist id="sponsor-picks">
       {% for c in sponsor_choices %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
     </datalist>
-    <div style="margin:4px 0 14px"><button class="btn" type="submit">Save contact</button></div>
 
     <h3>Basics</h3>
     <div class="grid2">
@@ -105,8 +104,7 @@
       {% elif contact.sponsor_name %}
       <p class="muted" style="margin:0 0 8px"><span class="badge warn">Not linked</span> This name is only typed text, so it does not count toward the Sponsor pipeline. Retype it and pick the person from the list that appears.</p>
       {% endif %}
-      <p class="muted" style="margin:0 0 12px; font-size:0.85rem">Sponsor not in your contacts yet (for example someone from years ago)? Use the button at the bottom, <strong>Save &amp; add sponsor as a new contact</strong>. It adds them to the <strong>Past sponsors</strong> list and counts them in the Sponsor pipeline.</p>
-    {% endif %}
+          {% endif %}
 
     <div style="margin-bottom:14px">
       <h3>Personal background <span class="muted" style="font-weight:400">(gender, age, health, work and more)</span></h3>
@@ -259,14 +257,11 @@
       </div>
       </div>
     </div>
-
+    {% if not contact %}
     <h3>Notes</h3>
-    <div class="field"><textarea name="notes" rows="3" style="width:100%">{{ contact.notes if contact and contact.notes else '' }}</textarea></div>
-
-    <div style="margin:4px 0 14px">
-      <button class="btn" type="submit">Save contact</button>
-      {% if contact %}<button class="btn secondary" type="submit" name="create_sponsor" value="1" style="margin-left:8px">Save &amp; add sponsor as a new contact</button>{% endif %}
-    </div>
+    <div class="field"><textarea name="notes" rows="3" style="width:100%"></textarea></div>
+    <div style="margin:4px 0 14px"><button class="btn" type="submit">Save contact</button></div>
+    {% endif %}
   </form>
 </div>
 {% if contact and session.staff_role == 'Leadership' %}
@@ -297,7 +292,11 @@
 </div>
 {% endif %}
 {% if contact %}
-<div style="margin:18px 0 6px">
+<div class="card" style="margin-top:18px">
+  <h3 style="margin-top:0">Notes</h3>
+  <textarea name="notes" form="contact-form" rows="3" style="width:100%">{{ contact.notes if contact.notes else '' }}</textarea>
+</div>
+<div style="margin:14px 0 6px">
   <button class="btn" type="submit" form="contact-form">Save contact</button>
 </div>
 <p style="margin-top:14px"><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a></p>
