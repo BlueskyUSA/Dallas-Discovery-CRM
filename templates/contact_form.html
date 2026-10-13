@@ -270,7 +270,7 @@
 <p class="muted" style="margin:14px 0 0">Contracts save themselves as you type.</p>
 {% for kind, label in contract_kinds.items() %}
 {% set entry = contracts_by_kind[kind] %}
-<h2>{{ kind }}: {{ label }}</h2>
+<h2>{{ contract_code(kind) }}: {{ label }}</h2>
 <div class="card">
   <form method="post" class="contract-autosave-form" action="{{ url_for('.contract_upsert', contact_id=contact.id) }}">
     <input type="hidden" name="kind" value="{{ kind }}">

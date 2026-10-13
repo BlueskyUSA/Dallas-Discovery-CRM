@@ -231,7 +231,7 @@
 <div id="contract_fields_section" {% if force_contracts %}data-always="1"{% else %}data-yes-only="1"{% endif %} style="display: {{ '' if shows_contract_section else 'none' }}">
 {% for kind, label in contract_kinds.items() %}
 {% set entry = contracts_by_kind[kind] %}
-<h2>{{ kind }}: {{ label }}</h2>
+<h2>{{ contract_code(kind) }}: {{ label }}</h2>
 <div class="card">
   <form method="post" class="contract-autosave-form" action="{{ url_for('public_contract_upsert', token=contact.profile_token) }}">
     <input type="hidden" name="kind" value="{{ kind }}">
