@@ -139,9 +139,11 @@ def upsert_contact_photo(conn, contact_id, data, content_type):
 # reason as contact photos above -- these are only ever sent to the browser
 # through the program_material_file route below, which checks program-level
 # authorization first, so they stay just as confidential as they were on disk.
-ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav"}
+ALLOWED_MATERIAL_EXTENSIONS = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "jpg", "jpeg", "png", "mp3", "m4a", "wav", "mp4", "mov", "m4v"}
 AUDIO_EXTENSIONS = {"mp3", "m4a", "wav"}
+VIDEO_EXTENSIONS = {"mp4", "mov", "m4v"}
 MAX_AUDIO_BYTES = 30 * 1024 * 1024
+MAX_VIDEO_BYTES = 50 * 1024 * 1024
 
 
 def _material_extension(filename):
@@ -165,6 +167,11 @@ def process_program_material(file_storage):
     if ext in AUDIO_EXTENSIONS and len(data) > MAX_AUDIO_BYTES:
         flash(f"{file_storage.filename} is over 30 MB, so it was not uploaded.")
         return None
+    if ext in VIDEO_EXTENSIONS:
+        if len(data) > MAX_VIDEO_BYTES:
+            flash(f"{file_storage.filename} is over 50 MB, so it was not uploaded. Add it to the movie list as a link instead.")
+            return None
+        return data, ("video/quicktime" if ext == "mov" else "video/mp4")
     if ext in AUDIO_EXTENSIONS:
         file_storage_type = {"mp3": "audio/mpeg", "m4a": "audio/mp4", "wav": "audio/wav"}[ext]
         return data, file_storage_type
@@ -317,7 +324,7 @@ RESERVED_PROGRAM_AREA_CODES = ["D1", "D2", "D3", "D4", "D5", "D6"]
 # for "D1's Syllabus" is "D1:Syllabus". (Before this, one grant on "D1"
 # opened all four; those older grants are split into four automatically --
 # see _split_program_grants_by_heading.)
-MATERIAL_CATEGORIES = ["Syllabus", "Music", "Handouts", "Other"]
+MATERIAL_CATEGORIES = ["Syllabus", "Music", "Movies", "Handouts", "Other"]
 PROGRAM_HEADING_AREA_KEYS = [f"{code}:{h}" for code in RESERVED_PROGRAM_AREA_CODES for h in MATERIAL_CATEGORIES]
 
 
@@ -446,6 +453,8 @@ def _headings_needed(conn, program_id, kwargs):
     endpoint = request.endpoint or ""
     if "playlist" in endpoint:
         return ["Music"]
+    if "movie" in endpoint:
+        return ["Movies"]
     if endpoint == "crm.program_materials":
         cat = request.args.get("category", "").strip().title()
         return [cat] if cat in MATERIAL_CATEGORIES else []
@@ -2725,11 +2734,13 @@ def _music_day_labels(program):
 MATERIAL_CATEGORY_BLURBS = {
     "Syllabus": "The run sheet for the training: the schedule and order of activities that facilitators and TAs follow.",
     "Music": "Song lists used during the training, organized by day and purpose, plus any music files (song sheets, assignment sheets).",
+    "Movies": "Movies and film clips used in the training: a list of what is shown and when (with links), plus any short clips uploaded here.",
     "Handouts": "Handouts, worksheets, and resource sheets given to trainees, organized by which day they're used.",
     "Other": "Anything else for this training that isn't a syllabus, music, or a handout.",
 }
 _SYLLABUS_WORDS = ("syllab", "run sheet", "run-sheet", "runsheet")
 _MUSIC_WORDS = ("song", "music", "playlist")
+_MOVIE_WORDS = ("movie", "film", "video", "clip")
 _material_category_ready = False
 
 
@@ -2741,6 +2752,8 @@ def _guess_material_category(title, original_filename):
         return "Syllabus"
     if any(w in text for w in _MUSIC_WORDS):
         return "Music"
+    if any(w in text for w in _MOVIE_WORDS) or (original_filename or "").lower().rsplit(".", 1)[-1] in VIDEO_EXTENSIONS:
+        return "Movies"
     return "Handouts"
 
 
@@ -2818,6 +2831,8 @@ def _materials_url(program_id, category):
     other three each get their own page of files."""
     if category == "Music":
         return url_for(".program_playlists", program_id=program_id)
+    if category == "Movies":
+        return url_for(".program_movies", program_id=program_id)
     return url_for(".program_materials", program_id=program_id, category=category)
 
 
@@ -2850,8 +2865,8 @@ def program_materials(program_id):
     allowed = g.allowed_headings
     requested = request.args.get("category", "").strip().title()
     category = requested if requested in allowed else allowed[0]
-    if category == "Music":
-        return redirect(_materials_url(program_id, "Music"))
+    if category in ("Music", "Movies"):
+        return redirect(_materials_url(program_id, category))
     conn = get_db()
     program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
     if not program:
@@ -2894,10 +2909,10 @@ def program_material_file(program_id, material_id):
         if not viewer_request:
             flash("Training materials can be viewed here but not downloaded.")
             return redirect(url_for(".program_material_read", program_id=program_id, material_id=material_id))
-    if doc_reader.extension(row["original_filename"]) in AUDIO_EXTENSIONS:
-        # Audio is sent with Range support so the play bar can skip around in a song.
+    if doc_reader.extension(row["original_filename"]) in (AUDIO_EXTENSIONS | VIDEO_EXTENSIONS):
+        # Audio and video are sent with Range support so the play bar can skip around.
         from flask import send_file
-        resp = send_file(io.BytesIO(bytes(row["data"])), mimetype=row["content_type"] or "audio/mpeg", conditional=True)
+        resp = send_file(io.BytesIO(bytes(row["data"])), mimetype=row["content_type"] or "application/octet-stream", conditional=True)
     else:
         resp = make_response(bytes(row["data"]))
         resp.headers["Content-Type"] = row["content_type"] or "application/octet-stream"
@@ -3009,6 +3024,105 @@ def program_material_delete(program_id, material_id):
         flash("Material deleted.")
     conn.close()
     return redirect(_materials_url(program_id, category))
+
+
+# ---------- movies ----------
+
+_movies_table_ready = False
+
+
+def _ensure_movies_table(conn):
+    """Creates the movie-list table the first time it's needed (once per server start), so no
+    separate migration has to be run by hand after deploying. Harmless to repeat."""
+    global _movies_table_ready
+    if _movies_table_ready:
+        return
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS program_movies (
+               id SERIAL PRIMARY KEY,
+               program_id INTEGER NOT NULL REFERENCES programs(id),
+               day_label TEXT,
+               title TEXT NOT NULL,
+               scene_notes TEXT,
+               link_url TEXT,
+               created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+           )"""
+    )
+    conn.commit()
+    _movies_table_ready = True
+
+
+def _clean_movie_link(raw):
+    """Only web links (http/https) are kept; anything else is dropped."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    if re.match(r"^[a-z][a-z0-9+.\-]*:(?!//)", raw, re.I):
+        return None  # javascript:, mailto:, data: and similar are never kept
+    if "://" not in raw:
+        raw = "https://" + raw
+    return raw[:500] if raw.lower().startswith(("http://", "https://")) else None
+
+
+@crm.route("/programs/<int:program_id>/movies")
+@program_area_required
+def program_movies(program_id):
+    conn = get_db()
+    program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
+    if not program:
+        conn.close()
+        abort(404)
+    _ensure_movies_table(conn)
+    movies = conn.execute("SELECT * FROM program_movies WHERE program_id = ? ORDER BY id", (program_id,)).fetchall()
+    by_category, counts = _load_materials(conn, program_id)
+    conn.close()
+    labels = _music_day_labels(program)
+    movies_by_day, files_by_day = {}, by_category["Movies"]
+    for m in movies:
+        movies_by_day.setdefault(m["day_label"] or "General", []).append(m)
+    extra = [d for d in list(movies_by_day) + list(files_by_day) if d not in labels]
+    all_days = labels + [d for i, d in enumerate(extra) if d not in extra[:i]]
+    movies_by_day = {d: movies_by_day.get(d, []) for d in all_days}
+    files_by_day = {d: files_by_day.get(d, []) for d in all_days}
+    return render_template(
+        "program_movies.html", program=program, movies_by_day=movies_by_day, ordered_days=all_days,
+        day_label_choices=all_days, files_by_day=files_by_day, files_ordered_days=all_days,
+        category="Movies", categories=g.allowed_headings, category_counts=counts,
+        category_blurb=MATERIAL_CATEGORY_BLURBS["Movies"], can_download=_can_download_materials(),
+    )
+
+
+@crm.route("/programs/<int:program_id>/movies/new", methods=["POST"])
+@program_area_required
+def program_movie_new(program_id):
+    title = request.form.get("title", "").strip()[:200]
+    if title:
+        conn = get_db()
+        _ensure_movies_table(conn)
+        conn.execute(
+            "INSERT INTO program_movies (program_id, day_label, title, scene_notes, link_url) VALUES (?, ?, ?, ?, ?)",
+            (
+                program_id, request.form.get("day_label") or None, title,
+                request.form.get("scene_notes", "").strip()[:2000] or None,
+                _clean_movie_link(request.form.get("link_url")),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        flash("Movie added.")
+    return redirect(url_for(".program_movies", program_id=program_id))
+
+
+@crm.route("/programs/<int:program_id>/movies/<int:movie_id>/delete", methods=["POST"])
+@program_area_required
+def program_movie_delete(program_id, movie_id):
+    conn = get_db()
+    _ensure_movies_table(conn)
+    conn.execute("DELETE FROM program_movies WHERE id = ? AND program_id = ?", (movie_id, program_id))
+    conn.commit()
+    conn.close()
+    flash("Movie removed from the list.")
+    return redirect(url_for(".program_movies", program_id=program_id))
 
 
 # ---------- music / playlists ----------

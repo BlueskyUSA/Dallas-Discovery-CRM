@@ -233,6 +233,7 @@ CREATE TABLE IF NOT EXISTS program_materials (
     original_filename TEXT NOT NULL,
     data BLOB,
     content_type TEXT,
+    category TEXT,                 -- 'Syllabus', 'Music', 'Handouts', or 'Other'
     uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -270,20 +271,18 @@ CREATE TABLE IF NOT EXISTS program_playlists (
     program_id INTEGER NOT NULL REFERENCES programs(id),
     day_label TEXT,
     category TEXT NOT NULL,
-    folder TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- MP3 files uploaded into a program's Music page sections (Friday Night, Saturday, ...), stored in the database.
-CREATE TABLE IF NOT EXISTS program_music_files (
+-- Movies and film clips used in a program's training (the list; uploaded clips live in program_materials under the Movies heading).
+CREATE TABLE IF NOT EXISTS program_movies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     program_id INTEGER NOT NULL REFERENCES programs(id),
     day_label TEXT,
     title TEXT NOT NULL,
-    original_filename TEXT NOT NULL,
-    data BLOB,
-    content_type TEXT,
-    uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    scene_notes TEXT,
+    link_url TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS playlist_songs (
