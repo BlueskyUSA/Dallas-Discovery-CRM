@@ -3,15 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ program_name }} CRM{% endblock %}</title>
+  <title>{% block title %}{{ program_name }} ERP{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ url_for('.dashboard') }}">{{ program_name }} <span class="muted" style="color:#e6e2d0; font-weight:400; font-size:0.75rem;">CRM</span></a>
+    <a class="brand" href="{{ url_for('.dashboard') }}">{{ program_name }} <span class="muted" style="color:#e6e2d0; font-weight:400; font-size:0.75rem;">ERP</span></a>
     <nav>
       {% if session.staff_id %}
       <a href="{{ url_for('.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('.mission_page') }}">Mission</a>
       {% if session.is_owner %}
       <a href="{{ url_for('.staff_list') }}">Site Access</a>
       {% endif %}
