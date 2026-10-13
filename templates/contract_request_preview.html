@@ -1,0 +1,20 @@
+{% extends "crm_base.html" %}
+{% block title %}Preview: Contract Information Request — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.first_name }}{% if contact.last_name %} {{ contact.last_name }}{% endif %}</a></p>
+<h1>Preview: Contract Information Request</h1>
+<p class="muted">This is the email as {{ contact.first_name or 'the person' }} will receive it. Nothing has been sent.</p>
+<div class="card" style="max-width:720px">
+  <p style="margin:0 0 4px"><span class="muted">To:</span> {{ contact.email or '(no email on file)' }}</p>
+  <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ subject }}</strong></p>
+  <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
+  <div style="line-height:1.55">{{ letter_html|safe }}</div>
+</div>
+<p class="muted">The button opens {{ contact.first_name or 'their' }}'s own private contact page. The link is not active in this preview.</p>
+{% if contact.email %}
+<form method="post" action="{{ url_for('.contact_send_contract_request', contact_id=contact.id) }}"
+      onsubmit='return confirm({{ ("Send the Contract Information Request to " ~ contact.first_name ~ " at " ~ contact.email ~ " now?")|tojson }});'>
+  <button class="btn" type="submit">Send Contract Information Request</button>
+</form>
+{% endif %}
+{% endblock %}
