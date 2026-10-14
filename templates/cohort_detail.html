@@ -135,7 +135,7 @@
     <tr>
       <td>{{ sg.label }}</td>
       <td>
-        {% for s in sg_staffing if s.label == sg.label %}{{ s.full_name }}{% if s.duty %} <span class="muted">({{ s.duty }})</span>{% endif %}{{ req_badge(s.contact_id, CAPTAIN_MIN if s.duty == 'Team Captain' else TA_MIN) }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.sg_staffing_remove', cohort_id=cohort.id, staffing_id=s.id) }}" style="display:inline" onsubmit="return confirm('Remove this person from the small group?');"><button class="btn danger" type="submit" style="padding:0 6px; font-size:0.72rem; margin-left:3px">Remove</button></form>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
+        {% for s in sg_staffing if s.label == sg.label %}{{ s.full_name }}{% if s.duty %} <span class="muted">({{ s.duty }})</span>{% endif %}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.sg_staffing_remove', cohort_id=cohort.id, staffing_id=s.id) }}" style="display:inline" onsubmit="return confirm('Remove this person from the small group?');"><button class="btn danger" type="submit" style="padding:0 6px; font-size:0.72rem; margin-left:3px">Remove</button></form>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
       </td>
     </tr>
     {% endfor %}
@@ -186,7 +186,7 @@
     <tr><th>Name</th><th>Role</th><th>Duty</th><th></th></tr>
     {% for t in staffing %}
     <tr>
-      <td>{{ t.full_name }}{{ req_badge(t.contact_id, TA_MIN if 'TA' in t.roles else 0) }}</td>
+      <td>{{ t.full_name }}</td>
       <td>{{ t.roles|join(', ') }}</td>
       <td>
         {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
