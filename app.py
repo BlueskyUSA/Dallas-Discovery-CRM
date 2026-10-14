@@ -3867,6 +3867,13 @@ def enrollment_update(enrollment_id):
         fields["payment_completed_at"] = date.today().isoformat()
     if "attended" in request.form:
         fields["attended"] = 1
+    # Undo buttons (in case something was marked by mistake)
+    if "questionnaire_undo" in request.form:
+        fields["questionnaire_completed_at"] = None
+    if "payment_undo" in request.form:
+        fields["payment_completed_at"] = None
+    if "attended_undo" in request.form:
+        fields["attended"] = 0
     if request.form.get("small_group_id"):
         fields["small_group_id"] = request.form["small_group_id"]
     if "set_enrolled_by" in request.form:
@@ -3885,6 +3892,40 @@ def enrollment_update(enrollment_id):
         conn.commit()
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
+
+
+@crm.route("/enrollments/<int:enrollment_id>/remove", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def enrollment_remove(enrollment_id):
+    """Takes one person off a session's roster (their contact record is not touched).
+    Refused only if they've already submitted feedback, which is kept."""
+    conn = get_db()
+    enr = conn.execute(
+        f"""SELECT e.*, {full_name_sql('ct')} AS full_name FROM enrollments e
+            JOIN contacts ct ON ct.id = e.contact_id WHERE e.id = ?""", (enrollment_id,)
+    ).fetchone()
+    if not enr:
+        conn.close()
+        flash("That person is no longer on the roster.")
+        return redirect(url_for(".programs_list"))
+    cohort_id = enr["cohort_id"]
+    if conn.execute("SELECT 1 FROM feedback_responses WHERE enrollment_id = ?", (enrollment_id,)).fetchone():
+        conn.close()
+        flash(f"Can't remove {enr['full_name']} -- they've submitted a feedback form, which is kept on file.")
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    _ensure_completion_letters_table(conn)
+    for tbl in ("training_profiles", "portal_links", "completion_letters"):
+        try:
+            conn.execute(f"DELETE FROM {tbl} WHERE enrollment_id = ?", (enrollment_id,))
+        except Exception:
+            conn.rollback()  # that table doesn't exist here, so there is nothing to clear
+    conn.execute("DELETE FROM enrollments WHERE id = ?", (enrollment_id,))
+    conn.commit()
+    conn.close()
+    print(f"REMOVED {enr['full_name']} from cohort {cohort_id} by {session.get('staff_name')}", flush=True)
+    flash(f"Removed {enr['full_name']} from this session's roster. Their contact record is unchanged.")
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
 @crm.route("/enrollments/<int:enrollment_id>/feedback-link/new", methods=["POST"])
@@ -4032,6 +4073,32 @@ def staffing_new(cohort_id):
     if warning:
         flash(warning)
     conn.close()
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+@crm.route("/cohorts/<int:cohort_id>/staffing/<int:staffing_id>/remove", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def staffing_remove(cohort_id, staffing_id):
+    conn = get_db()
+    conn.execute("DELETE FROM cohort_staffing WHERE id = ? AND cohort_id = ?", (staffing_id, cohort_id))
+    conn.commit()
+    conn.close()
+    flash("Removed from the session team.")
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+@crm.route("/cohorts/<int:cohort_id>/group-staffing/<int:staffing_id>/remove", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def sg_staffing_remove(cohort_id, staffing_id):
+    conn = get_db()
+    conn.execute(
+        """DELETE FROM small_group_staffing WHERE id = ? AND small_group_id IN
+           (SELECT id FROM small_groups WHERE cohort_id = ?)""", (staffing_id, cohort_id))
+    conn.commit()
+    conn.close()
+    flash("Removed from the small group.")
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
