@@ -3769,6 +3769,10 @@ def cohort_detail(cohort_id):
            JOIN contacts ct ON ct.id = cs.contact_id WHERE cs.cohort_id = ?""",
         (cohort_id,),
     ).fetchall()
+    # Lead Facilitator and Support Facilitator always head the team list
+    _role_rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "Director": 2, "TA": 3,
+                  "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
+    staffing = sorted(staffing, key=lambda r: (_role_rank.get(r["role"], 9), (r["full_name"] or "").lower(), r["duty"] or ""))
     sg_staffing = conn.execute(
         f"""SELECT sgs.*, {full_name_sql('ct')} AS full_name,
                    sg.label

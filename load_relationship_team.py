@@ -17,8 +17,8 @@ SESSION_CODE, SESSION_NUMBER = "D4", 1
 
 # (name, cell, email, experience, [(role, duty), ...])
 TEAM = [
-    ("Kent Hafemann", "214-783-8011", "kent@blueskyusa.net", "", [("Director", None)]),
-    ("Pamela Hafemann", "214-673-8546", "Phafemann@gmail.com", "", [("Director", None)]),
+    ("Kent Hafemann", "214-783-8011", "kent@blueskyusa.net", "", [("Lead Facilitator", None)]),
+    ("Pamela Hafemann", "214-673-8546", "Phafemann@gmail.com", "", [("Support Facilitator", None)]),
     ("Danny Coburn", "469-394-3963", "DannyCoburn@live.com", "Exp",
      [("TA", "Team Captain"), ("TA", "Male Runner"), ("TA", "Troubleshooter / Misc"), ("TA", "Chairs")]),
     ("Lisa Coburn", "214-425-7366", "lisa@shophomegirl.com", "Exp", [("TA", "Female Runner")]),
