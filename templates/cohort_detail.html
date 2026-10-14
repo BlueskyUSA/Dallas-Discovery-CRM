@@ -215,10 +215,11 @@
   <p class="muted" style="margin-top:-4px">Facilitators, TAs, and other whole-session roles not tied to a specific small group.</p>
   {% if staffing %}
   <table class="sticky-head">
-    <tr><th>Name</th><th>Role</th><th>Duty</th><th></th></tr>
+    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Duty</th><th></th></tr>
     {% for t in staffing %}
     <tr>
       <td>{{ t.full_name }}</td>
+      <td style="white-space:nowrap">{% if t.cell %}<a href="tel:{{ t.cell }}" style="color:inherit; text-decoration:none">{{ t.cell }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
       <td>{{ t.roles|join(', ') }}</td>
       <td>
         {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
