@@ -133,3 +133,9 @@ label { font-size: 0.85rem; font-weight: 700; color: var(--navy); display: block
 .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; min-width: 140px; }
 .stat .num { font-size: 1.6rem; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
 .stat .label { font-size: 0.8rem; color: var(--muted); }
+
+/* Long lists: column headings stay in view under the menu bar while you scroll */
+table.sticky-head th { position: sticky; top: 56px; background: var(--card); z-index: 50; box-shadow: 0 1px 0 var(--border); }
+tr.band td { background: rgba(190, 170, 110, 0.10); }
+.roster-find { margin: 0 0 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.roster-find input { width: 260px; }
