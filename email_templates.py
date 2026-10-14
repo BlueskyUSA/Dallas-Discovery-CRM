@@ -549,3 +549,94 @@ def completion_letter_content(first_name, contracts_url, program_code, program_n
         return None
     html_content, text_content = contract_request_content(first_name, contracts_url)
     return CONTRACT_REQUEST_SUBJECT, html_content, text_content
+
+
+# ---------------------------------------------------------------------------
+# Session letters: the confirmation letters sent per training session (see app.py, "Letters").
+# DRAFTS for Kent to revise. Placeholders: {first} {training} {dates} {where} {role} {duties}
+# ({where} is " at <location>" or empty; {duties} is a ready-made sentence or empty).
+# ---------------------------------------------------------------------------
+SESSION_LETTERS = {
+    "trainee_confirm": {
+        "title": "Trainee confirmation",
+        "audience": "Trainees",
+        "subject": "You're confirmed for {training}",
+        "paras": [
+            "We are delighted to confirm your place in {training}, {dates}{where}.",
+            "This is a powerful experience, and we are honored that you chose to be part of it. "
+            "A separate letter with the schedule, what to bring and directions will follow as the training gets closer.",
+            "In the meantime, please hold these dates open. If anything changes for you, or if you have any questions "
+            "at all, just reply to this email and let us know.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "facilitator_confirm": {
+        "title": "Facilitator confirmation",
+        "audience": "Facilitators",
+        "subject": "Thank you for facilitating {training}",
+        "paras": [
+            "Thank you for saying yes to serving as {role} for {training}, {dates}{where}.",
+            "Your experience and your presence make all the difference to the people who will be in the room.",
+            "Please hold these dates open. We will send the full schedule and team assignments before the training. "
+            "If you have a conflict or a question, reply to this email so we can plan around it.",
+            "Thank you for your commitment to this work.",
+        ],
+        "signoff": "With gratitude,",
+    },
+    "ta_confirm": {
+        "title": "TA confirmation",
+        "audience": "TAs",
+        "subject": "You're confirmed as a TA for {training}",
+        "paras": [
+            "Thank you for serving as a TA for {training}, {dates}{where}.",
+            "{duties}",
+            "TAs are the heart of how participants feel supported. We will send arrival times, the schedule and "
+            "what to bring before the training.",
+            "Please hold these dates open. If you have a conflict or a question, reply to this email and let us know.",
+        ],
+        "signoff": "With gratitude,",
+    },
+    "backup_confirm": {
+        "title": "Back-up TA confirmation",
+        "audience": "Back-up TAs",
+        "subject": "Thank you for being a back-up TA for {training}",
+        "paras": [
+            "Thank you for being willing to serve as a back-up TA for {training}, {dates}{where}.",
+            "As a back-up, you will step in if one of our TAs is unable to attend, so please try to keep these dates "
+            "open. We will let you know as soon as we need you.",
+            "If your plans change, or you have a question, just reply to this email.",
+            "We are grateful for your willingness to serve.",
+        ],
+        "signoff": "With gratitude,",
+    },
+}
+SESSION_LETTER_ORDER = ["trainee_confirm", "facilitator_confirm", "ta_confirm", "backup_confirm"]
+
+
+def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None):
+    """(subject, html, text) for one session letter, or None for an unknown key."""
+    import html as _html
+    spec = SESSION_LETTERS.get(key)
+    if not spec:
+        return None
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    duty_list = [d for d in (duties or []) if d and d != "Not confirmed"]
+    if duty_list:
+        duties_sentence = ("Your assignment is " if len(duty_list) == 1 else "Your assignments are ") + ", ".join(duty_list) + "."
+    else:
+        duties_sentence = "Your specific assignment will be confirmed before the training."
+    fill = {
+        "first": greeting, "training": training, "dates": dates,
+        "where": f" at {location}" if location else "",
+        "role": role or "a facilitator", "duties": duties_sentence,
+    }
+    subject = spec["subject"].format(**fill)
+    paras = [p.format(**fill) for p in spec["paras"]]
+    html_content = (
+        f"<p>Dear {_html.escape(greeting)},</p>"
+        + "".join(f"<p>{_html.escape(p)}</p>" for p in paras)
+        + f"<p>{_html.escape(spec['signoff'])}<br>Kent Hafemann</p>"
+    )
+    text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\nKent Hafemann"
+    return subject, html_content, text_content

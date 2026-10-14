@@ -15,6 +15,7 @@ from seed import seed
 from config import PROGRAM_NAME
 from email_utils import send_email, EmailSendError
 from email_templates import (
+    SESSION_LETTERS, SESSION_LETTER_ORDER, session_letter_content,
     longform_followup_content,
     LONGFORM_FOLLOWUP_SUBJECT,
     interested_party_welcome_content,
@@ -4159,6 +4160,189 @@ SESSION_ROLES = ["Lead Facilitator", "Support Facilitator", "TA", "Support Team"
 SESSION_DUTIES = ["Sound Equipment", "Large Group Leader", "Team Captain", "Microphone 1", "Microphone 2",
                   "Lights", "Doors", "Signs / Security", "Mail & Name Tags", "Housekeeping", "Male Runner",
                   "Female Runner", "Time Keeper", "Chairs", "Chair Counter", "Troubleshooter / Misc", "Not confirmed"]
+
+
+# ---------- session letters (confirmations to trainees / facilitators / TAs / back-up TAs) ----------
+
+def _ensure_session_letters_table(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS session_letters_sent (
+        id SERIAL PRIMARY KEY,
+        cohort_id INTEGER NOT NULL,
+        contact_id INTEGER NOT NULL,
+        letter_key TEXT NOT NULL,
+        sent_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+        sent_by TEXT,
+        UNIQUE (cohort_id, contact_id, letter_key)
+    )""")
+    conn.commit()
+
+
+def _session_letters_live():
+    """Sending to real people stays OFF until this is set to 1 in Render's Environment."""
+    return (os.environ.get("SESSION_LETTERS_LIVE") or "").strip() == "1"
+
+
+def _session_letter_recipients(conn, cohort_id):
+    """{letter_key: [ {contact_id, name, first_name, email, roles, duties}, ... ]}.
+    Support Team is deliberately not included. A person with several roles gets one letter,
+    the highest: Facilitator, then TA, then Back-up TA."""
+    out = {k: [] for k in SESSION_LETTER_ORDER}
+    for r in conn.execute(
+        f"""SELECT ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name
+            FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
+            WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""", (cohort_id,)).fetchall():
+        out["trainee_confirm"].append({"contact_id": r["contact_id"], "name": r["name"], "first_name": r["first_name"],
+                                       "email": r["email"], "roles": [], "duties": []})
+    people = {}
+    for r in conn.execute(
+        f"""SELECT cs.role, cs.duty, ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name
+            FROM cohort_staffing cs JOIN contacts ct ON ct.id = cs.contact_id
+            WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall():
+        p = people.setdefault(r["contact_id"], {"contact_id": r["contact_id"], "name": r["name"],
+                                                 "first_name": r["first_name"], "email": r["email"],
+                                                 "roles": [], "duties": []})
+        if r["role"] not in p["roles"]:
+            p["roles"].append(r["role"])
+        if r["duty"] and r["duty"] not in p["duties"]:
+            p["duties"].append(r["duty"])
+    for p in sorted(people.values(), key=lambda p: (p["name"] or "").lower()):
+        if "Lead Facilitator" in p["roles"] or "Support Facilitator" in p["roles"]:
+            out["facilitator_confirm"].append(p)
+        elif "TA" in p["roles"]:
+            out["ta_confirm"].append(p)
+        elif "Back-up TA" in p["roles"]:
+            out["backup_confirm"].append(p)
+    return out
+
+
+def _session_letter_for(cohort, person, key):
+    code, name = cohort["code"], cohort["name"]
+    training = name if name.startswith(code) else f"{code}-{name}"
+    role = "Lead Facilitator" if "Lead Facilitator" in person["roles"] else "Support Facilitator"
+    return session_letter_content(
+        key, person["first_name"], training, date_span(cohort), cohort["location"] if "location" in cohort.keys() else None,
+        role=role, duties=person["duties"])
+
+
+def _letter_cohort(conn, cohort_id):
+    cohort = conn.execute(
+        """SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?""",
+        (cohort_id,)).fetchone()
+    if not cohort:
+        abort(404)
+    return cohort
+
+
+@crm.route("/cohorts/<int:cohort_id>/letters")
+@area_required("contacts")
+@leadership_required
+def session_letters(cohort_id):
+    _ensure_cohort_location()
+    conn = get_db()
+    _ensure_session_letters_table(conn)
+    cohort = _letter_cohort(conn, cohort_id)
+    recipients = _session_letter_recipients(conn, cohort_id)
+    sent = {(r["contact_id"], r["letter_key"]): r["sent_at"] for r in conn.execute(
+        "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
+    conn.close()
+    return render_template("session_letters.html", cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER,
+                           recipients=recipients, sent=sent, live=_session_letters_live())
+
+
+@crm.route("/cohorts/<int:cohort_id>/letters/<key>/preview/<int:contact_id>")
+@area_required("contacts")
+@leadership_required
+def session_letter_preview(cohort_id, key, contact_id):
+    if key not in SESSION_LETTERS:
+        abort(404)
+    conn = get_db()
+    cohort = _letter_cohort(conn, cohort_id)
+    person = next((p for p in _session_letter_recipients(conn, cohort_id)[key] if p["contact_id"] == contact_id), None)
+    conn.close()
+    if not person:
+        abort(404)
+    subject, html_content, _t = _session_letter_for(cohort, person, key)
+    return render_template("session_letter_preview.html", cohort=cohort, key=key, spec=SESSION_LETTERS[key],
+                           person=person, subject=subject, letter_html=html_content, live=_session_letters_live())
+
+
+def _staff_email():
+    conn = get_db()
+    row = conn.execute("SELECT email FROM staff WHERE id = ?", (session.get("staff_id"),)).fetchone()
+    conn.close()
+    return row["email"] if row else None
+
+
+@crm.route("/cohorts/<int:cohort_id>/letters/<key>/test", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def session_letter_test(cohort_id, key):
+    """Sends the letter, as written for the chosen person, ONLY to the signed-in staff member."""
+    if key not in SESSION_LETTERS:
+        abort(404)
+    contact_id = request.form.get("contact_id", type=int)
+    conn = get_db()
+    cohort = _letter_cohort(conn, cohort_id)
+    person = next((p for p in _session_letter_recipients(conn, cohort_id)[key] if p["contact_id"] == contact_id), None)
+    conn.close()
+    me = _staff_email()
+    if not person or not me:
+        flash("Couldn't send a test copy.")
+        return redirect(url_for(".session_letters", cohort_id=cohort_id))
+    subject, html_content, text_content = _session_letter_for(cohort, person, key)
+    try:
+        send_email(to_email=me, subject="[TEST] " + subject, html_content=html_content, text_content=text_content)
+        flash(f"Test copy sent to you at {me}. Nothing was sent to {person['first_name']}.")
+    except EmailSendError as e:
+        flash(f"Couldn't send the test copy: {e}")
+    return redirect(url_for(".session_letter_preview", cohort_id=cohort_id, key=key, contact_id=contact_id))
+
+
+@crm.route("/cohorts/<int:cohort_id>/letters/<key>/send", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def session_letter_send(cohort_id, key):
+    """Sends the letter to the ticked people, once each. OFF until SESSION_LETTERS_LIVE=1."""
+    if key not in SESSION_LETTERS:
+        abort(404)
+    if not _session_letters_live():
+        flash("Sending to people is switched off for now. You can preview any letter and send yourself a test copy.")
+        return redirect(url_for(".session_letters", cohort_id=cohort_id))
+    ids = {int(x) for x in request.form.getlist("contact_id") if x.isdigit()}
+    conn = get_db()
+    _ensure_session_letters_table(conn)
+    cohort = _letter_cohort(conn, cohort_id)
+    people = [p for p in _session_letter_recipients(conn, cohort_id)[key] if p["contact_id"] in ids]
+    sent_n, skipped = 0, []
+    for p in people:
+        if not p["email"]:
+            skipped.append(f"{p['name']} (no email)")
+            continue
+        claim = conn.execute(
+            """INSERT INTO session_letters_sent (cohort_id, contact_id, letter_key, sent_by) VALUES (?,?,?,?)
+               ON CONFLICT (cohort_id, contact_id, letter_key) DO NOTHING""",
+            (cohort_id, p["contact_id"], key, session.get("staff_name")))
+        conn.commit()
+        if not claim.rowcount:
+            skipped.append(f"{p['name']} (already sent)")
+            continue
+        subject, html_content, text_content = _session_letter_for(cohort, p, key)
+        try:
+            send_email(to_email=p["email"], to_name=p["first_name"], subject=subject,
+                       html_content=html_content, text_content=text_content)
+            sent_n += 1
+            print(f"SENT session letter {key} to contact {p['contact_id']} cohort {cohort_id} by {session.get('staff_name')}", flush=True)
+        except EmailSendError as e:
+            conn.execute("DELETE FROM session_letters_sent WHERE cohort_id = ? AND contact_id = ? AND letter_key = ?",
+                         (cohort_id, p["contact_id"], key))
+            conn.commit()
+            skipped.append(f"{p['name']} (failed: {e})")
+    conn.close()
+    msg = f"Sent {sent_n} letter(s)."
+    if skipped:
+        msg += " Not sent: " + "; ".join(skipped) + "."
+    flash(msg)
+    return redirect(url_for(".session_letters", cohort_id=cohort_id))
 
 
 @crm.route("/cohorts/<int:cohort_id>/team/print")
