@@ -100,10 +100,15 @@
       <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 2.</strong> Last day <span>(fills in by itself; to change it, click here, then a day)</span></div>
         <button type="button" class="btn secondary pick-mode" data-mode="end" style="min-width:150px">Last day: <span class="pick-end-txt">&mdash;</span></button>
         <input type="hidden" name="end_date"></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 3.</strong> Save it</div>
+      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 3.</strong> Add it to the list (repeat for more dates)</div>
+        <button type="button" class="btn secondary add-btn" disabled>Add these dates to the list</button></div>
+      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 4.</strong> Save everything on the list</div>
         <button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
     </div>
-    <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"><span class="muted">Nothing is scheduled until you click the button in Step 3. Start with Step 1.</span></div>
+    <input type="hidden" name="cal_year" value="{{ pick_cal.year }}">
+    <div class="batch-fields"></div>
+    <div class="batch-list" style="margin-top:10px"></div>
+    <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"><span class="muted">Nothing is scheduled until you click the button in Step 4. Start with Step 1.</span></div>
     {% set picker = true %}
     {% set cal = pick_cal %}{% set prev_url = pick_prev %}{% set next_url = pick_next %}{% set today_url = pick_today %}
     <details class="cal-pick" open style="margin-top:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 12px">
@@ -127,83 +132,132 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
   var start = f.querySelector('[name=session_date]');
   var end = f.querySelector('[name=end_date]');
   var btn = f.querySelector('.sched-btn');
+  var addBtn = f.querySelector('.add-btn');
   var prev = f.querySelector('.sched-preview');
+  var listBox = f.querySelector('.batch-list');
+  var fieldsBox = f.querySelector('.batch-fields');
   var days = parseInt(f.dataset.days || '1', 10);
-  var label = f.dataset.code + ' #' + f.dataset.num;
+  var nextNum = parseInt(f.dataset.num || '1', 10);
+  var code = f.dataset.code;
+  var baseLabel = f.dataset.btn;                       // "Schedule a D4-Relationship Training"
+  var plural = baseLabel.replace(/^Schedule a /, '');
+  var storeKey = 'sched-queue-' + code;
+  var queue = [];                                      // [{s: 'YYYY-MM-DD', e: 'YYYY-MM-DD' or ''}]
   var touched = false;
-  function refresh() {
-    if (!start.value) { btn.disabled = true; return; }
-    btn.disabled = false;
-    var when = pretty(start.value);
-    if (end.value && end.value !== start.value) { when += ' through ' + pretty(end.value); }
-    var p = start.value.split('-').map(Number);
-    var d = new Date(p[0], p[1] - 1, p[2]);
-    var warn = '';
-    if (f.dataset.weekday !== '' && d.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
-      warn = ' Heads-up: this is not a ' + f.dataset.weekdayName + '. Fine if that is intended.';
-    }
-    var hits = [];
-    var last = end.value ? end.value.split('-').map(Number) : p;
-    var stop = new Date(last[0], last[1] - 1, last[2]);
-    for (var c = new Date(d.getTime()); c <= stop && hits.length < 6; c.setDate(c.getDate() + 1)) {
-      var iso = c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
-      if (HOLIDAYS[iso]) { hits.push(HOLIDAYS[iso] + ' (' + MONTHS[c.getMonth()] + ' ' + c.getDate() + ')'); }
-    }
-    var holidayNote = hits.length ? ' Holiday on these dates: ' + hits.join(', ') + '.' : '';
-    prev.innerHTML = '';
-    var strong = document.createElement('strong');
-    strong.textContent = label + ' will be scheduled for ' + when + '.';
-    prev.appendChild(strong);
-    prev.appendChild(document.createTextNode(' Not saved yet \u2014 click \u201c' + f.dataset.btn + '\u201d to save it.' + warn));
-    if (holidayNote) {
-      var red = document.createElement('strong');
-      red.style.color = '#b3261e';
-      red.textContent = holidayNote;
-      prev.appendChild(red);
-    }
-  }
   var mode = 'start';
-  var modeBtns = f.querySelectorAll('.pick-mode');
+  try { queue = JSON.parse(sessionStorage.getItem(storeKey) || '[]'); } catch (x) { queue = []; }
+  if (!Array.isArray(queue)) { queue = []; }
+  function save() { try { sessionStorage.setItem(storeKey, JSON.stringify(queue)); } catch (x) {} }
+  function iso(dt) { return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+  function holidayText(s, e) {
+    var p = s.split('-').map(Number), q = (e || s).split('-').map(Number), hits = [];
+    var stop = new Date(q[0], q[1] - 1, q[2]);
+    for (var c = new Date(p[0], p[1] - 1, p[2]); c <= stop && hits.length < 6; c.setDate(c.getDate() + 1)) {
+      var k = iso(c);
+      if (HOLIDAYS[k]) { hits.push(HOLIDAYS[k] + ' (' + MONTHS[c.getMonth()] + ' ' + c.getDate() + ')'); }
+    }
+    return hits.length ? 'Holiday on these dates: ' + hits.join(', ') + '.' : '';
+  }
+  function rangeText(s, e) { return pretty(s) + (e && e !== s ? ' to ' + pretty(e) : ''); }
+  function sorted() { return queue.slice().sort(function (a, b) { return a.s < b.s ? -1 : (a.s > b.s ? 1 : 0); }); }
+
+  function renderQueue() {
+    listBox.innerHTML = ''; fieldsBox.innerHTML = '';
+    var q = sorted();
+    if (q.length) {
+      var h = document.createElement('div');
+      h.style.fontWeight = '700'; h.style.marginBottom = '4px';
+      h.textContent = 'On the list, not saved yet (' + q.length + '):';
+      listBox.appendChild(h);
+    }
+    q.forEach(function (item, i) {
+      var row = document.createElement('div');
+      row.style.margin = '3px 0';
+      var strong = document.createElement('strong');
+      strong.textContent = code + ' #' + (nextNum + i) + '  ' + rangeText(item.s, item.e);
+      row.appendChild(strong);
+      var hol = holidayText(item.s, item.e);
+      if (hol) { var r = document.createElement('span'); r.style.color = '#b3261e'; r.style.fontWeight = '700'; r.textContent = '  ' + hol; row.appendChild(r); }
+      var rm = document.createElement('button');
+      rm.type = 'button'; rm.className = 'btn secondary'; rm.style.marginLeft = '10px'; rm.style.padding = '1px 8px'; rm.textContent = 'Remove';
+      rm.addEventListener('click', function () { queue = queue.filter(function (x) { return x !== item; }); save(); renderQueue(); refresh(); });
+      row.appendChild(rm);
+      listBox.appendChild(row);
+      ['batch_start', 'batch_end'].forEach(function (nm, k) {
+        var inp = document.createElement('input'); inp.type = 'hidden'; inp.name = nm; inp.value = k === 0 ? item.s : (item.e || '');
+        fieldsBox.appendChild(inp);
+      });
+    });
+  }
+
   function paint() {
     f.querySelector('.pick-start-txt').textContent = start.value ? pretty(start.value) : 'not picked';
-    f.querySelector('.pick-end-txt').textContent = end.value ? pretty(end.value) : '\u2014';
-    modeBtns.forEach(function (b) { b.style.outline = b.dataset.mode === mode ? '3px solid #2f6fb5' : 'none'; });
+    f.querySelector('.pick-end-txt').textContent = end.value ? pretty(end.value) : '—';
+    f.querySelectorAll('.pick-mode').forEach(function (b) { b.style.outline = b.dataset.mode === mode ? '3px solid #2f6fb5' : 'none'; });
     var lo = start.value, hi = end.value || start.value;
     f.querySelectorAll('[data-date]').forEach(function (el) {
-      var on = lo && el.dataset.date >= lo && el.dataset.date <= hi;
+      var dt = el.dataset.date;
+      var on = (lo && dt >= lo && dt <= hi) || queue.some(function (x) { return dt >= x.s && dt <= (x.e || x.s); });
       el.classList.toggle('picked', !!on);
     });
   }
-  modeBtns.forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; paint(); }); });
+
+  function refresh() {
+    var n = queue.length + (start.value ? 1 : 0);
+    addBtn.disabled = !start.value;
+    btn.disabled = n === 0;
+    btn.textContent = n > 1 ? ('Schedule ' + n + ' ' + plural + 's') : baseLabel;
+    prev.innerHTML = '';
+    if (start.value) {
+      var when = rangeText(start.value, end.value);
+      var strong = document.createElement('strong');
+      strong.textContent = code + ' will be scheduled for ' + when + '.';
+      prev.appendChild(strong);
+      var warn = '';
+      var p = start.value.split('-').map(Number);
+      var d = new Date(p[0], p[1] - 1, p[2]);
+      if (f.dataset.weekday !== '' && d.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
+        warn = ' Heads-up: this is not a ' + f.dataset.weekdayName + '. Fine if that is intended.';
+      }
+      prev.appendChild(document.createTextNode(' Not saved yet — click “Add these dates to the list” to keep adding, or “' + btn.textContent + '” to save.' + warn));
+      var hol = holidayText(start.value, end.value);
+      if (hol) { var red = document.createElement('strong'); red.style.color = '#b3261e'; red.textContent = ' ' + hol; prev.appendChild(red); }
+    } else if (queue.length) {
+      prev.innerHTML = '<span class="muted">' + queue.length + ' on the list. Pick more dates, or click “' + btn.textContent + '” to save them all.</span>';
+    } else {
+      prev.innerHTML = '<span class="muted">Nothing is scheduled until you click the button in Step 4. Start with Step 1.</span>';
+    }
+    paint();
+  }
+
+  f.querySelectorAll('.pick-mode').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; refresh(); }); });
   f.querySelectorAll('[data-date]').forEach(function (el) {
     el.addEventListener('click', function (ev) {
       ev.preventDefault();
-      var iso = el.dataset.date;
+      var day = el.dataset.date;
       if (mode === 'end') {
-        if (start.value && iso < start.value) { return; }
-        end.value = iso; end.dispatchEvent(new Event('change'));
-        if (!start.value) { mode = 'start'; }
+        if (start.value && day < start.value) { return; }
+        end.value = day; touched = true;
       } else {
-        start.value = iso; start.dispatchEvent(new Event('change'));
-        if (end.value && end.value < start.value) { end.value = start.value; }
+        start.value = day;
+        if (!touched) {
+          var p = day.split('-').map(Number);
+          end.value = days > 1 ? iso(new Date(p[0], p[1] - 1, p[2] + days - 1)) : '';
+        } else if (end.value && end.value < day) { end.value = day; }
       }
-      paint();
+      refresh();
     });
   });
-  end.addEventListener('change', function () { touched = true; refresh(); });
-  start.addEventListener('change', function () { setTimeout(paint, 0); });
-  end.addEventListener('change', function () { setTimeout(paint, 0); });
-  paint();
-  start.addEventListener('change', function () {
-    if (start.value && !touched) {
-      var p = start.value.split('-').map(Number);
-      if (days > 1) {
-        var e = new Date(p[0], p[1] - 1, p[2] + days - 1);
-        end.value = e.getFullYear() + '-' + String(e.getMonth() + 1).padStart(2, '0') + '-' + String(e.getDate()).padStart(2, '0');
-      } else { end.value = ''; }
-    }
-    refresh();
+  addBtn.addEventListener('click', function () {
+    if (!start.value) { return; }
+    var e = end.value && end.value !== start.value ? end.value : '';
+    if (!queue.some(function (x) { return x.s === start.value && x.e === e; })) { queue.push({ s: start.value, e: e }); }
+    save();
+    start.value = ''; end.value = ''; touched = false; mode = 'start';
+    renderQueue(); refresh();
   });
+  f.addEventListener('submit', function () { try { sessionStorage.removeItem(storeKey); } catch (x) {} });
+  renderQueue(); refresh();
 });
 </script>
 {% endif %}
