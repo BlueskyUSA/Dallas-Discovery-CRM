@@ -2809,8 +2809,12 @@ def program_open(program_id):
             "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number DESC", (p["id"],)
         ).fetchall()
     conn.close()
+    holiday_map = {}
+    for y in range(date.today().year - 1, date.today().year + 4):
+        for d, (n, _kind) in _holidays_for_year(y)[0].items():
+            holiday_map[d.isoformat()] = n
     return render_template(
-        "programs_list.html", programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
+        "programs_list.html", holiday_map=holiday_map, programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
         headings_by_program=headings_by_program,
         default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
         usual_weekday=USUAL_START_WEEKDAY,
@@ -4113,16 +4117,26 @@ CALENDAR_COLORS = {
 }
 
 
-def _us_holidays(year):
-    """{date: name} of the usual US holidays for a year, worked out by rule (no outside service needed)."""
+def _holidays_for_year(year):
+    """Holidays shown on the calendar, worked out by rule (no outside service).
+    Returns (days, listing): days maps each date to (name, kind) with kind 'us', 'christian' or 'jewish';
+    listing is [(date, label, kind)] with multi-day holidays listed once, on their first day."""
     import calendar as _c
-    def nth(month, weekday, n):          # nth weekday (Mon=0) of a month
+    days, listing = {}, []
+
+    def add(d, name, kind, span=1, label=None):
+        for i in range(span):
+            days[d + timedelta(days=i)] = (name, kind)
+        listing.append((d, label or name, kind))
+
+    def nth(month, weekday, n):
         first = date(year, month, 1)
-        d = 1 + (weekday - first.weekday()) % 7 + 7 * (n - 1)
-        return date(year, month, d)
+        return date(year, month, 1 + (weekday - first.weekday()) % 7 + 7 * (n - 1))
+
     def last(month, weekday):
         d = date(year, month, _c.monthrange(year, month)[1])
         return d - timedelta(days=(d.weekday() - weekday) % 7)
+
     def easter(y):
         a, b, c = y % 19, y // 100, y % 100
         d, e = b // 4, b % 4
@@ -4132,35 +4146,88 @@ def _us_holidays(year):
         i, k = c // 4, c % 4
         l = (32 + 2 * e + 2 * i - h - k) % 7
         m = (a + 11 * h + 22 * l) // 451
-        mo = (h + l - 7 * m + 114) // 31
-        da = (h + l - 7 * m + 114) % 31 + 1
-        return date(y, mo, da)
+        return date(y, (h + l - 7 * m + 114) // 31, (h + l - 7 * m + 114) % 31 + 1)
+
+    # ---- United States ----
+    thanks = nth(11, 3, 4)
+    for d, n in [
+        (date(year, 1, 1), "New Year's Day"), (nth(1, 0, 3), "Martin Luther King Jr. Day"),
+        (date(year, 2, 2), "Groundhog Day"), (date(year, 2, 14), "Valentine's Day"),
+        (nth(2, 0, 3), "Presidents' Day"), (date(year, 3, 17), "St. Patrick's Day"),
+        (nth(5, 6, 2), "Mother's Day"), (last(5, 0), "Memorial Day"), (nth(6, 6, 3), "Father's Day"),
+        (date(year, 6, 19), "Juneteenth"), (date(year, 7, 4), "Independence Day"), (nth(9, 0, 1), "Labor Day"),
+        (nth(10, 0, 2), "Columbus Day"), (date(year, 10, 31), "Halloween"), (date(year, 11, 11), "Veterans Day"),
+        (thanks, "Thanksgiving"), (thanks + timedelta(days=1), "Day after Thanksgiving"),
+        (date(year, 12, 31), "New Year's Eve"),
+    ]:
+        add(d, n, "us")
+
+    # ---- Christian (Western churches) ----
     e = easter(year)
-    hol = {
-        date(year, 1, 1): "New Year's Day",
-        nth(1, 0, 3): "Martin Luther King Jr. Day",
-        date(year, 2, 2): "Groundhog Day",
-        date(year, 2, 14): "Valentine's Day",
-        nth(2, 0, 3): "Presidents' Day",
-        date(year, 3, 17): "St. Patrick's Day",
-        e - timedelta(days=2): "Good Friday",
-        e: "Easter",
-        nth(5, 6, 2): "Mother's Day",
-        last(5, 0): "Memorial Day",
-        nth(6, 6, 3): "Father's Day",
-        date(year, 6, 19): "Juneteenth",
-        date(year, 7, 4): "Independence Day",
-        nth(9, 0, 1): "Labor Day",
-        nth(10, 0, 2): "Columbus Day",
-        date(year, 10, 31): "Halloween",
-        date(year, 11, 11): "Veterans Day",
-        nth(11, 3, 4): "Thanksgiving",
-        date(year, 12, 24): "Christmas Eve",
-        date(year, 12, 25): "Christmas Day",
-        date(year, 12, 31): "New Year's Eve",
-    }
-    hol[nth(11, 3, 4) + timedelta(days=1)] = "Day after Thanksgiving"
-    return hol
+    xmas = date(year, 12, 25)
+    advent = xmas - timedelta(days=(xmas.weekday() + 1) % 7 or 7) - timedelta(days=21)   # 4th Sunday before Christmas
+    for d, n in [
+        (date(year, 1, 6), "Epiphany"), (e - timedelta(days=46), "Ash Wednesday"),
+        (e - timedelta(days=7), "Palm Sunday"), (e - timedelta(days=3), "Maundy Thursday"),
+        (e - timedelta(days=2), "Good Friday"), (e, "Easter"), (e + timedelta(days=39), "Ascension Day"),
+        (e + timedelta(days=49), "Pentecost"), (date(year, 11, 1), "All Saints' Day"),
+        (advent, "First Sunday of Advent"), (date(year, 12, 24), "Christmas Eve"), (xmas, "Christmas Day"),
+    ]:
+        add(d, n, "christian")
+
+    # ---- Jewish (dates are for the day itself; each holiday begins at sundown the evening before) ----
+    EPOCH = -1373427
+
+    def elapsed(y):
+        me = (235 * y - 234) // 19
+        day = 29 * me + (12084 + 13753 * me) // 25920
+        return day + 1 if (3 * (day + 1)) % 7 < 3 else day
+
+    def new_year(y):
+        a, b, c = elapsed(y - 1), elapsed(y), elapsed(y + 1)
+        return EPOCH + b + (2 if c - b == 356 else (1 if b - a == 382 else 0))
+
+    def hebrew_months(y):
+        """{month name: first date} for Hebrew year y (Tishri-based)."""
+        start = new_year(y)
+        length = new_year(y + 1) - start
+        leap = (7 * y + 1) % 19 < 7
+        sizes = [("Tishri", 30), ("Cheshvan", 30 if length % 10 == 5 else 29),
+                 ("Kislev", 29 if length % 10 == 3 else 30), ("Tevet", 29), ("Shevat", 30)]
+        if leap:
+            sizes.append(("Adar I", 30))
+        sizes += [("Adar", 29), ("Nisan", 30), ("Iyar", 29), ("Sivan", 30), ("Tammuz", 29), ("Av", 30), ("Elul", 29)]
+        out, cur = {}, start
+        for name, n in sizes:
+            out[name] = date.fromordinal(cur)
+            cur += n
+        return out
+
+    jewish = []
+    for hy in (year + 3760, year + 3761):
+        m = hebrew_months(hy)
+        t = m["Tishri"]
+        jewish += [
+            (t, "Rosh Hashanah", 2, "Rosh Hashanah (2 days)"), (t + timedelta(days=9), "Yom Kippur", 1, None),
+            (t + timedelta(days=14), "Sukkot", 7, "Sukkot (7 days)"), (t + timedelta(days=21), "Shemini Atzeret", 1, None),
+            (t + timedelta(days=22), "Simchat Torah", 1, None),
+            (m["Kislev"] + timedelta(days=24), "Hanukkah", 8, "Hanukkah (8 days)"),
+            (m["Shevat"] + timedelta(days=14), "Tu BiShvat", 1, None),
+            (m["Adar"] + timedelta(days=13), "Purim", 1, None),
+            (m["Nisan"] + timedelta(days=14), "Passover", 8, "Passover (8 days)"),
+            (m["Sivan"] + timedelta(days=5), "Shavuot", 2, "Shavuot (2 days)"),
+            (m["Av"] + timedelta(days=8), "Tisha B'Av", 1, None),
+        ]
+    for d, n, span, label in jewish:
+        if d.year == year or (d + timedelta(days=span - 1)).year == year:
+            for i in range(span):
+                day = d + timedelta(days=i)
+                if day.year == year:
+                    days[day] = (n, "jewish")
+            if d.year == year:
+                listing.append((d, label or n, "jewish"))
+    listing.sort(key=lambda x: x[0])
+    return days, listing
 
 
 def _calendar_data(year, public=False):
@@ -4208,12 +4275,13 @@ def _calendar_data(year, public=False):
                 by_day.setdefault(d.isoformat(), []).append(g)
             d += timedelta(days=1)
 
-    holidays = _us_holidays(year)
+    holidays, holiday_listing = _holidays_for_year(year)
 
     def day_cell(d, m):
         iso = f"{year}-{m:02d}-{d:02d}"
         cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": [],
-                "holiday": holidays.get(date(year, m, d))}
+                "holiday": (holidays.get(date(year, m, d)) or (None, None))[0],
+                "hkind": (holidays.get(date(year, m, d)) or (None, None))[1]}
         found = by_day.get(iso, [])
         if not found:
             return cell
@@ -4252,7 +4320,7 @@ def _calendar_data(year, public=False):
             "name": _cal.month_name[m],
             "weeks": weeks,
             "opens": [g for g in groups if g["start"].year == year and g["start"].month == m],
-            "holidays": [(h.day, name) for h, name in sorted(holidays.items()) if h.month == m],
+            "holidays": [(h.day, name, kind) for h, name, kind in holiday_listing if h.month == m],
         })
     return {
         "year": year, "months": months, "groups": groups, "colors": CALENDAR_COLORS,
