@@ -2826,6 +2826,11 @@ def program_open(program_id):
             "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number ASC", (p["id"],)
         ).fetchall()
     conn.close()
+    today_iso = date.today().isoformat()
+    upcoming_by_program, past_by_program = {}, {}
+    for pid, rows in cohorts_by_program.items():
+        upcoming_by_program[pid] = [c for c in rows if (c["end_date"] or c["session_date"]) >= today_iso]
+        past_by_program[pid] = [c for c in rows if (c["end_date"] or c["session_date"]) < today_iso]
     cal_year = max(2000, min(2100, request.args.get("cal_year", type=int) or date.today().year))
     pick_cal = _calendar_data(cal_year, public=False)
     holiday_map = {}
@@ -2833,7 +2838,7 @@ def program_open(program_id):
         for d, (n, _kind) in _holidays_for_year(y)[0].items():
             holiday_map[d.isoformat()] = n
     return render_template(
-        "programs_list.html", holiday_map=holiday_map, pick_cal=pick_cal,
+        "programs_list.html", upcoming_by_program=upcoming_by_program, past_by_program=past_by_program, holiday_map=holiday_map, pick_cal=pick_cal,
         pick_prev=url_for(".program_open", program_id=program_id, cal_year=cal_year - 1) + "#sched",
         pick_next=url_for(".program_open", program_id=program_id, cal_year=cal_year + 1) + "#sched",
         pick_today=url_for(".program_open", program_id=program_id) + "#sched", programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
