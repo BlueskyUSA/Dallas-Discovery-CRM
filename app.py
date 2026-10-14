@@ -3769,10 +3769,29 @@ def cohort_detail(cohort_id):
            JOIN contacts ct ON ct.id = cs.contact_id WHERE cs.cohort_id = ?""",
         (cohort_id,),
     ).fetchall()
-    # Lead Facilitator and Support Facilitator always head the team list
-    _role_rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "Director": 2, "TA": 3,
+    # Lead Facilitator and Support Facilitator always head the team list. Someone with
+    # several roles/duties appears once, with everything combined.
+    _role_rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "TA": 3,
                   "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
-    staffing = sorted(staffing, key=lambda r: (_role_rank.get(r["role"], 9), (r["full_name"] or "").lower(), r["duty"] or ""))
+    _by_person = {}
+    for r in staffing:
+        _by_person.setdefault(r["contact_id"], []).append(r)
+    team = []
+    for cid, rows in _by_person.items():
+        roles = []
+        for r in sorted(rows, key=lambda r: _role_rank.get(r["role"], 9)):
+            if r["role"] not in roles:
+                roles.append(r["role"])
+        team.append({
+            "contact_id": cid,
+            "full_name": rows[0]["full_name"],
+            "roles": roles,
+            "duties": [r for r in rows if r["duty"]],
+            "rows": rows,
+            "rank": min(_role_rank.get(r["role"], 9) for r in rows),
+        })
+    team.sort(key=lambda t: (t["rank"], (t["full_name"] or "").lower()))
+    staffing = team
     sg_staffing = conn.execute(
         f"""SELECT sgs.*, {full_name_sql('ct')} AS full_name,
                    sg.label
@@ -4086,6 +4105,18 @@ def staffing_new(cohort_id):
 def staffing_remove(cohort_id, staffing_id):
     conn = get_db()
     conn.execute("DELETE FROM cohort_staffing WHERE id = ? AND cohort_id = ?", (staffing_id, cohort_id))
+    conn.commit()
+    conn.close()
+    flash("Removed from the session team.")
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+@crm.route("/cohorts/<int:cohort_id>/staffing/person/<int:contact_id>/remove", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def staffing_remove_person(cohort_id, contact_id):
+    conn = get_db()
+    conn.execute("DELETE FROM cohort_staffing WHERE cohort_id = ? AND contact_id = ?", (cohort_id, contact_id))
     conn.commit()
     conn.close()
     flash("Removed from the session team.")
