@@ -32,10 +32,14 @@
 <h2>Trainee Roster{% if session.is_owner or session.staff_role == 'Leadership' %} <a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="margin-left:18px; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none">Letters &rarr;</a>{% endif %}</h2>
 <div class="card">
   {% if roster %}
-  <table>
+  <div class="roster-find">
+    <input type="search" id="roster-q" placeholder="Find a trainee by name…" autocomplete="off">
+    <span class="muted" id="roster-count">{{ roster|length }} trainees</span>
+  </div>
+  <table class="sticky-head" id="roster-table">
     <tr><th>Trainee</th><th>Partner</th><th>Sponsor</th>{% if show_small_groups %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
-    <tr>
+    <tr class="{{ 'band' if bands[e.id] }}" data-name="{{ (e.full_name ~ ' ' ~ (partner_names.get(e.partner_enrollment_id) or ''))|lower }}">
       <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
       <td>
         <form class="inline" method="post" action="{{ url_for('.enrollment_partner', enrollment_id=e.id) }}" style="margin:0">
@@ -119,6 +123,17 @@
     </tr>
     {% endfor %}
   </table>
+  <script>
+  (function(){
+    var q=document.getElementById('roster-q'), t=document.getElementById('roster-table'), c=document.getElementById('roster-count');
+    if(!q||!t) return;
+    q.addEventListener('input', function(){
+      var v=q.value.trim().toLowerCase(), n=0, rows=t.querySelectorAll('tr[data-name]');
+      rows.forEach(function(r){ var show=!v||r.getAttribute('data-name').indexOf(v)!==-1; r.style.display=show?'':'none'; if(show) n++; });
+      c.textContent=(v? n+' of '+rows.length : rows.length)+' trainees';
+    });
+  })();
+  </script>
   {% else %}
   <p class="muted">No one enrolled yet.</p>
   {% endif %}
@@ -145,7 +160,7 @@
 <h2>Small groups</h2>
 <div class="card">
   {% if small_groups %}
-  <table>
+  <table class="sticky-head">
     <tr><th>Group</th><th>TAs / Small Group Leaders</th></tr>
     {% for sg in small_groups %}
     <tr>
@@ -199,7 +214,7 @@
 <div class="card">
   <p class="muted" style="margin-top:-4px">Facilitators, TAs, and other whole-session roles not tied to a specific small group.</p>
   {% if staffing %}
-  <table>
+  <table class="sticky-head">
     <tr><th>Name</th><th>Role</th><th>Duty</th><th></th></tr>
     {% for t in staffing %}
     <tr>
