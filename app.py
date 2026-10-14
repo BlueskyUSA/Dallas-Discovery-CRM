@@ -3820,6 +3820,8 @@ def cohort_detail(cohort_id):
         roster=roster,
         small_groups=small_groups,
         staffing=staffing,
+        session_roles=SESSION_ROLES,
+        session_duties=SESSION_DUTIES,
         sg_staffing=sg_staffing,
         all_contacts=all_contacts,
         enrolled_counts=enrolled_counts,
@@ -4108,6 +4110,44 @@ def staffing_remove(cohort_id, staffing_id):
     conn.commit()
     conn.close()
     flash("Removed from the session team.")
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+SESSION_ROLES = ["Lead Facilitator", "Support Facilitator", "TA", "Support Team", "Back-up TA", "Trainee"]
+SESSION_DUTIES = ["Sound Equipment", "Large Group Leader", "Team Captain", "Microphone 1", "Microphone 2",
+                  "Lights", "Doors", "Signs / Security", "Mail & Name Tags", "Housekeeping", "Male Runner",
+                  "Female Runner", "Time Keeper", "Chairs", "Chair Counter", "Troubleshooter / Misc", "Not confirmed"]
+
+
+@crm.route("/cohorts/<int:cohort_id>/staffing/person/<int:contact_id>/modify", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def staffing_modify_person(cohort_id, contact_id):
+    """Replaces one person's roles and duties on this session with what was ticked."""
+    roles = [r for r in request.form.getlist("role") if r in SESSION_ROLES]
+    roles.sort(key=SESSION_ROLES.index)
+    duties = [d.strip() for d in request.form.getlist("duty") if d.strip()]
+    extra = (request.form.get("extra_duty") or "").strip()
+    if extra and extra not in duties:
+        duties.append(extra)
+    if not roles:
+        flash("Tick at least one role. (To take them off the team, use Remove.)")
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+    conn = get_db()
+    conn.execute("DELETE FROM cohort_staffing WHERE cohort_id = ? AND contact_id = ?", (cohort_id, contact_id))
+    # duties ride on TA when they are one, otherwise on their first role
+    home = "TA" if "TA" in roles else roles[0]
+    for role in roles:
+        if role == home and duties:
+            for d in duties:
+                conn.execute("INSERT INTO cohort_staffing (cohort_id, contact_id, role, duty) VALUES (?,?,?,?)",
+                             (cohort_id, contact_id, role, d))
+        else:
+            conn.execute("INSERT INTO cohort_staffing (cohort_id, contact_id, role, duty) VALUES (?,?,?,NULL)",
+                         (cohort_id, contact_id, role))
+    conn.commit()
+    conn.close()
+    flash("Updated their roles and duties.")
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
