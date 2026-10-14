@@ -38,7 +38,7 @@ html { scroll-padding-top: 70px; }  /* jump links (#sched etc.) don't hide under
 .topbar .brand { color: white; font-weight: 700; text-decoration: none; font-size: 1.1rem; }
 .topbar nav a { color: #e6e2d0; text-decoration: none; margin-left: 18px; font-size: 0.92rem; }
 .topbar nav a:hover { color: var(--accent); }
-.topbar nav a.backbtn { border: 1px solid #e6e2d0; border-radius: 6px; padding: 3px 12px; margin-left: 0; font-weight: 600; }
+.topbar nav a.backbtn { border: 1px solid #e6e2d0; border-radius: 6px; padding: 3px 12px; margin-left: 16px; font-weight: 600; }
 .topbar nav a.backbtn:hover { border-color: var(--accent); }
 .navmenu { display: inline-block; position: relative; margin-left: 18px; }
 .navmenu summary { color: #e6e2d0; font-size: 0.92rem; cursor: pointer; list-style: none; }
