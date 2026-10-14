@@ -33,10 +33,20 @@
 <div class="card">
   {% if roster %}
   <table>
-    <tr><th>Trainee</th><th>Sponsor</th>{% if show_small_groups %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
+    <tr><th>Trainee</th><th>Partner</th><th>Sponsor</th>{% if show_small_groups %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
     <tr>
       <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
+      <td>
+        <form class="inline" method="post" action="{{ url_for('.enrollment_partner', enrollment_id=e.id) }}" style="margin:0">
+          <select name="partner_enrollment_id" onchange="this.form.submit()" style="max-width:170px">
+            <option value="">{{ '— none —' if not e.partner_enrollment_id else '— separate —' }}</option>
+            {% for o in roster if o.id != e.id %}
+            <option value="{{ o.id }}" {{ 'selected' if o.id == e.partner_enrollment_id }}>{{ o.full_name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
       <td>
         <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
           <input type="hidden" name="set_enrolled_by" value="1">

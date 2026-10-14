@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Your questionnaire — {{ program_name }}{% endblock %}
+{% block content %}
+<div class="pub-container">
+{% if enr is none %}
+<h1>Link not found</h1>
+<p>This link isn't valid or has expired. Please reach out to us directly and we'll send you a fresh one.</p>
+{% else %}
+<h1>Your questionnaire</h1>
+<p class="muted">{{ enr.program_name }} &middot; {{ enr.session_date|fdate }}</p>
+{% if done %}
+<div class="card" style="border-left:6px solid #2e7d32">
+  <p style="margin:0; font-size:1.1em"><strong>Thank you, {{ enr.first_name }}.</strong> We have your questionnaire. You can come back to this same link and change your answers any time before the training.</p>
+</div>
+{% endif %}
+<p>These questions are for you alone. Please answer in your own words &mdash; there are no right or wrong answers, and
+your answers are seen only by our training team, never by your partner.</p>
+{% if saved %}<p><em>Saved. You can finish later using this same link.</em></p>{% endif %}
+<div class="card">
+  <form method="post">
+    <div class="field"><label>Is this your first time attending the Relationship Training?</label>
+      <select name="first_time_attending">
+        <option value="">—</option>
+        <option {{ 'selected' if profile and profile.first_time_attending == 'Yes' else '' }}>Yes</option>
+        <option {{ 'selected' if profile and profile.first_time_attending == 'No' else '' }}>No</option>
+      </select>
+    </div>
+    <div class="field"><label>What do you want to get out of the Relationship Training?</label>
+      <textarea name="training_goals" rows="3" style="width:100%">{{ profile.training_goals if profile and profile.training_goals else '' }}</textarea></div>
+    {% if is_couples %}
+    <div class="field"><label>How long have you been in your relationship?</label>
+      <input name="relationship_length" style="width:100%" value="{{ profile.relationship_length if profile and profile.relationship_length else '' }}"></div>
+    <div class="field"><label>How did you meet your partner and what attracted you to them?</label>
+      <textarea name="how_met" rows="3" style="width:100%">{{ profile.how_met if profile and profile.how_met else '' }}</textarea></div>
+    <div class="field"><label>Does this relationship have patterns similar to what you experienced with your parents in your childhood?</label>
+      <textarea name="childhood_patterns" rows="3" style="width:100%">{{ profile.childhood_patterns if profile and profile.childhood_patterns else '' }}</textarea></div>
+    <div class="field"><label>Describe a significant emotional milestone within your relationship.</label>
+      <textarea name="emotional_milestone" rows="3" style="width:100%">{{ profile.emotional_milestone if profile and profile.emotional_milestone else '' }}</textarea></div>
+    <div class="field"><label>What are the strengths within the relationship?</label>
+      <textarea name="relationship_strengths" rows="3" style="width:100%">{{ profile.relationship_strengths if profile and profile.relationship_strengths else '' }}</textarea></div>
+    <div class="field"><label>What are the weaknesses within the relationship?</label>
+      <textarea name="relationship_weaknesses" rows="3" style="width:100%">{{ profile.relationship_weaknesses if profile and profile.relationship_weaknesses else '' }}</textarea></div>
+    <div class="field"><label>Are there any stress points within the relationship? Please explain.</label>
+      <textarea name="stress_points" rows="3" style="width:100%">{{ profile.stress_points if profile and profile.stress_points else '' }}</textarea></div>
+    <div class="field"><label>List one song and artist that describes the way you feel about your partner.</label>
+      <input name="song_artist" style="width:100%" value="{{ profile.song_artist if profile and profile.song_artist else '' }}"></div>
+    <div class="field"><label>Briefly describe how the song above makes you feel toward your partner.</label>
+      <textarea name="song_feelings" rows="3" style="width:100%">{{ profile.song_feelings if profile and profile.song_feelings else '' }}</textarea></div>
+    {% endif %}
+    <div class="field"><label>Please provide other information you believe is important to this relationship.</label>
+      <textarea name="other_info" rows="3" style="width:100%">{{ profile.other_info if profile and profile.other_info else '' }}</textarea></div>
+    <button class="btn" type="submit" name="submit_done" value="1">Submit my questionnaire</button>
+    <button class="btn secondary" type="submit" style="margin-left:8px">Save and finish later</button>
+  </form>
+</div>
+{% endif %}
+</div>
+{% endblock %}

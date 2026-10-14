@@ -31,7 +31,7 @@
       {% set when = sent.get((p.contact_id, key)) %}
       <tr>
         <td>{% if p.email and not when %}<input type="checkbox" name="contact_id" value="{{ p.contact_id }}" {{ 'disabled' if not live }}>{% endif %}</td>
-        <td>{{ p.name }}</td>
+        <td>{{ p.name }}{% if p.partner_name %} <span class="muted">(with {{ p.partner_name }})</span>{% endif %}</td>
         <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
         <td>{% if when %}<span class="badge good">&#10003; {{ when[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}</td>
         <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
@@ -71,7 +71,7 @@
       {% set when = sent.get((p.contact_id, key)) %}
       <tr>
         <td>{% if p.email and not when %}<input type="checkbox" name="contact_id" value="{{ p.contact_id }}" {{ 'disabled' if not live }}>{% endif %}</td>
-        <td>{{ p.name }}</td>
+        <td>{{ p.name }}{% if p.partner_name %} <span class="muted">(with {{ p.partner_name }})</span>{% endif %}</td>
         <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
         <td>{% if when %}<span class="badge good">&#10003; {{ when[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}</td>
         <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
