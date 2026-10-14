@@ -17,7 +17,6 @@
 <h1>{{ full_title }} (Session # {{ cohort.session_number }})</h1>
 <p class="muted">{{ cohort|date_span }}{% if cohort.location %} &middot; {{ cohort.location }}{% endif %} &middot; <span class="badge">{{ cohort.status }}</span></p>
 {% if session.is_owner or session.staff_role == 'Leadership' %}
-<p style="margin:0 0 10px"><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="font-size:1.1rem; font-weight:700; color:#1f5fbf; text-decoration:none">Letters &rarr;</a></p>
 <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=cohort.id) }}" style="margin:0 0 10px">
   <label style="margin:0">Starts:</label>
   <input type="date" name="session_date" value="{{ cohort.session_date }}" required>
@@ -30,7 +29,7 @@
 {% endif %}
 
 {% if show_trainee_roster %}
-<h2>Trainee Roster</h2>
+<h2>Trainee Roster{% if session.is_owner or session.staff_role == 'Leadership' %} <a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="margin-left:18px; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none">Letters &rarr;</a>{% endif %}</h2>
 <div class="card">
   {% if roster %}
   <table>
