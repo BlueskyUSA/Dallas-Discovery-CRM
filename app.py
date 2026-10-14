@@ -313,7 +313,38 @@ FIXED_ACCESS_AREAS = [
     ("contacts", "Contacts"),
     ("donations", "Donations"),
     ("contracts", "Contracts & business plan"),
+    ("session_team", "Session Team (on each training session page)"),
+    ("trainee_roster", "Trainee Roster (on each training session page)"),
 ]
+# Ticking either session box also gives Contacts automatically, since the session pages
+# live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
+SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS)
+
+
+def _can_see_session_part(part):
+    """Whether this login sees the Session Team / Trainee Roster on a session page.
+    Owner always. Otherwise it needs that box ticked -- except accounts that already had
+    Contacts before these boxes existed (they have neither box) keep seeing both."""
+    if session.get("is_owner"):
+        return True
+    conn = get_db()
+    keys = {r["area_key"] for r in conn.execute(
+        "SELECT area_key FROM access_grants WHERE staff_id = ?", (session.get("staff_id"),)).fetchall()}
+    conn.close()
+    if part in keys:
+        return True
+    return "contacts" in keys and not (keys & set(SESSION_VIEW_AREAS))
+
+
+def _grant_contacts_for_session_areas(conn, staff_id):
+    """Adds Contacts for this person if they hold a session box but not Contacts yet. True if added."""
+    has = {r["area_key"] for r in conn.execute(
+        "SELECT area_key FROM access_grants WHERE staff_id = ?", (staff_id,)).fetchall()}
+    if (has & set(SESSION_VIEW_AREAS)) and "contacts" not in has:
+        conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", ("contacts", staff_id))
+        return True
+    return False
 # Reserved program-code slots shown in the hub even before that program
 # exists yet (B1-B4 are today's real programs; B5/B6 are room to grow).
 RESERVED_PROGRAM_AREA_CODES = ["D1", "D2", "D3", "D4", "D5", "D6"]
@@ -743,6 +774,10 @@ def staff_access(staff_id):
 
     if request.method == "POST":
         selected = set(request.form.getlist("area_key"))
+        auto_contacts = False
+        if selected & set(SESSION_VIEW_AREAS) and "contacts" not in selected:
+            selected.add("contacts")          # the session boxes bring Contacts with them
+            auto_contacts = True
         current_grants = {
             row["area_key"]: row["id"]
             for row in conn.execute(
@@ -757,11 +792,12 @@ def staff_access(staff_id):
                 count = conn.execute(
                     "SELECT COUNT(*) c FROM access_grants WHERE area_key = ?", (area_key,)
                 ).fetchone()["c"]
-                if count >= ACCESS_AREA_MAX_GRANTS:
+                if count >= ACCESS_AREA_MAX_GRANTS and area_key not in UNCAPPED_AREAS \
+                        and not (area_key == "contacts" and auto_contacts):
                     skipped_full.append(label)
                     continue
                 conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (area_key, staff_id))
-                added.append(label)
+                added.append(label + (" (added automatically)" if area_key == "contacts" and auto_contacts else ""))
             elif not wants and currently_has:
                 conn.execute("DELETE FROM access_grants WHERE id = ?", (current_grants[area_key],))
                 removed.append(label)
@@ -1054,7 +1090,7 @@ def staff_grant_full_access(staff_id):
         count = conn.execute(
             "SELECT COUNT(*) c FROM access_grants WHERE area_key = ?", (area_key,)
         ).fetchone()["c"]
-        if count >= ACCESS_AREA_MAX_GRANTS:
+        if count >= ACCESS_AREA_MAX_GRANTS and area_key not in UNCAPPED_AREAS:
             skipped_full.append(area_key)
             continue
         conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (area_key, staff_id))
@@ -3404,7 +3440,7 @@ def authorized_users_assign(area_key):
     count = conn.execute(
         "SELECT COUNT(*) c FROM access_grants WHERE area_key = ?", (area_key,)
     ).fetchone()["c"]
-    if count >= ACCESS_AREA_MAX_GRANTS:
+    if count >= ACCESS_AREA_MAX_GRANTS and area_key not in UNCAPPED_AREAS:
         flash(f"This area already has {ACCESS_AREA_MAX_GRANTS} authorized users -- remove one first.")
         conn.close()
         return redirect(url_for(".authorized_users_area", area_key=area_key))
@@ -3470,6 +3506,8 @@ def authorized_users_assign(area_key):
         conn.execute(
             "INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (area_key, staff_id)
         )
+        if _grant_contacts_for_session_areas(conn, staff_id):
+            flash("Contacts was added automatically, since the session pages sit under Contacts.")
         conn.commit()
         if not already_flashed:
             flash("Access granted.")
@@ -3822,6 +3860,8 @@ def cohort_detail(cohort_id):
         roster=roster,
         small_groups=small_groups,
         staffing=staffing,
+        show_session_team=_can_see_session_part("session_team"),
+        show_trainee_roster=_can_see_session_part("trainee_roster"),
         session_roles=SESSION_ROLES,
         session_duties=SESSION_DUTIES,
         sg_staffing=sg_staffing,
