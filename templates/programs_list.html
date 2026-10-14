@@ -13,7 +13,7 @@
 
   {% if is_lead %}
   <details style="background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:14px;">
-    <summary style="cursor:pointer; font-size:0.88rem; font-weight:700;">The {{ p.code }} program itself &mdash; change or delete</summary>
+    <summary style="cursor:pointer; font-size:0.88rem; font-weight:700;">Change or Delete the {{ p.name if p.name.startswith(p.code) else p.code ~ '-' ~ p.name }}</summary>
     <p class="muted" style="margin:8px 0">This is the training as a whole (its code, name, description and prerequisite). A change here applies to <strong>every</strong> {{ p.code }} session, past and future. To change one scheduled session, use the session list below instead.</p>
     <form class="inline" method="post" action="{{ url_for('.program_edit', program_id=p.id) }}">
       <input name="code" value="{{ p.code }}" style="width:90px" required>
