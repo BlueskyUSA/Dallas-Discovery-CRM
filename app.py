@@ -3880,6 +3880,23 @@ def cohort_detail(cohort_id):
         (cohort_id,),
     ).fetchall()
     partner_names = {e["id"]: e["full_name"] for e in roster}
+    # Keep each couple together (alphabetical by the first of them) and shade every other group,
+    # so a long list (80+ trainees) is easy to scan.
+    by_id = {e["id"]: e for e in roster}
+    ordered, bands, placed, band = [], {}, set(), 0
+    for e in roster:
+        if e["id"] in placed:
+            continue
+        group = [e]
+        pe = by_id.get(e["partner_enrollment_id"]) if e["partner_enrollment_id"] else None
+        if pe and pe["id"] not in placed:
+            group.append(pe)
+        for g in group:
+            placed.add(g["id"])
+            bands[g["id"]] = band % 2
+            ordered.append(g)
+        band += 1
+    roster = ordered
     small_groups = conn.execute("SELECT * FROM small_groups WHERE cohort_id = ? ORDER BY label", (cohort_id,)).fetchall()
     staffing = conn.execute(
         f"""SELECT cs.*, {full_name_sql('ct')} AS full_name
@@ -3935,7 +3952,7 @@ def cohort_detail(cohort_id):
     return render_template(
         "cohort_detail.html",
         cohort=cohort,
-        roster=roster, partner_names=partner_names,
+        roster=roster, partner_names=partner_names, bands=bands,
         small_groups=small_groups,
         staffing=staffing,
         show_session_team=_can_see_session_part("session_team"),
