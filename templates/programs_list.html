@@ -42,13 +42,14 @@
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 {% for p in programs %}
 <div class="card" id="program-{{ p.id }}">
+  {% set pname = p.name if p.name.startswith(p.code) else p.code ~ '-' ~ p.name %}
   {% if p.description %}<p class="muted">{{ p.description }}</p>{% endif %}
   <p><a href="{{ url_for('.program_materials', program_id=p.id) }}">Training materials &rarr;</a>
     &middot; <a href="{{ url_for('.program_playlists', program_id=p.id) }}">Music &amp; playlists &rarr;</a></p>
 
   {% if is_lead %}
   <details style="background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:14px;">
-    <summary style="cursor:pointer; font-size:0.88rem; font-weight:700;">Change or Delete the {{ p.name if p.name.startswith(p.code) else p.code ~ '-' ~ p.name }}</summary>
+    <summary style="cursor:pointer; font-size:0.88rem; font-weight:700;">Change or Delete the {{ pname }}</summary>
     <p class="muted" style="margin:8px 0">This is the training as a whole (its code, name, description and prerequisite). A change here applies to <strong>every</strong> {{ p.code }} session, past and future. To change one scheduled session, use the session list below instead.</p>
     <form class="inline" method="post" action="{{ url_for('.program_edit', program_id=p.id) }}">
       <input name="code" value="{{ p.code }}" style="width:90px" required>
@@ -70,7 +71,7 @@
   </details>
   {% endif %}
 
-  <h4 style="margin:6px 0">Upcoming {{ p.code }} sessions</h4>
+  <h4 style="margin:6px 0">Upcoming {{ pname }} sessions</h4>
   <table>
     <tr><th>Session</th><th>Date</th><th>Location</th><th>Status</th><th></th></tr>
     {{ session_rows(p, upcoming_by_program[p.id], is_lead, has_contacts_access) }}
@@ -78,7 +79,7 @@
   </table>
   {% if past_by_program[p.id] %}
   <details style="margin-top:10px">
-    <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Past {{ p.code }} sessions ({{ past_by_program[p.id]|length }})</summary>
+    <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Past {{ pname }} sessions ({{ past_by_program[p.id]|length }})</summary>
     <table>
       <tr><th>Session</th><th>Date</th><th>Location</th><th>Status</th><th></th></tr>
       {{ session_rows(p, past_by_program[p.id], is_lead, has_contacts_access) }}
@@ -95,7 +96,7 @@
         data-weekday-name="{{ usual_weekday[p.code][1] if p.code in usual_weekday else '' }}"
         style="background:#f1f6ef; border:1px solid #b9cfb4; border-radius:8px; padding:12px 14px; margin-top:14px;">
     {% set together = all_programs|selectattr('code', 'in', ['D1','D2','D3','D5'])|rejectattr('id', 'equalto', p.id)|list if p.code in ['D1','D2','D3','D5'] else [] %}
-    <div style="font-weight:700; margin-bottom:6px">Schedule {{ p.code }} sessions</div>
+    <div style="font-weight:700; margin-bottom:6px">Schedule {{ pname }} sessions</div>
     <div style="font-size:0.95rem; margin-bottom:8px">Click the <strong>first day</strong> of each {{ p.code }} on the calendar below and <strong>Save</strong>.
       {% if together %}<span class="muted">({% for q in together %}{{ 'Refocus' if q.code == 'D5' else q.code }}{{ ', ' if not loop.last and loop.revindex > 2 else (' and ' if loop.revindex == 2 else '') }}{% endfor %} {{ 'is' if together|length == 1 else 'are' }} scheduled with {{ p.code }}.)</span>{% endif %}
     </div>
