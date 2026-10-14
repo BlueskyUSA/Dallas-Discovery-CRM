@@ -75,8 +75,9 @@
 
   {% if is_lead %}
   {% set next_num = (cohorts_by_program[p.id]|map(attribute='session_number')|list|max) + 1 if cohorts_by_program[p.id] else 1 %}
+  {% set sched_label = ('Schedule a ' ~ p.name) if p.name.startswith(p.code) else ('Schedule a ' ~ p.code ~ '-' ~ p.name) %}
   <form class="sched-form" method="post" action="{{ url_for('.cohort_new', program_id=p.id) }}"
-        data-code="{{ p.code }}" data-num="{{ next_num }}" data-days="{{ default_days(p.code) }}"
+        data-btn="{{ sched_label }}" data-code="{{ p.code }}" data-num="{{ next_num }}" data-days="{{ default_days(p.code) }}"
         data-weekday="{{ usual_weekday[p.code][0] if p.code in usual_weekday else '' }}"
         data-weekday-name="{{ usual_weekday[p.code][1] if p.code in usual_weekday else '' }}"
         style="background:#f1f6ef; border:1px solid #b9cfb4; border-radius:8px; padding:12px 14px; margin-top:14px;">
@@ -87,7 +88,7 @@
       <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 2.</strong> Last day <span>(fills in by itself; change if needed)</span></div>
         <input type="date" name="end_date"></div>
       <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 3.</strong> Save it</div>
-        <button class="btn sched-btn" type="submit" disabled>Schedule this {{ p.code }} session</button></div>
+        <button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
     </div>
     <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"><span class="muted">Nothing is scheduled until you click the button in Step 3. Start with Step 1.</span></div>
   </form>
@@ -125,7 +126,7 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
     var strong = document.createElement('strong');
     strong.textContent = label + ' will be scheduled for ' + when + '.';
     prev.appendChild(strong);
-    prev.appendChild(document.createTextNode(' Not saved yet \u2014 click \u201cSchedule this ' + f.dataset.code + ' session\u201d to save it.' + warn));
+    prev.appendChild(document.createTextNode(' Not saved yet \u2014 click \u201c' + f.dataset.btn + '\u201d to save it.' + warn));
   }
   end.addEventListener('change', function () { touched = true; refresh(); });
   start.addEventListener('change', function () {
