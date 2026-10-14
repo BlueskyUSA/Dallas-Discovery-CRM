@@ -29,7 +29,7 @@
 {% endif %}
 
 {% if show_trainee_roster %}
-<h2>Trainee Roster{% if session.is_owner or session.staff_role == 'Leadership' %} <a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="margin-left:22px; font-size:1.5rem; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; color:#1f5fbf; text-decoration:none">Letters &rarr;</a>{% endif %}</h2>
+<h2>Trainee Roster{% if session.is_owner or session.staff_role == 'Leadership' %} <a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="margin-left:22px; font-size:1.5rem; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; color:#1f5fbf; text-decoration:none">Letters to Trainees and Team Members &rarr;</a>{% endif %}</h2>
 <div class="card">
   {% if roster %}
   <div class="roster-find">
