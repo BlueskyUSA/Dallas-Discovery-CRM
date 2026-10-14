@@ -29,7 +29,12 @@ body {
   padding: 14px 24px;
   flex-wrap: wrap;
   gap: 10px;
+  /* menu stays visible at the top while you scroll */
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
+html { scroll-padding-top: 70px; }  /* jump links (#sched etc.) don't hide under the menu */
 .topbar .brand { color: white; font-weight: 700; text-decoration: none; font-size: 1.1rem; }
 .topbar nav a { color: #e6e2d0; text-decoration: none; margin-left: 18px; font-size: 0.92rem; }
 .topbar nav a:hover { color: var(--accent); }
