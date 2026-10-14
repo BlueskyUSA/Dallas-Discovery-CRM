@@ -1,0 +1,12 @@
+{% extends "crm_base.html" %}
+{% block title %}Letter: {{ spec.title }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}">&larr; Back to the letters</a></p>
+<h1>{{ spec.title }}</h1>
+<p class="muted">This is the letter as written. Each person's own first name replaces [First name]. Nothing has been sent.</p>
+<div class="card" style="max-width:720px">
+  <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ subject }}</strong></p>
+  <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
+  <div style="line-height:1.55">{{ letter_html|safe }}</div>
+</div>
+{% endblock %}
