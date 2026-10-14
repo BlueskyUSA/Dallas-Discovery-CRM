@@ -14,7 +14,7 @@
 
 <details style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
   <summary style="cursor:pointer; font-size:1.15rem; font-weight:700; color:#1f5fbf">Letters to Trainees</summary>
-  {% for key in order if key == 'trainee_confirm' %}
+  {% for key in order if key in trainee_keys %}
 {% set spec = letters[key] %}
 {% set people = recipients[key] %}
 <h2>{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></h2>
