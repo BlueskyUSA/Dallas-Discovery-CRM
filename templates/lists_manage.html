@@ -19,7 +19,7 @@
         </form>
       </td>
       <td><a href="{{ url_for('.contacts_list', list=l.id) }}"><strong>{{ l.n }}</strong></a></td>
-      <td class="muted">{{ l.created_at }}</td>
+      <td class="muted">{{ l.created_at|fdate }}</td>
       <td>
         {% if l.n == 0 %}
         <form method="post" action="{{ url_for('.list_delete', list_id=l.id) }}" style="margin:0"

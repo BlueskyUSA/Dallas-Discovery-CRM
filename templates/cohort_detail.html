@@ -50,7 +50,7 @@
         </form>
       </td>
       <td>
-        {% if e.questionnaire_completed_at %}<span class="badge good">✓ {{ e.questionnaire_completed_at }}</span>
+        {% if e.questionnaire_completed_at %}<span class="badge good">✓ {{ e.questionnaire_completed_at|fdate }}</span>
         {% else %}
         <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
           <button class="btn secondary" name="questionnaire_done" value="1" type="submit">Mark done</button>
@@ -58,7 +58,7 @@
         {% endif %}
       </td>
       <td>
-        {% if e.payment_completed_at %}<span class="badge good">✓ {{ e.payment_completed_at }}</span>
+        {% if e.payment_completed_at %}<span class="badge good">✓ {{ e.payment_completed_at|fdate }}</span>
         {% else %}
         <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
           <button class="btn secondary" name="payment_done" value="1" type="submit">Mark paid</button>

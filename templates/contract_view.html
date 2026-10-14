@@ -7,7 +7,7 @@
 <h3>Revision history</h3>
 {% for r in revisions %}
 <div class="card">
-  <p class="muted" style="margin-top:0">{{ r.revised_at }}{% if r.context %} &middot; {{ r.context }}{% endif %}</p>
+  <p class="muted" style="margin-top:0">{{ r.revised_at|fdate }}{% if r.context %} &middot; {{ r.context }}{% endif %}</p>
   <div style="white-space:pre-wrap">{{ r.text }}</div>
 </div>
 {% else %}

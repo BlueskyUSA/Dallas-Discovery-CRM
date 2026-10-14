@@ -1,8 +1,8 @@
 {% extends "crm_base.html" %}
-{% block title %}Relationship Profile — {{ enrollment.full_name }} — {{ program_name }} CRM{% endblock %}
+{% block title %}Relationship Profile — {{ enrollment.full_name }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <h1>Relationship profile</h1>
-<p class="muted">{{ enrollment.full_name }} &middot; {{ enrollment.code }} #{{ enrollment.session_number }} &middot; {{ enrollment.session_date }}</p>
+<p class="muted">{{ enrollment.full_name }} &middot; {{ enrollment.code }} #{{ enrollment.session_number }} &middot; {{ enrollment.session_date|fdate }}</p>
 
 <div class="card">
   <form method="post">

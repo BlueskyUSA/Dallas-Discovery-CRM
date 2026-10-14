@@ -17,7 +17,7 @@
       <select name="cohort_id" onchange="this.form.submit()">
         <option value="">All sessions</option>
         {% for c in cohorts %}
-        <option value="{{ c.id }}" {{ 'selected' if cohort_id == c.id }}>{{ c.code }} #{{ c.session_number }}{% if c.session_date %} &middot; {{ c.session_date }}{% endif %}</option>
+        <option value="{{ c.id }}" {{ 'selected' if cohort_id == c.id }}>{{ c.code }} #{{ c.session_number }}{% if c.session_date %} &middot; {{ c.session_date|fdate }}{% endif %}</option>
         {% endfor %}
       </select>
     </label>
@@ -37,7 +37,7 @@
       {% for r in rows %}
       <tr>
         <td>{{ r.trainee }}</td>
-        <td>{{ r.program_code }} #{{ r.session_number }}{% if r.session_date %} <span class="muted">&middot; {{ r.session_date }}</span>{% endif %}</td>
+        <td>{{ r.program_code }} #{{ r.session_number }}{% if r.session_date %} <span class="muted">&middot; {{ r.session_date|fdate }}</span>{% endif %}</td>
         <td>
           <input name="pick_{{ r.id }}" list="contact-picks" autocomplete="off" placeholder="— start typing a name —"
                  value="{% if r.enrolled_by_contact_id %}{{ r.brought_name }} [#{{ r.enrolled_by_contact_id }}]{% endif %}"

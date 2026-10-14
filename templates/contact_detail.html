@@ -29,7 +29,7 @@
     at {{ contact.contact_request_phone or contact.cell_phone }}
   {%- endif %}.
   {% if contact.contact_request_note %}<br>Note: {{ contact.contact_request_note }}{% endif %}
-  <br><span class="muted">Requested {{ contact.contact_requested_at[:10] }}</span>
+  <br><span class="muted">Requested {{ contact.contact_requested_at|fdate }}</span>
   <form method="post" action="{{ url_for('.contact_request_resolve', contact_id=contact.id) }}" class="inline" style="margin-top:8px">
     <button class="btn secondary" type="submit">Mark followed up</button>
   </form>
@@ -97,7 +97,7 @@
     and the help we still need. It goes out immediately.
   </p>
   <p style="margin-top:0">
-    {% if contact.business_plan_sent_at %}Last sent: <strong>{{ contact.business_plan_sent_at }}</strong>{% else %}<span class="muted">Not sent yet.</span>{% endif %}
+    {% if contact.business_plan_sent_at %}Last sent: <strong>{{ contact.business_plan_sent_at|fdate }}</strong>{% else %}<span class="muted">Not sent yet.</span>{% endif %}
   </p>
   {% if contact.email %}
   <form method="post" action="{{ url_for('.contact_send_business_plan', contact_id=contact.id) }}"
@@ -118,7 +118,7 @@
     Upon completion of each training, automatically emails {{ contact.full_name }} a letter asking, as a favor,
     to type in their own Contract, Stretch Song, Poem and the rest, to save Discovery staff time.
     {% if auto_letters_on %}Automatic sending is <strong>on</strong>.{% else %}Automatic sending is currently <strong>off</strong>.{% endif %}
-    {% if letters_sent %}Already sent: {% for l in letters_sent %}{{ l.program_code }} ({{ l.sent_at[:10] }}){% if not loop.last %}, {% endif %}{% endfor %}.{% endif %}
+    {% if letters_sent %}Already sent: {% for l in letters_sent %}{{ l.program_code }} ({{ l.sent_at|fdate }}){% if not loop.last %}, {% endif %}{% endfor %}.{% endif %}
     The button below sends one right now.
   </p>
   {% if contact.email %}

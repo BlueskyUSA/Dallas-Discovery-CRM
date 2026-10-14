@@ -10,7 +10,7 @@
     <tr><th>Date</th><th>Donor</th><th>Amount</th><th>Fund</th><th>Method</th></tr>
     {% for d in donations %}
     <tr>
-      <td>{{ d.donation_date }}</td>
+      <td>{{ d.donation_date|fdate }}</td>
       <td><a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a></td>
       <td>${{ '%.2f'|format(d.amount) }}</td>
       <td>{{ d.fund }}</td>

@@ -9,7 +9,7 @@
     <p class="lead">We couldn't find that feedback link. Please double-check the link you were sent, or reach out to us if you think this is a mistake.</p>
 
     {% elif already_submitted %}
-    <p class="lead">Thanks again -- we already have your feedback for {{ enr.code }} #{{ enr.session_number }} on {{ enr.session_date }}. We appreciate you taking the time.</p>
+    <p class="lead">Thanks again -- we already have your feedback for {{ enr.code }} #{{ enr.session_number }} on {{ enr.session_date|fdate }}. We appreciate you taking the time.</p>
 
     {% else %}
     <p class="lead">
@@ -18,7 +18,7 @@
       work. This form is read only by {{ program_name }} leadership &mdash; your responses
       are confidential and will not be shared with your TA, or other trainees.
     </p>
-    <p class="muted" style="margin-bottom:28px">{{ enr.code }} &mdash; {{ enr.program_name }} &middot; Session #{{ enr.session_number }} &middot; {{ enr.session_date }}</p>
+    <p class="muted" style="margin-bottom:28px">{{ enr.code }} &mdash; {{ enr.program_name }} &middot; Session #{{ enr.session_number }} &middot; {{ enr.session_date|fdate }}</p>
 
     <form class="pub-form" method="post" style="max-width:none">
       <h3 style="font-family:var(--pub-font-display); color:var(--pub-text); margin:28px 0 12px">Your Facilitator</h3>

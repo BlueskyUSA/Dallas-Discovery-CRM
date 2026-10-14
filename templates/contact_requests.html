@@ -24,7 +24,7 @@
         {% endif %}
       </td>
       <td class="muted">{{ c.contact_request_note or '' }}</td>
-      <td class="muted">{{ c.contact_requested_at[:10] if c.contact_requested_at else '' }}</td>
+      <td class="muted">{{ c.contact_requested_at|fdate if c.contact_requested_at else '' }}</td>
       <td>
         <form method="post" action="{{ url_for('.contact_request_resolve', contact_id=c.id) }}" class="inline">
           <button class="btn secondary" type="submit">Mark followed up</button>

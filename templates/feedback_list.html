@@ -15,13 +15,13 @@
     {% set r = item.row %}
     <tr>
       <td>{{ r.full_name }}</td>
-      <td>{{ r.code }} #{{ r.session_number }} &middot; {{ r.session_date }}</td>
+      <td>{{ r.code }} #{{ r.session_number }} &middot; {{ r.session_date|fdate }}</td>
       <td>{{ item.facilitators }}</td>
       <td>{{ item.tas }}</td>
       <td>{{ r.facilitator_clear }} / {{ r.facilitator_safe }} / {{ r.facilitator_responsive }}</td>
       <td>{{ r.ta_safe }} / {{ r.ta_focused }} / {{ r.ta_individual_attention }}</td>
       <td>{{ r.practical_tools }} / {{ r.emotionally_safe }} / {{ r.would_recommend }} / {{ r.future_training_likelihood }}</td>
-      <td>{{ r.submitted_at }}</td>
+      <td>{{ r.submitted_at|fdate }}</td>
     </tr>
     {% if r.facilitator_did_well or r.facilitator_could_improve or r.ta_did_well or r.ta_could_improve or r.uncomfortable_notes or r.other_comments %}
     <tr>

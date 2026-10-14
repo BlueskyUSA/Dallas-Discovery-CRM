@@ -60,7 +60,7 @@
             <button class="btn secondary" type="submit">Save session</button>
           </form>
           <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
-                onsubmit='return confirm({{ ("Delete the session " ~ p.code ~ " #" ~ c.session_number ~ " (" ~ c.session_date ~ ")? Only this one session is removed, not the " ~ p.code ~ " program. A session with enrolled people or staff can\'t be deleted -- set it to Cancelled instead.")|tojson }});'>
+                onsubmit='return confirm({{ ("Delete the session " ~ p.code ~ " #" ~ c.session_number ~ " (" ~ (c.session_date|fdate) ~ ")? Only this one session is removed, not the " ~ p.code ~ " program. A session with enrolled people or staff can\'t be deleted -- set it to Cancelled instead.")|tojson }});'>
             <input type="hidden" name="back" value="programs">
             <button class="btn danger" type="submit">Delete {{ p.code }} #{{ c.session_number }}</button>
           </form>
@@ -110,7 +110,7 @@
 // Guide the scheduling steps: fill "last day" from the usual length, show a plain-English preview,
 // and keep the button off until a first day is picked.
 var HOLIDAYS = {{ holiday_map|tojson }};
-var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONTHS = ['Jan.','Feb.','Mar.','Apr.','May','June','July','Aug.','Sept.','Oct.','Nov.','Dec.'];
 function pretty(v) { var p = v.split('-').map(Number); return MONTHS[p[1] - 1] + ' ' + p[2] + ', ' + p[0]; }
 document.querySelectorAll('.sched-form').forEach(function (f) {
   var start = f.querySelector('[name=session_date]');
