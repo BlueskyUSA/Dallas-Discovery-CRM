@@ -130,12 +130,18 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
       var iso = c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
       if (HOLIDAYS[iso]) { hits.push(HOLIDAYS[iso] + ' (' + MONTHS[c.getMonth()] + ' ' + c.getDate() + ')'); }
     }
-    if (hits.length) { warn += ' Holiday on these dates: ' + hits.join(', ') + '.'; }
+    var holidayNote = hits.length ? ' Holiday on these dates: ' + hits.join(', ') + '.' : '';
     prev.innerHTML = '';
     var strong = document.createElement('strong');
     strong.textContent = label + ' will be scheduled for ' + when + '.';
     prev.appendChild(strong);
     prev.appendChild(document.createTextNode(' Not saved yet \u2014 click \u201c' + f.dataset.btn + '\u201d to save it.' + warn));
+    if (holidayNote) {
+      var red = document.createElement('strong');
+      red.style.color = '#b3261e';
+      red.textContent = holidayNote;
+      prev.appendChild(red);
+    }
   }
   end.addEventListener('change', function () { touched = true; refresh(); });
   start.addEventListener('change', function () {
