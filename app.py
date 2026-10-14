@@ -597,6 +597,8 @@ def _login_page(kind):
     title = next(t for k, _, t in LOGIN_PAGES if k == kind)
     return render_template(
         "login.html", next=next_url, page_title=title,
+        # TEMPORARY: the Owner door pre-fills Kent's email. Delete these two lines to undo.
+        prefill_email=(request.form.get("email") or "kent@blueskyusa.net") if kind == "owner" else request.form.get("email", ""),
         logins=[(LOGIN_BUTTON_TEXT[k], url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
     )
 
