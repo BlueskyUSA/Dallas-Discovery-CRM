@@ -1,0 +1,24 @@
+{% extends "crm_base.html" %}
+{% block title %}Preview: {{ spec.title }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}">&larr; Back to the letters</a></p>
+<h1>Preview: {{ spec.title }}</h1>
+<p class="muted">This is the letter as {{ person.first_name or 'the person' }} would receive it. Nothing has been sent.</p>
+<div class="card" style="max-width:720px">
+  <p style="margin:0 0 4px"><span class="muted">To:</span> {{ person.email or '(no email on file)' }}</p>
+  <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ subject }}</strong></p>
+  <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
+  <div style="line-height:1.55">{{ letter_html|safe }}</div>
+</div>
+<form method="post" action="{{ url_for('.session_letter_test', cohort_id=cohort.id, key=key) }}" style="display:inline">
+  <input type="hidden" name="contact_id" value="{{ person.contact_id }}">
+  <button class="btn" type="submit">Send me a test copy</button>
+</form>
+{% if live and person.email %}
+<form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}" style="display:inline; margin-left:8px"
+      onsubmit='return confirm({{ ("Send this letter to " ~ person.first_name ~ " at " ~ person.email ~ " now?")|tojson }});'>
+  <input type="hidden" name="contact_id" value="{{ person.contact_id }}">
+  <button class="btn secondary" type="submit">Send to {{ person.first_name }}</button>
+</form>
+{% endif %}
+{% endblock %}

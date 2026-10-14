@@ -1,0 +1,47 @@
+{% extends "crm_base.html" %}
+{% block title %}Letters — {{ cohort.code }} #{{ cohort.session_number }}{% endblock %}
+{% block content %}
+{% set full_title = cohort.name if cohort.name.startswith(cohort.code) else (cohort.code ~ '-' ~ cohort.name) %}
+<p><a href="{{ url_for('.cohort_detail', cohort_id=cohort.id) }}">&larr; Back to the session</a></p>
+<h1>Letters &mdash; {{ full_title }} (Session # {{ cohort.session_number }})</h1>
+<p class="muted">{{ cohort|date_span }}{% if cohort.location %} &middot; {{ cohort.location }}{% endif %}</p>
+{% if not live %}
+<div class="card" style="border-left:4px solid #b3261e; max-width:760px">
+  <strong style="color:#b3261e">Sending to people is switched off.</strong>
+  You can open any letter with <em>Preview</em> and send a test copy to yourself. Nothing goes to trainees or the team yet.
+</div>
+{% endif %}
+
+{% for key in order %}
+{% set spec = letters[key] %}
+{% set people = recipients[key] %}
+<h2>{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></h2>
+<div class="card">
+  {% if people %}
+  <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
+        onsubmit="return confirm('Send the {{ spec.title }} to every ticked person now?');">
+    <table>
+      <tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>Sent</th><th></th></tr>
+      {% for p in people %}
+      {% set when = sent.get((p.contact_id, key)) %}
+      <tr>
+        <td>{% if p.email and not when %}<input type="checkbox" name="contact_id" value="{{ p.contact_id }}" {{ 'disabled' if not live }}>{% endif %}</td>
+        <td>{{ p.name }}</td>
+        <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
+        <td>{% if when %}<span class="badge good">&#10003; {{ when[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}</td>
+        <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div style="margin-top:10px">
+      <button class="btn" type="submit" {{ 'disabled' if not live }}>Send to ticked people</button>
+      {% if not live %}<span class="muted" style="margin-left:8px">(switched off)</span>{% endif %}
+    </div>
+  </form>
+  {% else %}
+  <p class="muted">No {{ spec.audience|lower }} on this session yet.</p>
+  {% endif %}
+</div>
+{% endfor %}
+<p class="muted">The Support Team does not receive these letters.</p>
+{% endblock %}
