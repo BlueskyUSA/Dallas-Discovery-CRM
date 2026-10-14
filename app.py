@@ -2812,6 +2812,7 @@ def programs_list():
 @crm.route("/programs/<int:program_id>")
 def program_open(program_id):
     """One program: its materials, music, sessions and (for Leadership) scheduling and settings."""
+    _ensure_cohort_location()
     conn = get_db()
     all_programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
     programs = [p for p in all_programs if p["id"] == program_id]
@@ -3511,7 +3512,29 @@ def authorized_users_reset_password(area_key, staff_id):
 # How many days each training normally runs. Used only to pre-fill the "through"
 # date when scheduling a session (staff can always change it). D5 = Refocus,
 # a single Saturday; every other training is a three-day weekend.
-DEFAULT_SESSION_DAYS = {"D5": 1}
+# Programs that normally run on the same weekend, in the same place. Scheduling one of them offers the others.
+WEEKEND_BUNDLE = ["D1", "D2", "D3", "D5"]
+
+_cohort_location_ready = False
+
+
+def _ensure_cohort_location():
+    """The 'location' column on cohorts is added the first time it's needed (no separate migration to run)."""
+    global _cohort_location_ready
+    if _cohort_location_ready:
+        return
+    conn = get_db()
+    try:
+        conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS location TEXT")
+        conn.commit()
+        _cohort_location_ready = True
+    except Exception as e:
+        print(f"Couldn't add cohorts.location: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+DEFAULT_SESSION_DAYS = {"D5": 2}
 DEFAULT_SESSION_DAYS_OTHER = 3
 # Trainings that are normally held on one particular weekday (Python weekday:
 # Monday=0 ... Saturday=5, Sunday=6) -> name shown in a gentle heads-up.
@@ -3564,31 +3587,66 @@ def cohort_new(program_id):
         flash("Pick at least one date. Nothing was saved.")
         return back()
 
+    _ensure_cohort_location()
+    location = (request.form.get("location") or "").strip() or None
+    also_ids = []
+    for raw in request.form.getlist("also"):
+        try:
+            also_ids.append(int(raw))
+        except ValueError:
+            pass
+
     conn = get_db()
-    max_num = conn.execute(
-        "SELECT COALESCE(MAX(session_number), 0) m FROM cohorts WHERE program_id = ?", (program_id,)
-    ).fetchone()["m"]
     code = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()["code"]
+
+    def next_number(pid):
+        return conn.execute(
+            "SELECT COALESCE(MAX(session_number), 0) + 1 AS n FROM cohorts WHERE program_id = ?", (pid,)
+        ).fetchone()["n"]
+
+    def make(pid, pcode, start, end_date):
+        exists = conn.execute(
+            "SELECT 1 FROM cohorts WHERE program_id = ? AND session_date = ?", (pid, start)
+        ).fetchone()
+        if exists:
+            return f"{pcode} already has a session starting {fdate_text(start)} (skipped)"
+        num = next_number(pid)
+        conn.execute(
+            "INSERT INTO cohorts (program_id, session_number, session_date, end_date, location) VALUES (?, ?, ?, ?, ?)",
+            (pid, num, start, end_date, location),
+        )
+        return f"{pcode} #{num} ({_short_span(date.fromisoformat(start), date.fromisoformat(end_date or start))})"
+
+    also_programs = []
+    if also_ids:
+        for r in conn.execute("SELECT id, code FROM programs ORDER BY id").fetchall():
+            if r["id"] in also_ids and r["id"] != program_id and r["code"] in WEEKEND_BUNDLE:
+                also_programs.append(r)
+
     made = []
     for start, end_date in ranges:
-        max_num += 1
-        if end_date:
-            conn.execute(
-                "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
-                (program_id, max_num, start, end_date),
-            )
+        first = date.fromisoformat(start)
+        if code == "D5":
+            # Refocus is Saturday + Sunday, so the weekend's Friday is the day before
+            fri = first - timedelta(days=1)
+            sun = date.fromisoformat(end_date or start) if end_date else first + timedelta(days=1)
         else:
-            conn.execute(
-                "INSERT INTO cohorts (program_id, session_number, session_date) VALUES (?, ?, ?)",
-                (program_id, max_num, start),
-            )
-        made.append(f"{code} #{max_num} ({_short_span(date.fromisoformat(start), date.fromisoformat(end_date or start))})")
+            fri = first
+            sun = date.fromisoformat(end_date) if end_date else first + timedelta(days=DEFAULT_SESSION_DAYS_OTHER - 1)
+        sat = fri + timedelta(days=1)
+        made.append(make(program_id, code, start, end_date))
+        for ap in also_programs:
+            if ap["code"] == "D5":
+                a_start, a_end = sat.isoformat(), sun.isoformat() if sun > sat else (sat + timedelta(days=1)).isoformat()
+            else:
+                a_start, a_end = fri.isoformat(), sun.isoformat()
+            made.append(make(ap["id"], ap["code"], a_start, a_end))
     conn.commit()
     conn.close()
     if len(made) == 1:
-        flash(f"Scheduled {made[0].split(' (')[0]} for {made[0].split(' (', 1)[1][:-1]}. It now appears in the {code} list below and on the calendar.")
+        flash(f"Scheduled {made[0]}. It now appears in the list below and on the calendar.")
     else:
-        flash(f"Scheduled {len(made)} sessions: " + "; ".join(made) + ". They now appear in the list below and on the calendar.")
+        flash(f"Scheduled {len(made)} sessions: " + "; ".join(made) + ". They now appear in the lists and on the calendar.")
     return back()
 
 
@@ -3618,7 +3676,11 @@ def cohort_update_dates(cohort_id):
         flash(date_error)
         return _after_cohort_change(cohort_id)
     status = request.form.get("status")
+    _ensure_cohort_location()
     conn = get_db()
+    if "location" in request.form:
+        conn.execute("UPDATE cohorts SET location = ? WHERE id = ?",
+                     ((request.form.get("location") or "").strip() or None, cohort_id))
     if status in COHORT_STATUSES:
         conn.execute(
             "UPDATE cohorts SET session_date = ?, end_date = ?, status = ? WHERE id = ?",
