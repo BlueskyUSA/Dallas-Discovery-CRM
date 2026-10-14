@@ -93,26 +93,21 @@
         data-weekday-name="{{ usual_weekday[p.code][1] if p.code in usual_weekday else '' }}"
         style="background:#f1f6ef; border:1px solid #b9cfb4; border-radius:8px; padding:12px 14px; margin-top:14px;">
     <div style="font-weight:700; margin-bottom:8px">Schedule a new {{ p.code }} session (it will be {{ p.code }} #{{ next_num }})</div>
-    <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end">
-      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 1.</strong> Click the first day on the calendar below</div>
-        <button type="button" class="btn secondary pick-mode" data-mode="start" style="min-width:150px">First day: <span class="pick-start-txt">not picked</span></button>
-        <input type="hidden" name="session_date"></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 2.</strong> Last day <span>(fills in by itself; to change it, click here, then a day)</span></div>
-        <button type="button" class="btn secondary pick-mode" data-mode="end" style="min-width:150px">Last day: <span class="pick-end-txt">&mdash;</span></button>
-        <input type="hidden" name="end_date"></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 3.</strong> Add it to the list (repeat for more dates)</div>
-        <button type="button" class="btn secondary add-btn" disabled>Add these dates to the list</button></div>
-      <div><div class="muted" style="font-size:0.82rem"><strong style="color:#c0392b">Step 4.</strong> Save everything on the list</div>
-        <button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
+    <div style="font-size:0.9rem; line-height:1.5; margin-bottom:8px">
+      <strong style="color:#c0392b">Step 1.</strong> On the calendar below, click the <strong>first day</strong> of each {{ p.code }} you want to schedule, in any month.
+      The last day fills in by itself. Click a blue day again to take it off. Use the arrows to move to another year.<br>
+      <strong style="color:#c0392b">Step 2.</strong> Check the list, then save them all at once.
     </div>
+    <input type="hidden" name="session_date"><input type="hidden" name="end_date">
+    <div class="batch-list" style="margin:8px 0"></div>
+    <div><button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
     <input type="hidden" name="cal_year" value="{{ pick_cal.year }}">
     <div class="batch-fields"></div>
-    <div class="batch-list" style="margin-top:10px"></div>
-    <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"><span class="muted">Nothing is scheduled until you click the button in Step 4. Start with Step 1.</span></div>
+    <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"></div>
     {% set picker = true %}
     {% set cal = pick_cal %}{% set prev_url = pick_prev %}{% set next_url = pick_next %}{% set today_url = pick_today %}
     <details class="cal-pick" open style="margin-top:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 12px">
-      <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Calendar &mdash; click a day to pick it (holidays are marked)</summary>
+      <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Calendar &mdash; click a day to add a training (holidays are marked)</summary>
       <div style="margin-top:8px">{% include "_calendar_widget.html" %}</div>
     </details>
   </form>
@@ -129,10 +124,7 @@ var HOLIDAYS = {{ holiday_map|tojson }};
 var MONTHS = ['Jan.','Feb.','Mar.','Apr.','May','June','July','Aug.','Sept.','Oct.','Nov.','Dec.'];
 function pretty(v) { var p = v.split('-').map(Number); return MONTHS[p[1] - 1] + ' ' + p[2] + ', ' + p[0]; }
 document.querySelectorAll('.sched-form').forEach(function (f) {
-  var start = f.querySelector('[name=session_date]');
-  var end = f.querySelector('[name=end_date]');
   var btn = f.querySelector('.sched-btn');
-  var addBtn = f.querySelector('.add-btn');
   var prev = f.querySelector('.sched-preview');
   var listBox = f.querySelector('.batch-list');
   var fieldsBox = f.querySelector('.batch-fields');
@@ -143,8 +135,7 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
   var plural = baseLabel.replace(/^Schedule a /, '');
   var storeKey = 'sched-queue-' + code;
   var queue = [];                                      // [{s: 'YYYY-MM-DD', e: 'YYYY-MM-DD' or ''}]
-  var touched = false;
-  var mode = 'start';
+  var editing = null;                                  // the queue item whose last day is being changed
   try { queue = JSON.parse(sessionStorage.getItem(storeKey) || '[]'); } catch (x) { queue = []; }
   if (!Array.isArray(queue)) { queue = []; }
   function save() { try { sessionStorage.setItem(storeKey, JSON.stringify(queue)); } catch (x) {} }
@@ -160,6 +151,7 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
   }
   function rangeText(s, e) { return pretty(s) + (e && e !== s ? ' to ' + pretty(e) : ''); }
   function sorted() { return queue.slice().sort(function (a, b) { return a.s < b.s ? -1 : (a.s > b.s ? 1 : 0); }); }
+  function span(it) { return it.e || it.s; }
 
   function renderQueue() {
     listBox.innerHTML = ''; fieldsBox.innerHTML = '';
@@ -172,15 +164,26 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
     }
     q.forEach(function (item, i) {
       var row = document.createElement('div');
-      row.style.margin = '3px 0';
+      row.style.margin = '4px 0';
       var strong = document.createElement('strong');
       strong.textContent = code + ' #' + (nextNum + i) + '  ' + rangeText(item.s, item.e);
       row.appendChild(strong);
+      var p = item.s.split('-').map(Number);
+      var dt = new Date(p[0], p[1] - 1, p[2]);
+      if (f.dataset.weekday !== '' && dt.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
+        var w = document.createElement('span'); w.className = 'muted'; w.textContent = '  (not a ' + f.dataset.weekdayName + ')'; row.appendChild(w);
+      }
       var hol = holidayText(item.s, item.e);
       if (hol) { var r = document.createElement('span'); r.style.color = '#b3261e'; r.style.fontWeight = '700'; r.textContent = '  ' + hol; row.appendChild(r); }
+      var ch = document.createElement('button');
+      ch.type = 'button'; ch.className = 'btn secondary'; ch.style.marginLeft = '10px'; ch.style.padding = '1px 8px';
+      ch.textContent = editing === item ? 'Now click the new last day…' : 'Change last day';
+      if (editing === item) { ch.style.outline = '3px solid #2f6fb5'; }
+      ch.addEventListener('click', function () { editing = editing === item ? null : item; renderQueue(); refresh(); });
+      row.appendChild(ch);
       var rm = document.createElement('button');
-      rm.type = 'button'; rm.className = 'btn secondary'; rm.style.marginLeft = '10px'; rm.style.padding = '1px 8px'; rm.textContent = 'Remove';
-      rm.addEventListener('click', function () { queue = queue.filter(function (x) { return x !== item; }); save(); renderQueue(); refresh(); });
+      rm.type = 'button'; rm.className = 'btn secondary'; rm.style.marginLeft = '6px'; rm.style.padding = '1px 8px'; rm.textContent = 'Remove';
+      rm.addEventListener('click', function () { queue = queue.filter(function (x) { return x !== item; }); if (editing === item) { editing = null; } save(); renderQueue(); refresh(); });
       row.appendChild(rm);
       listBox.appendChild(row);
       ['batch_start', 'batch_end'].forEach(function (nm, k) {
@@ -191,70 +194,44 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
   }
 
   function paint() {
-    f.querySelector('.pick-start-txt').textContent = start.value ? pretty(start.value) : 'not picked';
-    f.querySelector('.pick-end-txt').textContent = end.value ? pretty(end.value) : '—';
-    f.querySelectorAll('.pick-mode').forEach(function (b) { b.style.outline = b.dataset.mode === mode ? '3px solid #2f6fb5' : 'none'; });
-    var lo = start.value, hi = end.value || start.value;
     f.querySelectorAll('[data-date]').forEach(function (el) {
       var dt = el.dataset.date;
-      var on = (lo && dt >= lo && dt <= hi) || queue.some(function (x) { return dt >= x.s && dt <= (x.e || x.s); });
-      el.classList.toggle('picked', !!on);
+      el.classList.toggle('picked', queue.some(function (x) { return dt >= x.s && dt <= span(x); }));
     });
   }
 
   function refresh() {
-    var n = queue.length + (start.value ? 1 : 0);
-    addBtn.disabled = !start.value;
+    var n = queue.length;
     btn.disabled = n === 0;
     btn.textContent = n > 1 ? ('Schedule ' + n + ' ' + plural + 's') : baseLabel;
-    prev.innerHTML = '';
-    if (start.value) {
-      var when = rangeText(start.value, end.value);
-      var strong = document.createElement('strong');
-      strong.textContent = code + ' will be scheduled for ' + when + '.';
-      prev.appendChild(strong);
-      var warn = '';
-      var p = start.value.split('-').map(Number);
-      var d = new Date(p[0], p[1] - 1, p[2]);
-      if (f.dataset.weekday !== '' && d.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
-        warn = ' Heads-up: this is not a ' + f.dataset.weekdayName + '. Fine if that is intended.';
-      }
-      prev.appendChild(document.createTextNode(' Not saved yet — click “Add these dates to the list” to keep adding, or “' + btn.textContent + '” to save.' + warn));
-      var hol = holidayText(start.value, end.value);
-      if (hol) { var red = document.createElement('strong'); red.style.color = '#b3261e'; red.textContent = ' ' + hol; prev.appendChild(red); }
-    } else if (queue.length) {
-      prev.innerHTML = '<span class="muted">' + queue.length + ' on the list. Pick more dates, or click “' + btn.textContent + '” to save them all.</span>';
+    if (editing) {
+      prev.innerHTML = '<strong>Click the new last day on the calendar for ' + rangeText(editing.s, editing.e) + '.</strong>';
+    } else if (n) {
+      prev.innerHTML = '<span class="muted">Nothing is saved until you click “' + btn.textContent + '”. Keep clicking first days to add more.</span>';
     } else {
-      prev.innerHTML = '<span class="muted">Nothing is scheduled until you click the button in Step 4. Start with Step 1.</span>';
+      prev.innerHTML = '<span class="muted">Nothing is scheduled yet. Click a first day on the calendar.</span>';
     }
     paint();
   }
 
-  f.querySelectorAll('.pick-mode').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; refresh(); }); });
   f.querySelectorAll('[data-date]').forEach(function (el) {
     el.addEventListener('click', function (ev) {
       ev.preventDefault();
       var day = el.dataset.date;
-      if (mode === 'end') {
-        if (start.value && day < start.value) { return; }
-        end.value = day; touched = true;
-      } else {
-        start.value = day;
-        if (!touched) {
-          var p = day.split('-').map(Number);
-          end.value = days > 1 ? iso(new Date(p[0], p[1] - 1, p[2] + days - 1)) : '';
-        } else if (end.value && end.value < day) { end.value = day; }
+      if (editing) {                                    // changing one training's last day
+        if (day < editing.s) { return; }
+        editing.e = day === editing.s ? '' : day;
+        editing = null; save(); renderQueue(); refresh(); return;
       }
-      refresh();
+      var hit = queue.filter(function (x) { return day >= x.s && day <= span(x); })[0];
+      if (hit) {                                        // clicking a blue day again takes it off
+        queue = queue.filter(function (x) { return x !== hit; });
+      } else {
+        var p = day.split('-').map(Number);
+        queue.push({ s: day, e: days > 1 ? iso(new Date(p[0], p[1] - 1, p[2] + days - 1)) : '' });
+      }
+      save(); renderQueue(); refresh();
     });
-  });
-  addBtn.addEventListener('click', function () {
-    if (!start.value) { return; }
-    var e = end.value && end.value !== start.value ? end.value : '';
-    if (!queue.some(function (x) { return x.s === start.value && x.e === e; })) { queue.push({ s: start.value, e: e }); }
-    save();
-    start.value = ''; end.value = ''; touched = false; mode = 'start';
-    renderQueue(); refresh();
   });
   f.addEventListener('submit', function () { try { sessionStorage.removeItem(storeKey); } catch (x) {} });
   renderQueue(); refresh();
