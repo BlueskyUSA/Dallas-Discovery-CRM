@@ -184,9 +184,15 @@
   {% if staffing %}
   <table>
     <tr><th>Name</th><th>Role</th><th>Duty</th><th></th></tr>
-    {% for s in staffing %}
-    <tr><td>{{ s.full_name }}{{ req_badge(s.contact_id, TA_MIN if s.role == 'TA' else 0) }}</td><td>{{ s.role }}</td><td>{{ s.duty or '' }}</td>
-      <td>{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=s.id) }}" style="display:inline" onsubmit="return confirm('Remove this person from the session team?');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Remove</button></form>{% endif %}</td></tr>
+    {% for t in staffing %}
+    <tr>
+      <td>{{ t.full_name }}{{ req_badge(t.contact_id, TA_MIN if 'TA' in t.roles else 0) }}</td>
+      <td>{{ t.roles|join(', ') }}</td>
+      <td>
+        {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
+      </td>
+      <td>{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove_person', cohort_id=cohort.id, contact_id=t.contact_id) }}" style="display:inline" onsubmit="return confirm('Remove {{ t.full_name }} from the session team entirely?');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Remove</button></form>{% endif %}</td>
+    </tr>
     {% endfor %}
   </table>
   {% else %}
