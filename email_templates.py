@@ -571,6 +571,58 @@ SESSION_LETTERS = {
         ],
         "signoff": "Warmly,",
     },
+    "seminar_registration": {
+        "title": "Seminar registration",
+        "audience": "Trainees",
+        "subject": "Your registration for {training}",
+        "paras": [
+            "Thank you for registering for {training}, {dates}{where}.",
+            "Your registration is how we hold your place and prepare for you, so please take a moment to make sure "
+            "everything is complete: your questionnaire and your payment.",
+            "If anything needs to change, or you have any questions, just reply to this email.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "payment_reminder": {
+        "title": "Payment reminder",
+        "audience": "Trainees who have not paid",
+        "subject": "A friendly reminder: payment for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to send a friendly reminder that "
+            "we have not yet received your payment.",
+            "Please complete your payment before the training so your place is fully secured. If you have already "
+            "paid, thank you, and please disregard this note.",
+            "If you have any questions, or would like to talk about payment options, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "questionnaire_reminder": {
+        "title": "Questionnaire reminder",
+        "audience": "Trainees who have not completed the questionnaire",
+        "subject": "A friendly reminder: your questionnaire for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to remind you that we have not yet "
+            "received your questionnaire.",
+            "Your answers help us prepare for you, so please complete it before the training. If you have already "
+            "done so, thank you, and please disregard this note.",
+            "If you have any questions, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "what_to_bring": {
+        "title": "What to bring",
+        "audience": "Trainees",
+        "subject": "What to bring to {training}",
+        "paras": [
+            "{training} begins soon, {dates}{where}. Here is what to bring so you are comfortable and ready:",
+            "[Kent: list the items to bring here, for example: comfortable clothing, a notebook and pen, "
+            "a water bottle, any medications you need.]",
+            "Please arrive a little early so we can begin on time. If you have any questions, reply to this email.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
     "facilitator_confirm": {
         "title": "Facilitator confirmation",
         "audience": "Facilitators",
@@ -611,7 +663,8 @@ SESSION_LETTERS = {
         "signoff": "With gratitude,",
     },
 }
-SESSION_LETTER_ORDER = ["trainee_confirm", "facilitator_confirm", "ta_confirm", "backup_confirm"]
+SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_reminder", "questionnaire_reminder", "what_to_bring"]
+SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
 def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None):

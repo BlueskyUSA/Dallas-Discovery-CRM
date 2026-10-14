@@ -15,7 +15,7 @@ from seed import seed
 from config import PROGRAM_NAME
 from email_utils import send_email, EmailSendError
 from email_templates import (
-    SESSION_LETTERS, SESSION_LETTER_ORDER, session_letter_content,
+    SESSION_LETTERS, SESSION_LETTER_ORDER, SESSION_TRAINEE_LETTERS, session_letter_content,
     longform_followup_content,
     LONGFORM_FOLLOWUP_SUBJECT,
     interested_party_welcome_content,
@@ -4188,11 +4188,18 @@ def _session_letter_recipients(conn, cohort_id):
     the highest: Facilitator, then TA, then Back-up TA."""
     out = {k: [] for k in SESSION_LETTER_ORDER}
     for r in conn.execute(
-        f"""SELECT ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name
+        f"""SELECT ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name,
+                   e.questionnaire_completed_at AS q_at, e.payment_completed_at AS p_at
             FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
             WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""", (cohort_id,)).fetchall():
-        out["trainee_confirm"].append({"contact_id": r["contact_id"], "name": r["name"], "first_name": r["first_name"],
-                                       "email": r["email"], "roles": [], "duties": []})
+        person = {"contact_id": r["contact_id"], "name": r["name"], "first_name": r["first_name"],
+                  "email": r["email"], "roles": [], "duties": []}
+        for k in SESSION_TRAINEE_LETTERS:
+            if k == "payment_reminder" and r["p_at"]:
+                continue
+            if k == "questionnaire_reminder" and r["q_at"]:
+                continue
+            out[k].append(person)
     people = {}
     for r in conn.execute(
         f"""SELECT cs.role, cs.duty, ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name
@@ -4245,7 +4252,7 @@ def session_letters(cohort_id):
     sent = {(r["contact_id"], r["letter_key"]): r["sent_at"] for r in conn.execute(
         "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
     conn.close()
-    return render_template("session_letters.html", cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER,
+    return render_template("session_letters.html", cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
                            recipients=recipients, sent=sent, live=_session_letters_live())
 
 
