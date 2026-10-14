@@ -11,8 +11,6 @@
     <a class="brand" href="{{ url_for('.dashboard') }}">{{ program_name }} <span class="muted" style="color:#e6e2d0; font-weight:400; font-size:0.75rem;">ERP</span></a>
     <nav>
       {% if session.staff_id %}
-      <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
-         onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       <a href="{{ url_for('.dashboard') }}">Dashboard</a>
       <a href="{{ url_for('.mission_page') }}">Mission</a>
       {% if session.is_owner %}
@@ -50,6 +48,8 @@
         &middot; <a href="{{ url_for('.change_password') }}">Change password</a>
         &middot; <a href="{{ url_for('.logout') }}">Log out</a>
       </span>
+      <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
+         onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       {% endif %}
     </nav>
   </header>
