@@ -101,6 +101,7 @@
 <script>
 // Guide the scheduling steps: fill "last day" from the usual length, show a plain-English preview,
 // and keep the button off until a first day is picked.
+var HOLIDAYS = {{ holiday_map|tojson }};
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function pretty(v) { var p = v.split('-').map(Number); return MONTHS[p[1] - 1] + ' ' + p[2] + ', ' + p[0]; }
 document.querySelectorAll('.sched-form').forEach(function (f) {
@@ -122,6 +123,14 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
     if (f.dataset.weekday !== '' && d.getDay() !== (parseInt(f.dataset.weekday, 10) + 1) % 7) {
       warn = ' Heads-up: this is not a ' + f.dataset.weekdayName + '. Fine if that is intended.';
     }
+    var hits = [];
+    var last = end.value ? end.value.split('-').map(Number) : p;
+    var stop = new Date(last[0], last[1] - 1, last[2]);
+    for (var c = new Date(d.getTime()); c <= stop && hits.length < 6; c.setDate(c.getDate() + 1)) {
+      var iso = c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
+      if (HOLIDAYS[iso]) { hits.push(HOLIDAYS[iso] + ' (' + MONTHS[c.getMonth()] + ' ' + c.getDate() + ')'); }
+    }
+    if (hits.length) { warn += ' Holiday on these dates: ' + hits.join(', ') + '.'; }
     prev.innerHTML = '';
     var strong = document.createElement('strong');
     strong.textContent = label + ' will be scheduled for ' + when + '.';
