@@ -17,6 +17,10 @@
   .cal-day.hol { color:#b3261e; font-weight:700; border:1.5px solid #b3261e; line-height:23px; }
   .cal-hols { margin:6px 0 0; font-size:0.74rem; color:var(--cc-muted); line-height:1.35; }
   .cal-hols b { color:#b3261e; }
+  .cal-hols .j, .cal-hols .j b { color:#1f5fa8; }
+  .cal-day.holj { color:#1f5fa8; font-weight:700; border:1.5px solid #1f5fa8; line-height:23px; }
+  .cal-day.picked { box-shadow:0 0 0 3px #2f6fb5 inset; background:#dbe8f7; color:#123a66; }
+  .cal-day.ev.picked { box-shadow:0 0 0 3px #2f6fb5; }
   .cal-day.today { outline:2px solid var(--cc-accent); }
   .cal-day.ev { color:#fff; font-weight:700; text-decoration:none; text-shadow:0 0 2px rgba(0,0,0,0.35); }
   .cal-legend { display:flex; gap:14px; flex-wrap:wrap; margin:6px 0; font-size:0.85rem; }
@@ -37,7 +41,8 @@
     <a class="cal-nav" href="{{ today_url }}">This year</a>
   </div>
   <div class="cal-legend">
-    <span><span class="dot" style="background:#fff; border:1.5px solid #b3261e"></span>Holiday</span>
+    <span><span class="dot" style="background:#fff; border:1.5px solid #b3261e"></span>US &amp; Christian holiday</span>
+    <span><span class="dot" style="background:#fff; border:1.5px solid #1f5fa8"></span>Jewish holiday (begins at sundown the evening before)</span>
   {% if cal.codes %}
     {% for c in cal.codes %}<span><span class="dot" style="background:{{ cal.colors.get(c, '#777') }}"></span>{{ c }}{% if cal.public and cal.names.get(c) and cal.names[c] != c %} &mdash; {{ cal.names[c] }}{% endif %}</span>{% endfor %}
   {% endif %}
@@ -55,11 +60,11 @@
           <td>
             {% if d %}
               {% if d.sessions %}
-                {% if d.href %}<a class="cal-day ev" href="{{ d.href }}"{% else %}<span class="cal-day ev"{% endif %}
+                {% if d.href %}<a class="cal-day ev" href="{{ d.href }}" data-date="{{ d.iso }}"{% else %}<span class="cal-day ev"{% endif %} data-date="{{ d.iso }}"
                    style="background:{{ d.bg }};border-radius:{{ '7px' if d.multi_day else '50%' }}{{ ';opacity:0.45' if d.cancelled }}"
                    title="{{ d.title }}">{{ d.day }}{% if d.href %}</a>{% else %}</span>{% endif %}
               {% else %}
-                <span class="cal-day{{ ' today' if d.today }}{{ ' hol' if d.holiday }}"{% if d.holiday %} title="{{ d.holiday }}"{% endif %}>{{ d.day }}</span>
+                <span data-date="{{ d.iso }}" class="cal-day{{ ' today' if d.today }}{{ (' holj' if d.hkind == 'jewish' else ' hol') if d.holiday }}"{% if d.holiday %} title="{{ d.holiday }}"{% endif %}>{{ d.day }}</span>
               {% endif %}
             {% endif %}
           </td>
@@ -67,7 +72,7 @@
         </tr>
         {% endfor %}
       </table>
-      {% if m.holidays %}<div class="cal-hols">{% for day, name in m.holidays %}<b>{{ day }}</b> {{ name }}{% if not loop.last %} &middot; {% endif %}{% endfor %}</div>{% endif %}
+      {% if m.holidays %}<div class="cal-hols">{% for day, name, kind in m.holidays %}<span class="{{ 'j' if kind == 'jewish' }}"><b>{{ day }}</b> {{ name }}</span>{% if not loop.last %} &middot; {% endif %}{% endfor %}</div>{% endif %}
       <div class="cal-opens">
         {% for g in m.opens %}
         <div class="row"><span class="when">{{ g.label }}</span>
@@ -79,6 +84,7 @@
     {% endfor %}
   </div>
 
+  {% if not picker %}
   <h3 style="margin:18px 0 8px">Weekends in {{ cal.year }}</h3>
   <table class="cal-weekends">
     <tr><th>Starts</th><th>Training running that weekend</th></tr>
@@ -95,4 +101,5 @@
     <tr><td colspan="2" style="color:var(--cc-muted)">No sessions scheduled in {{ cal.year }} yet.</td></tr>
     {% endfor %}
   </table>
+  {% endif %}
 </div>
