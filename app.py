@@ -615,13 +615,20 @@ LOGIN_PAGES = [
 ]
 
 
+def _clean_next(n):
+    """Never send someone back to the logout page after they sign in (it would sign them straight out)."""
+    if n and n.rstrip("/").endswith("/logout"):
+        return None
+    return n
+
+
 def _login_page(kind):
     """One sign-in page per door (Team, Leadership, Professional Team, Owner).
     All four check the same accounts -- the email and password are the security;
     the page just tells people which door is theirs."""
     if session.get("staff_id"):
         return redirect(url_for(".dashboard"))
-    next_url = request.form.get("next") or request.args.get("next") or url_for(".dashboard")
+    next_url = _clean_next(request.form.get("next") or request.args.get("next")) or url_for(".dashboard")
     if request.method == "POST":
         result = _attempt_login(next_url, kind)
         if result:
@@ -652,7 +659,7 @@ def login():
         return redirect(url_for(".dashboard"))
     if request.method == "POST":
         return _login_page("team")
-    next_url = request.args.get("next")
+    next_url = _clean_next(request.args.get("next"))
     logins = [
         (LOGIN_BUTTON_TEXT[k], url_for("." + ep, next=next_url) if next_url else url_for("." + ep))
         for k, ep, t in LOGIN_PAGES
@@ -3801,11 +3808,59 @@ def cohort_delete(cohort_id):
     return redirect(url_for(".programs_list"))
 
 
+def _norm_name(s):
+    import re as _re
+    return " ".join(_re.sub(r"[^a-z0-9 ]", " ", (s or "").lower()).split())
+
+
+def _auto_link_couples(conn, cohort_id):
+    """Joins trainees of this session whose long form names the other as their partner (by email, or by name).
+    Only links people who aren't linked yet, and only when the match is unambiguous. Shares an existing payment."""
+    rows = conn.execute(
+        f"""SELECT e.id AS eid, e.partner_enrollment_id AS pe, e.payment_completed_at AS paid,
+                   ct.first_name, ct.last_name, ct.email, ct.partner_name, ct.partner_email,
+                   {full_name_sql('ct')} AS full_name
+            FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id WHERE e.cohort_id = ?""", (cohort_id,)).fetchall()
+    free = [r for r in rows if not r["pe"]]
+    linked = set()
+    for a in free:
+        if a["eid"] in linked or not (a["partner_name"] or a["partner_email"]):
+            continue
+        others = [b for b in free if b["eid"] != a["eid"] and b["eid"] not in linked]
+        pick = None
+        pe = (a["partner_email"] or "").strip().lower()
+        if pe:
+            hits = [b for b in others if (b["email"] or "").strip().lower() == pe]
+            if len(hits) == 1:
+                pick = hits[0]
+        if not pick and a["partner_name"]:
+            pn = _norm_name(a["partner_name"])
+            hits = [b for b in others if _norm_name(b["full_name"]) == pn]
+            if not hits and len(pn.split()) == 1:
+                hits = [b for b in others if _norm_name(b["first_name"]) == pn]
+            if len(hits) == 1:
+                pick = hits[0]
+        if pick:
+            conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (pick["eid"], a["eid"]))
+            conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (a["eid"], pick["eid"]))
+            paid = a["paid"] or pick["paid"]
+            if paid:
+                conn.execute("UPDATE enrollments SET payment_completed_at = ? WHERE id IN (?, ?)", (paid, a["eid"], pick["eid"]))
+            linked.update((a["eid"], pick["eid"]))
+    if linked:
+        conn.commit()
+
+
 @crm.route("/cohorts/<int:cohort_id>")
 @area_required("contacts")
 def cohort_detail(cohort_id):
     _ensure_enrollment_extras()
     conn = get_db()
+    try:
+        _auto_link_couples(conn, cohort_id)
+    except Exception as e:
+        conn.rollback()
+        print(f"auto-link couples skipped: {e}", flush=True)
     cohort = conn.execute(
         """SELECT c.*, p.code, p.name, p.id AS program_id FROM cohorts c
            JOIN programs p ON p.id = c.program_id WHERE c.id = ?""",
@@ -4245,6 +4300,11 @@ def _session_letter_recipients(conn, cohort_id):
     Support Team is deliberately not included. A person with several roles gets one letter,
     the highest: Facilitator, then TA, then Back-up TA."""
     _ensure_enrollment_extras()
+    try:
+        _auto_link_couples(conn, cohort_id)
+    except Exception as e:
+        conn.rollback()
+        print(f"auto-link couples skipped: {e}", flush=True)
     out = {k: [] for k in SESSION_LETTER_ORDER}
     rows = conn.execute(
         f"""SELECT e.id AS enrollment_id, e.partner_enrollment_id AS partner_eid,
