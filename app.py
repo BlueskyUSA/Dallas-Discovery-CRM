@@ -3899,7 +3899,7 @@ def cohort_detail(cohort_id):
     roster = ordered
     small_groups = conn.execute("SELECT * FROM small_groups WHERE cohort_id = ? ORDER BY label", (cohort_id,)).fetchall()
     staffing = conn.execute(
-        f"""SELECT cs.*, {full_name_sql('ct')} AS full_name
+        f"""SELECT cs.*, {full_name_sql('ct')} AS full_name, ct.cell_phone AS cell
            FROM cohort_staffing cs
            JOIN contacts ct ON ct.id = cs.contact_id WHERE cs.cohort_id = ?""",
         (cohort_id,),
@@ -3920,6 +3920,7 @@ def cohort_detail(cohort_id):
         team.append({
             "contact_id": cid,
             "full_name": rows[0]["full_name"],
+            "cell": rows[0]["cell"],
             "roles": roles,
             "duties": [r for r in rows if r["duty"]],
             "rows": rows,
