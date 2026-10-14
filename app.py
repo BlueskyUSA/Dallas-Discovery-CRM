@@ -3532,31 +3532,64 @@ def _clean_end_date(start, raw_end):
 @crm.route("/programs/<int:program_id>/cohorts/new", methods=["POST"])
 @leadership_required
 def cohort_new(program_id):
+    """Schedules one or several sessions at once. The page can queue many date ranges
+    (batch_start / batch_end, repeated) and also sends the range currently picked
+    (session_date / end_date). Sessions are numbered in date order, continuing from the
+    program's highest number. Nothing is saved if any range is invalid."""
+    cal_year = request.form.get("cal_year", type=int)
+
+    def back():
+        return redirect(url_for(".program_open", program_id=program_id, cal_year=cal_year) if cal_year
+                        else url_for(".program_open", program_id=program_id))
+
+    pairs = list(zip(request.form.getlist("batch_start"), request.form.getlist("batch_end")))
+    one = (request.form.get("session_date") or "").strip()
+    if one:
+        pairs.append((one, request.form.get("end_date") or ""))
+    cleaned = {}
+    for start, raw_end in pairs:
+        start = (start or "").strip()
+        try:
+            date.fromisoformat(start)
+        except ValueError:
+            flash("One of the dates wasn't valid. Nothing was saved.")
+            return back()
+        end_date, date_error = _clean_end_date(start, raw_end)
+        if date_error:
+            flash(date_error)
+            return back()
+        cleaned[(start, end_date)] = True
+    ranges = sorted(cleaned)
+    if not ranges:
+        flash("Pick at least one date. Nothing was saved.")
+        return back()
+
     conn = get_db()
     max_num = conn.execute(
         "SELECT COALESCE(MAX(session_number), 0) m FROM cohorts WHERE program_id = ?", (program_id,)
     ).fetchone()["m"]
-    session_date = request.form["session_date"]
-    end_date, date_error = _clean_end_date(session_date, request.form.get("end_date"))
-    if date_error:
-        conn.close()
-        flash(date_error)
-        return redirect(url_for(".programs_list"))
-    if end_date:
-        conn.execute(
-            "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
-            (program_id, max_num + 1, session_date, end_date),
-        )
-    else:
-        conn.execute(
-            "INSERT INTO cohorts (program_id, session_number, session_date) VALUES (?, ?, ?)",
-            (program_id, max_num + 1, session_date),
-        )
-    conn.commit()
     code = conn.execute("SELECT code FROM programs WHERE id = ?", (program_id,)).fetchone()["code"]
+    made = []
+    for start, end_date in ranges:
+        max_num += 1
+        if end_date:
+            conn.execute(
+                "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
+                (program_id, max_num, start, end_date),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO cohorts (program_id, session_number, session_date) VALUES (?, ?, ?)",
+                (program_id, max_num, start),
+            )
+        made.append(f"{code} #{max_num} ({_short_span(date.fromisoformat(start), date.fromisoformat(end_date or start))})")
+    conn.commit()
     conn.close()
-    flash(f"Scheduled {code} #{max_num + 1} for {_short_span(date.fromisoformat(session_date), date.fromisoformat(end_date or session_date))}. It now appears in the {code} list below and on the calendar.")
-    return redirect(url_for(".program_open", program_id=program_id))
+    if len(made) == 1:
+        flash(f"Scheduled {made[0].split(' (')[0]} for {made[0].split(' (', 1)[1][:-1]}. It now appears in the {code} list below and on the calendar.")
+    else:
+        flash(f"Scheduled {len(made)} sessions: " + "; ".join(made) + ". They now appear in the list below and on the calendar.")
+    return back()
 
 
 COHORT_STATUSES = ["Scheduled", "Completed", "Cancelled"]
