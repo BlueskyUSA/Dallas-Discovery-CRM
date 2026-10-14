@@ -94,26 +94,19 @@
         data-weekday="{{ usual_weekday[p.code][0] if p.code in usual_weekday else '' }}"
         data-weekday-name="{{ usual_weekday[p.code][1] if p.code in usual_weekday else '' }}"
         style="background:#f1f6ef; border:1px solid #b9cfb4; border-radius:8px; padding:12px 14px; margin-top:14px;">
-    <div style="font-weight:700; margin-bottom:8px">Schedule a new {{ p.code }} session (it will be {{ p.code }} #{{ next_num }})</div>
-    <div style="font-size:0.9rem; line-height:1.5; margin-bottom:8px">
-      <strong style="color:#c0392b">Step 1.</strong> On the calendar below, click the <strong>first day</strong> of each {{ p.code }} you want to schedule, in any month.
-      The last day fills in by itself. Click a blue day again to take it off. Use the arrows to move to another year.<br>
-      <strong style="color:#c0392b">Step 2.</strong> Check the list, then click the red <strong>Save</strong> button to save them all at once.
+    <div style="font-weight:700; margin-bottom:6px">Schedule {{ p.code }} sessions</div>
+    <div style="font-size:0.95rem; margin-bottom:8px">Click the <strong>first day</strong> of each {{ p.code }} on the calendar below. Then click the red <strong>Save</strong>.</div>
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px; margin:6px 0">
+      <label style="font-weight:600">Location <input type="text" name="location" placeholder="optional" style="width:200px; font-weight:400"></label>
+      {% if p.code in ['D1','D2','D3','D5'] %}
+      <span style="font-size:0.92rem"><strong>Also schedule:</strong>
+        {% for q in all_programs if q.code in ['D1','D2','D3','D5'] and q.id != p.id %}
+        <label style="margin-left:10px; white-space:nowrap; font-weight:400"><input type="checkbox" name="also" value="{{ q.id }}" checked> {{ q.code }}</label>
+        {% endfor %}
+      </span>
+      {% endif %}
     </div>
     <input type="hidden" name="session_date"><input type="hidden" name="end_date">
-    <div style="margin:6px 0">
-      <label style="font-weight:600">Location <span class="muted" style="font-weight:400">(optional)</span>
-        <input type="text" name="location" placeholder="e.g. venue or city" style="width:260px"></label>
-    </div>
-    {% if p.code in ['D1','D2','D3','D5'] %}
-    <div style="margin:6px 0; padding:8px 10px; background:#fff; border:1px solid var(--border); border-radius:6px; font-size:0.9rem">
-      <strong>Same weekend, same location.</strong> D1, D2, D3 and Refocus are held together. Also schedule:
-      {% for q in all_programs if q.code in ['D1','D2','D3','D5'] and q.id != p.id %}
-      <label style="margin-left:12px; white-space:nowrap"><input type="checkbox" name="also" value="{{ q.id }}" checked> {{ q.code }}{% if q.code == 'D5' %} (Sat &amp; Sun){% endif %}</label>
-      {% endfor %}
-      <div class="muted" style="font-size:0.82rem; margin-top:4px">Each gets its own session number and its own roster. Untick any you don't want this time.</div>
-    </div>
-    {% endif %}
     <div class="batch-list" style="margin:8px 0"></div>
     <input type="hidden" name="cal_year" value="{{ pick_cal.year }}">
     <div class="batch-fields"></div>
@@ -225,9 +218,9 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
     if (editing) {
       prev.innerHTML = '<strong>Click the new last day on the calendar for ' + rangeText(editing.s, editing.e) + '.</strong>';
     } else if (n) {
-      prev.innerHTML = '<span class="muted">Nothing is saved until you click the red Save button. Keep clicking first days to add more.</span>';
+      prev.innerHTML = '';
     } else {
-      prev.innerHTML = '<span class="muted">Nothing is scheduled yet. Click a first day on the calendar.</span>';
+      prev.innerHTML = '';
     }
     paint();
   }
