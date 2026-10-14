@@ -4119,6 +4119,41 @@ SESSION_DUTIES = ["Sound Equipment", "Large Group Leader", "Team Captain", "Micr
                   "Female Runner", "Time Keeper", "Chairs", "Chair Counter", "Troubleshooter / Misc", "Not confirmed"]
 
 
+@crm.route("/cohorts/<int:cohort_id>/team/print")
+@area_required("contacts")
+def cohort_team_print(cohort_id):
+    """Plain, printable Session Team sheet: facilitators first, one line per person."""
+    _ensure_cohort_location()
+    conn = get_db()
+    cohort = conn.execute(
+        """SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?""",
+        (cohort_id,),
+    ).fetchone()
+    if not cohort:
+        conn.close()
+        flash("That session no longer exists.")
+        return redirect(url_for(".programs_list"))
+    rows = conn.execute(
+        f"""SELECT cs.role, cs.duty, ct.id AS contact_id, {full_name_sql('ct')} AS full_name,
+                   ct.cell_phone, ct.email
+            FROM cohort_staffing cs JOIN contacts ct ON ct.id = cs.contact_id
+            WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall()
+    conn.close()
+    rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "TA": 3, "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
+    people = {}
+    for r in rows:
+        p = people.setdefault(r["contact_id"], {"name": r["full_name"], "cell": r["cell_phone"], "email": r["email"],
+                                                  "roles": [], "duties": []})
+        if r["role"] not in p["roles"]:
+            p["roles"].append(r["role"])
+        if r["duty"] and r["duty"] not in p["duties"]:
+            p["duties"].append(r["duty"])
+    team = sorted(people.values(), key=lambda p: (min(rank.get(x, 9) for x in p["roles"]), (p["name"] or "").lower()))
+    for p in team:
+        p["roles"].sort(key=lambda x: rank.get(x, 9))
+    return render_template("team_print.html", cohort=cohort, team=team, printed=date.today().isoformat())
+
+
 @crm.route("/cohorts/<int:cohort_id>/staffing/person/<int:contact_id>/modify", methods=["POST"])
 @area_required("contacts")
 @leadership_required
