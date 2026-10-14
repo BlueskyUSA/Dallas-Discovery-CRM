@@ -191,7 +191,22 @@
       <td>
         {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
       </td>
-      <td>{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove_person', cohort_id=cohort.id, contact_id=t.contact_id) }}" style="display:inline" onsubmit="return confirm('Remove {{ t.full_name }} from the session team entirely?');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Remove</button></form>{% endif %}</td>
+      <td style="min-width:150px">{% if session.is_owner or session.staff_role == 'Leadership' %}
+        <details style="display:inline-block; vertical-align:top">
+          <summary class="btn secondary" style="padding:1px 8px; font-size:0.78rem; cursor:pointer; list-style:none; display:inline-block">Modify</summary>
+          <form method="post" action="{{ url_for('.staffing_modify_person', cohort_id=cohort.id, contact_id=t.contact_id) }}"
+                style="margin-top:6px; padding:8px 10px; background:#fff; border:1px solid var(--border); border-radius:6px; min-width:280px; max-width:420px">
+            <div style="font-weight:700; font-size:0.85rem">Roles</div>
+            {% for r in session_roles %}<label style="display:block; font-weight:400; margin:2px 0"><input type="checkbox" name="role" value="{{ r }}" {{ 'checked' if r in t.roles }}> {{ r }}</label>{% endfor %}
+            <div style="font-weight:700; font-size:0.85rem; margin-top:8px">Duties</div>
+            {% set have = t.duties|map(attribute='duty')|list %}
+            {% for d in session_duties %}<label style="display:inline-block; width:48%; font-weight:400; margin:2px 0"><input type="checkbox" name="duty" value="{{ d }}" {{ 'checked' if d in have }}> {{ d }}</label>{% endfor %}
+            {% for d in have if d not in session_duties %}<label style="display:inline-block; width:48%; font-weight:400; margin:2px 0"><input type="checkbox" name="duty" value="{{ d }}" checked> {{ d }}</label>{% endfor %}
+            <div style="margin-top:6px"><input type="text" name="extra_duty" placeholder="Add another duty (optional)" style="width:100%"></div>
+            <button class="btn" type="submit" style="margin-top:8px">Save</button>
+          </form>
+        </details>
+        <form method="post" action="{{ url_for('.staffing_remove_person', cohort_id=cohort.id, contact_id=t.contact_id) }}" style="display:inline" onsubmit="return confirm('Remove {{ t.full_name }} from the session team entirely?');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Remove</button></form>{% endif %}</td>
     </tr>
     {% endfor %}
   </table>
