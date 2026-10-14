@@ -2809,12 +2809,17 @@ def program_open(program_id):
             "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number DESC", (p["id"],)
         ).fetchall()
     conn.close()
+    cal_year = max(2000, min(2100, request.args.get("cal_year", type=int) or date.today().year))
+    pick_cal = _calendar_data(cal_year, public=False)
     holiday_map = {}
     for y in range(date.today().year - 1, date.today().year + 4):
         for d, (n, _kind) in _holidays_for_year(y)[0].items():
             holiday_map[d.isoformat()] = n
     return render_template(
-        "programs_list.html", holiday_map=holiday_map, programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
+        "programs_list.html", holiday_map=holiday_map, pick_cal=pick_cal,
+        pick_prev=url_for(".program_open", program_id=program_id, cal_year=cal_year - 1) + "#sched",
+        pick_next=url_for(".program_open", program_id=program_id, cal_year=cal_year + 1) + "#sched",
+        pick_today=url_for(".program_open", program_id=program_id) + "#sched", programs=programs, all_programs=all_programs, cohorts_by_program=cohorts_by_program,
         headings_by_program=headings_by_program,
         default_days=lambda code: DEFAULT_SESSION_DAYS.get(code, DEFAULT_SESSION_DAYS_OTHER),
         usual_weekday=USUAL_START_WEEKDAY,
@@ -4279,7 +4284,7 @@ def _calendar_data(year, public=False):
 
     def day_cell(d, m):
         iso = f"{year}-{m:02d}-{d:02d}"
-        cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": [],
+        cell = {"day": d, "iso": iso, "today": iso == date.today().isoformat(), "sessions": [],
                 "holiday": (holidays.get(date(year, m, d)) or (None, None))[0],
                 "hkind": (holidays.get(date(year, m, d)) or (None, None))[1]}
         found = by_day.get(iso, [])
