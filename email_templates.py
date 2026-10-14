@@ -577,10 +577,11 @@ SESSION_LETTERS = {
         "subject": "Your registration for {training}",
         "paras": [
             "Thank you for registering for {training}, {dates}{where}.",
-            "Your registration is how we hold your place and prepare for you, so please take a moment to make sure "
-            "everything is complete: your questionnaire and your payment.",
+            "To complete your registration, please fill out your personal registration form at the link below. "
+            "It covers your contact details, emergency contact and health information, and your answers save as you go.",
+            "{link}",
+            "Each of you will fill out your own form. A separate letter will follow with your questionnaire.",
             "If anything needs to change, or you have any questions, just reply to this email.",
-            "We look forward to seeing you.",
         ],
         "signoff": "Warmly,",
     },
@@ -591,9 +592,22 @@ SESSION_LETTERS = {
         "paras": [
             "We are looking forward to {training}, {dates}{where}, and wanted to send a friendly reminder that "
             "we have not yet received your payment.",
+            "{amount_sentence}",
             "Please complete your payment before the training so your place is fully secured. If you have already "
             "paid, thank you, and please disregard this note.",
             "If you have any questions, or would like to talk about payment options, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "payment_received": {
+        "title": "Payment received",
+        "audience": "Trainees who have paid",
+        "subject": "Payment received for {training}",
+        "paras": [
+            "Thank you! We have received the payment for {training}, {dates}{where}.",
+            "{partner_sentence}",
+            "Your place is secured. If you have any questions, just reply to this email.",
+            "We look forward to seeing you.",
         ],
         "signoff": "Warmly,",
     },
@@ -603,9 +617,10 @@ SESSION_LETTERS = {
         "subject": "A friendly reminder: your questionnaire for {training}",
         "paras": [
             "We are looking forward to {training}, {dates}{where}, and wanted to remind you that we have not yet "
-            "received your questionnaire.",
-            "Your answers help us prepare for you, so please complete it before the training. If you have already "
-            "done so, thank you, and please disregard this note.",
+            "received your questionnaire (see link below).",
+            "Your answers help us prepare for you, so please complete it before the training. It is for you alone, "
+            "so please answer in your own words. If you have already done so, thank you, and please disregard this note.",
+            "{link}",
             "If you have any questions, just reply to this email.",
         ],
         "signoff": "Warmly,",
@@ -663,11 +678,12 @@ SESSION_LETTERS = {
         "signoff": "With gratitude,",
     },
 }
-SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_reminder", "questionnaire_reminder", "what_to_bring"]
+SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
-def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None):
+def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
+                           partner=None, amount=None):
     """(subject, html, text) for one session letter, or None for an unknown key."""
     import html as _html
     spec = SESSION_LETTERS.get(key)
@@ -683,12 +699,19 @@ def session_letter_content(key, first_name, training, dates, location=None, role
         "first": greeting, "training": training, "dates": dates,
         "where": f" at {location}" if location else "",
         "role": role or "a facilitator", "duties": duties_sentence,
+        "link": link or "[their personal link]",
+        "amount_sentence": (f"The training fee is {amount}, and one payment covers both partners."
+                            if amount else ""),
+        "partner_sentence": (f"This payment covers you and {partner}, so you are both all set."
+                             if partner else ""),
     }
     subject = spec["subject"].format(**fill)
-    paras = [p.format(**fill) for p in spec["paras"]]
+    paras = [p for p in (p.format(**fill) for p in spec["paras"]) if p.strip()]
     html_content = (
         f"<p>Dear {_html.escape(greeting)},</p>"
-        + "".join(f"<p>{_html.escape(p)}</p>" for p in paras)
+        + "".join(
+            (f'<p><a href="{_html.escape(link)}">{_html.escape(link)}</a></p>' if (link and p == link)
+             else f"<p>{_html.escape(p)}</p>") for p in paras)
         + f"<p>{_html.escape(spec['signoff'])}<br>Kent Hafemann</p>"
     )
     text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\nKent Hafemann"

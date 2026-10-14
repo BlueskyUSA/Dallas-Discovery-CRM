@@ -3575,6 +3575,26 @@ def _ensure_cohort_location():
         conn.close()
 
 
+_enrollment_extras_ready = False
+
+
+def _ensure_enrollment_extras():
+    """Columns for couples and the self-fill questionnaire, added the first time they're needed."""
+    global _enrollment_extras_ready
+    if _enrollment_extras_ready:
+        return
+    conn = get_db()
+    try:
+        conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
+        conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS questionnaire_token TEXT")
+        conn.commit()
+        _enrollment_extras_ready = True
+    except Exception as e:
+        print(f"Couldn't add enrollment couple/questionnaire columns: {e}", flush=True)
+    finally:
+        conn.close()
+
+
 DEFAULT_SESSION_DAYS = {"D5": 2}
 DEFAULT_SESSION_DAYS_OTHER = 3
 # Trainings that are normally held on one particular weekday (Python weekday:
@@ -3784,6 +3804,7 @@ def cohort_delete(cohort_id):
 @crm.route("/cohorts/<int:cohort_id>")
 @area_required("contacts")
 def cohort_detail(cohort_id):
+    _ensure_enrollment_extras()
     conn = get_db()
     cohort = conn.execute(
         """SELECT c.*, p.code, p.name, p.id AS program_id FROM cohorts c
@@ -3803,6 +3824,7 @@ def cohort_detail(cohort_id):
            WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""",
         (cohort_id,),
     ).fetchall()
+    partner_names = {e["id"]: e["full_name"] for e in roster}
     small_groups = conn.execute("SELECT * FROM small_groups WHERE cohort_id = ? ORDER BY label", (cohort_id,)).fetchall()
     staffing = conn.execute(
         f"""SELECT cs.*, {full_name_sql('ct')} AS full_name
@@ -3858,7 +3880,7 @@ def cohort_detail(cohort_id):
     return render_template(
         "cohort_detail.html",
         cohort=cohort,
-        roster=roster,
+        roster=roster, partner_names=partner_names,
         small_groups=small_groups,
         staffing=staffing,
         show_session_team=_can_see_session_part("session_team"),
@@ -3926,6 +3948,7 @@ def enroll(cohort_id):
 @crm.route("/enrollments/<int:enrollment_id>/update", methods=["POST"])
 @area_required("contacts")
 def enrollment_update(enrollment_id):
+    _ensure_enrollment_extras()
     conn = get_db()
     enr = conn.execute("SELECT * FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
     fields = {}
@@ -3957,7 +3980,42 @@ def enrollment_update(enrollment_id):
         conn.execute(f"UPDATE enrollments SET {set_clause} WHERE id = ?", (*fields.values(), enrollment_id))
         if fields.get("enrolled_by_contact_id"):
             _fill_sponsor_card(conn, enr["contact_id"], fields["enrolled_by_contact_id"])
+        # One payment covers the couple: marking (or undoing) it for one partner does the same for the other.
+        if "payment_completed_at" in fields and enr["partner_enrollment_id"]:
+            conn.execute("UPDATE enrollments SET payment_completed_at = ? WHERE id = ?",
+                         (fields["payment_completed_at"], enr["partner_enrollment_id"]))
         conn.commit()
+    conn.close()
+    return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
+
+
+@crm.route("/enrollments/<int:enrollment_id>/partner", methods=["POST"])
+@area_required("contacts")
+def enrollment_partner(enrollment_id):
+    """Joins two trainees of the same session as a couple (or separates them). Payment is shared."""
+    _ensure_enrollment_extras()
+    conn = get_db()
+    enr = conn.execute("SELECT * FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
+    if not enr:
+        conn.close()
+        abort(404)
+    # separate from the current partner first
+    if enr["partner_enrollment_id"]:
+        conn.execute("UPDATE enrollments SET partner_enrollment_id = NULL WHERE id IN (?, ?)",
+                     (enrollment_id, enr["partner_enrollment_id"]))
+    pid = request.form.get("partner_enrollment_id", type=int)
+    if pid and pid != enrollment_id:
+        other = conn.execute("SELECT * FROM enrollments WHERE id = ? AND cohort_id = ?", (pid, enr["cohort_id"])).fetchone()
+        if other:
+            if other["partner_enrollment_id"]:
+                conn.execute("UPDATE enrollments SET partner_enrollment_id = NULL WHERE id = ?", (other["partner_enrollment_id"],))
+            conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (pid, enrollment_id))
+            conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (enrollment_id, pid))
+            # if one has already paid, the couple has paid
+            paid = enr["payment_completed_at"] or other["payment_completed_at"]
+            if paid:
+                conn.execute("UPDATE enrollments SET payment_completed_at = ? WHERE id IN (?, ?)", (paid, enrollment_id, pid))
+    conn.commit()
     conn.close()
     return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
 
@@ -4186,15 +4244,22 @@ def _session_letter_recipients(conn, cohort_id):
     """{letter_key: [ {contact_id, name, first_name, email, roles, duties}, ... ]}.
     Support Team is deliberately not included. A person with several roles gets one letter,
     the highest: Facilitator, then TA, then Back-up TA."""
+    _ensure_enrollment_extras()
     out = {k: [] for k in SESSION_LETTER_ORDER}
-    for r in conn.execute(
-        f"""SELECT ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name,
+    rows = conn.execute(
+        f"""SELECT e.id AS enrollment_id, e.partner_enrollment_id AS partner_eid,
+                   ct.id AS contact_id, ct.first_name, ct.email, {full_name_sql('ct')} AS name,
                    e.questionnaire_completed_at AS q_at, e.payment_completed_at AS p_at
             FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
-            WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""", (cohort_id,)).fetchall():
-        person = {"contact_id": r["contact_id"], "name": r["name"], "first_name": r["first_name"],
-                  "email": r["email"], "roles": [], "duties": []}
+            WHERE e.cohort_id = ? ORDER BY ct.last_name, ct.first_name""", (cohort_id,)).fetchall()
+    names_by_eid = {r["enrollment_id"]: r["name"] for r in rows}
+    for r in rows:
+        person = {"contact_id": r["contact_id"], "enrollment_id": r["enrollment_id"], "name": r["name"],
+                  "first_name": r["first_name"], "email": r["email"], "roles": [], "duties": [],
+                  "partner_name": names_by_eid.get(r["partner_eid"])}
         for k in SESSION_TRAINEE_LETTERS:
+            if k == "payment_received" and not r["p_at"]:
+                continue
             if k == "payment_reminder" and r["p_at"]:
                 continue
             if k == "questionnaire_reminder" and r["q_at"]:
@@ -4222,13 +4287,55 @@ def _session_letter_recipients(conn, cohort_id):
     return out
 
 
+def _personal_link(contact_id):
+    """The person's private link to the profile form (made once, reused). None for a sample person."""
+    if not contact_id:
+        return None
+    conn = get_db()
+    row = conn.execute("SELECT profile_token FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    token = row["profile_token"] if row else None
+    if row and not token:
+        token = secrets.token_urlsafe(24)
+        conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, contact_id))
+        conn.commit()
+    conn.close()
+    return url_for("public_complete_profile", token=token, _external=True) if token else None
+
+
+def _questionnaire_link(enrollment_id):
+    """The trainee's private link to their own questionnaire (made once, reused). None for a sample person."""
+    if not enrollment_id:
+        return None
+    _ensure_enrollment_extras()
+    conn = get_db()
+    row = conn.execute("SELECT questionnaire_token FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
+    token = row["questionnaire_token"] if row else None
+    if row and not token:
+        token = secrets.token_urlsafe(24)
+        conn.execute("UPDATE enrollments SET questionnaire_token = ? WHERE id = ?", (token, enrollment_id))
+        conn.commit()
+    conn.close()
+    return url_for("public_questionnaire", token=token, _external=True) if token else None
+
+
+def _letter_link(person, key):
+    if key == "questionnaire_reminder":
+        return _questionnaire_link(person.get("enrollment_id"))
+    if key == "seminar_registration":
+        return _personal_link(person["contact_id"])
+    return None
+
+
 def _session_letter_for(cohort, person, key):
     code, name = cohort["code"], cohort["name"]
     training = name if name.startswith(code) else f"{code}-{name}"
     role = "Lead Facilitator" if "Lead Facilitator" in person["roles"] else "Support Facilitator"
     return session_letter_content(
         key, person["first_name"], training, date_span(cohort), cohort["location"] if "location" in cohort.keys() else None,
-        role=role, duties=person["duties"])
+        role=role, duties=person["duties"],
+        link=_letter_link(person, key),
+        partner=person.get("partner_name"),
+        amount=("$1,200 per couple" if code == "D4" else None))
 
 
 def _letter_cohort(conn, cohort_id):
@@ -5140,6 +5247,46 @@ def public_programs():
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
     conn.close()
     return render_template("public_programs.html", programs=programs)
+
+
+@app.route("/questionnaire/<token>", methods=["GET", "POST"])
+def public_questionnaire(token):
+    """Public, no-login page where a trainee answers their own questionnaire. The private link is the key;
+    nobody else (including their partner) can see the answers from here."""
+    _ensure_enrollment_extras()
+    conn = get_db()
+    enr = conn.execute(
+        f"""SELECT e.*, ct.first_name, p.code, p.name AS program_name, c.session_number, c.session_date, c.end_date
+            FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
+            JOIN cohorts c ON c.id = e.cohort_id JOIN programs p ON p.id = c.program_id
+            WHERE e.questionnaire_token = ?""", (token,)).fetchone()
+    if not enr:
+        conn.close()
+        return render_template("public_questionnaire.html", enr=None), 404
+    is_couples = enr["code"] == "D4"
+    fields = RELATIONSHIP_PROFILE_FIELDS if is_couples else COMMON_PROFILE_FIELDS
+    done = False
+    if request.method == "POST":
+        values = [request.form.get(f, "").strip() or None for f in fields]
+        existing = conn.execute("SELECT id FROM training_profiles WHERE enrollment_id = ?", (enr["id"],)).fetchone()
+        if existing:
+            set_clause = ", ".join(f"{f} = ?" for f in fields)
+            conn.execute(f"UPDATE training_profiles SET {set_clause}, updated_at = datetime('now') WHERE enrollment_id = ?",
+                         (*values, enr["id"]))
+        else:
+            conn.execute(f"INSERT INTO training_profiles (enrollment_id, {', '.join(fields)}) "
+                         f"VALUES (?, {', '.join('?' for _ in fields)})", (enr["id"], *values))
+        if request.form.get("submit_done"):
+            conn.execute("UPDATE enrollments SET questionnaire_completed_at = ? WHERE id = ?",
+                         (date.today().isoformat(), enr["id"]))
+            done = True
+        conn.commit()
+    profile = conn.execute("SELECT * FROM training_profiles WHERE enrollment_id = ?", (enr["id"],)).fetchone()
+    conn.close()
+    if not done and enr["questionnaire_completed_at"]:
+        done = True
+    return render_template("public_questionnaire.html", enr=enr, profile=profile, is_couples=is_couples,
+                           done=done, saved=(request.method == "POST" and not done))
 
 
 @app.route("/register", methods=["GET", "POST"])
