@@ -98,7 +98,7 @@
     <div style="font-size:0.9rem; line-height:1.5; margin-bottom:8px">
       <strong style="color:#c0392b">Step 1.</strong> On the calendar below, click the <strong>first day</strong> of each {{ p.code }} you want to schedule, in any month.
       The last day fills in by itself. Click a blue day again to take it off. Use the arrows to move to another year.<br>
-      <strong style="color:#c0392b">Step 2.</strong> Check the list, then save them all at once.
+      <strong style="color:#c0392b">Step 2.</strong> Check the list, then click the red <strong>Save</strong> button to save them all at once.
     </div>
     <input type="hidden" name="session_date"><input type="hidden" name="end_date">
     <div style="margin:6px 0">
@@ -115,7 +115,6 @@
     </div>
     {% endif %}
     <div class="batch-list" style="margin:8px 0"></div>
-    <div><button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
     <input type="hidden" name="cal_year" value="{{ pick_cal.year }}">
     <div class="batch-fields"></div>
     <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"></div>
@@ -139,7 +138,6 @@ var HOLIDAYS = {{ holiday_map|tojson }};
 var MONTHS = ['Jan.','Feb.','Mar.','Apr.','May','June','July','Aug.','Sept.','Oct.','Nov.','Dec.'];
 function pretty(v) { var p = v.split('-').map(Number); return MONTHS[p[1] - 1] + ' ' + p[2] + ', ' + p[0]; }
 document.querySelectorAll('.sched-form').forEach(function (f) {
-  var btn = f.querySelector('.sched-btn');
   var prev = f.querySelector('.sched-preview');
   var listBox = f.querySelector('.batch-list');
   var fieldsBox = f.querySelector('.batch-fields');
@@ -173,8 +171,15 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
     var q = sorted();
     if (q.length) {
       var h = document.createElement('div');
-      h.style.fontWeight = '700'; h.style.marginBottom = '4px';
-      h.textContent = 'On the list, not saved yet (' + q.length + '):';
+      h.style.display = 'flex'; h.style.alignItems = 'center'; h.style.gap = '16px'; h.style.margin = '6px 0 8px';
+      var t = document.createElement('span');
+      t.style.fontWeight = '700'; t.style.fontSize = '1.3rem';
+      t.textContent = 'On the list, not saved yet (' + q.length + '):';
+      h.appendChild(t);
+      var sv = document.createElement('button');
+      sv.type = 'submit'; sv.textContent = 'Save';
+      sv.style.cssText = 'background:#c0392b; color:#fff; border:0; border-radius:8px; padding:8px 28px; font-size:1.1rem; font-weight:700; cursor:pointer';
+      h.appendChild(sv);
       listBox.appendChild(h);
     }
     q.forEach(function (item, i) {
@@ -217,12 +222,10 @@ document.querySelectorAll('.sched-form').forEach(function (f) {
 
   function refresh() {
     var n = queue.length;
-    btn.disabled = n === 0;
-    btn.textContent = n > 1 ? ('Schedule ' + n + ' ' + plural + 's') : baseLabel;
     if (editing) {
       prev.innerHTML = '<strong>Click the new last day on the calendar for ' + rangeText(editing.s, editing.e) + '.</strong>';
     } else if (n) {
-      prev.innerHTML = '<span class="muted">Nothing is saved until you click “' + btn.textContent + '”. Keep clicking first days to add more.</span>';
+      prev.innerHTML = '<span class="muted">Nothing is saved until you click the red Save button. Keep clicking first days to add more.</span>';
     } else {
       prev.innerHTML = '<span class="muted">Nothing is scheduled yet. Click a first day on the calendar.</span>';
     }
