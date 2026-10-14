@@ -17,7 +17,10 @@
   {% for key in order if key in trainee_keys %}
 {% set spec = letters[key] %}
 {% set people = recipients[key] %}
-<h2>{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></h2>
+<details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; padding:6px 12px; background:#fffdf7">
+<summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></summary>
+<h2 style="margin-top:12px">{{ spec.title }}
+  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a></h2>
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
@@ -46,6 +49,7 @@
   <p class="muted">No {{ spec.audience|lower }} on this session yet.</p>
   {% endif %}
 </div>
+</details>
   {% endfor %}
 </details>
 <details style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
@@ -53,7 +57,10 @@
   {% for key in order if key == 'facilitator_confirm' or key == 'ta_confirm' or key == 'backup_confirm' %}
 {% set spec = letters[key] %}
 {% set people = recipients[key] %}
-<h2>{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></h2>
+<details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; padding:6px 12px; background:#fffdf7">
+<summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></summary>
+<h2 style="margin-top:12px">{{ spec.title }}
+  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a></h2>
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
@@ -82,6 +89,7 @@
   <p class="muted">No {{ spec.audience|lower }} on this session yet.</p>
   {% endif %}
 </div>
+</details>
   {% endfor %}
 </details>
 <p class="muted">The Support Team does not receive these letters.</p>
