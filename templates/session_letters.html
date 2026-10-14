@@ -21,7 +21,7 @@
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
-        onsubmit="return confirm('Send the {{ spec.title }} to every ticked person now?');">
+        onsubmit="return confirm('Send the {{ spec.title }} to every checked person now?');">
     <table>
       <tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>Sent</th><th></th></tr>
       {% for p in people %}
@@ -36,7 +36,9 @@
       {% endfor %}
     </table>
     <div style="margin-top:10px">
-      <button class="btn" type="submit" {{ 'disabled' if not live }}>Send to ticked people</button>
+      <button class="btn secondary" type="button" {{ 'disabled' if not live }}
+        onclick="var f=this.form,b=f.querySelectorAll('input[name=contact_id]:not(:disabled)'),all=Array.prototype.every.call(b,function(x){return x.checked});b.forEach(function(x){x.checked=!all});this.textContent=all?'Check All':'Uncheck All';">Check All</button>
+      <button class="btn" type="submit" {{ 'disabled' if not live }}>Send to checked people</button>
       {% if not live %}<span class="muted" style="margin-left:8px">(switched off)</span>{% endif %}
     </div>
   </form>
@@ -55,7 +57,7 @@
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
-        onsubmit="return confirm('Send the {{ spec.title }} to every ticked person now?');">
+        onsubmit="return confirm('Send the {{ spec.title }} to every checked person now?');">
     <table>
       <tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>Sent</th><th></th></tr>
       {% for p in people %}
@@ -70,7 +72,9 @@
       {% endfor %}
     </table>
     <div style="margin-top:10px">
-      <button class="btn" type="submit" {{ 'disabled' if not live }}>Send to ticked people</button>
+      <button class="btn secondary" type="button" {{ 'disabled' if not live }}
+        onclick="var f=this.form,b=f.querySelectorAll('input[name=contact_id]:not(:disabled)'),all=Array.prototype.every.call(b,function(x){return x.checked});b.forEach(function(x){x.checked=!all});this.textContent=all?'Check All':'Uncheck All';">Check All</button>
+      <button class="btn" type="submit" {{ 'disabled' if not live }}>Send to checked people</button>
       {% if not live %}<span class="muted" style="margin-left:8px">(switched off)</span>{% endif %}
     </div>
   </form>
