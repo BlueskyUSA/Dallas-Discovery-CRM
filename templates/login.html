@@ -1,12 +1,12 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ page_title }} — {{ program_name }} CRM{% endblock %}
+{% block title %}{{ page_title }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <h1>{{ page_title }}</h1>
 <div class="card" style="max-width:380px">
   <form method="post">
     <input type="hidden" name="next" value="{{ next }}">
-    <div class="field"><label>Email</label><input type="email" name="email" required autofocus></div>
-    <div class="field"><label>Password</label><input type="password" name="password" required></div>
+    <div class="field"><label>Email</label><input type="email" name="email" value="{{ prefill_email or '' }}" required {{ '' if prefill_email else 'autofocus' }}></div>
+    <div class="field"><label>Password</label><input type="password" name="password" required {{ 'autofocus' if prefill_email else '' }}></div>
     <button class="btn" type="submit" style="width:100%">Log in</button>
   </form>
   <div style="margin-top:20px; padding-top:14px; border-top:1px solid var(--border, #ddd)">
