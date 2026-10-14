@@ -1200,6 +1200,23 @@ CONTRACT_EXAMPLES = {
 app.jinja_env.globals["contract_code"] = lambda kind: CONTRACT_DISPLAY_CODES.get(kind, kind)
 
 
+_MONTH_ABBR = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."]
+
+
+def fdate_text(value):
+    """'2027-08-15' (or a timestamp starting with that) -> 'Aug. 15, 2027'. Anything else is returned unchanged."""
+    if not value:
+        return value or ""
+    try:
+        d = datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return value
+    return f"{_MONTH_ABBR[d.month - 1]} {d.day}, {d.year}"
+
+
+app.jinja_env.filters["fdate"] = fdate_text
+
+
 @app.template_filter("date_span")
 def date_span(row):
     """A session's date for display: '2027-03-12', or '2027-03-12 to
@@ -1209,7 +1226,7 @@ def date_span(row):
         end = row["end_date"]
     except (KeyError, IndexError):
         end = None
-    return f"{start} to {end}" if end and end != start else start
+    return f"{fdate_text(start)} to {fdate_text(end)}" if end and end != start else fdate_text(start)
 
 
 @app.context_processor
@@ -2806,7 +2823,7 @@ def program_open(program_id):
     cohorts_by_program = {}
     for p in programs:
         cohorts_by_program[p["id"]] = conn.execute(
-            "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number DESC", (p["id"],)
+            "SELECT * FROM cohorts WHERE program_id = ? ORDER BY session_number ASC", (p["id"],)
         ).fetchall()
     conn.close()
     cal_year = max(2000, min(2100, request.args.get("cal_year", type=int) or date.today().year))
@@ -4104,11 +4121,11 @@ def contact_list_remove(contact_id, list_id):
 # ---------- calendar ----------
 
 def _short_date(d):
-    return f"{d.strftime('%b')} {d.day}"
+    return f"{_MONTH_ABBR[d.month - 1]} {d.day}"
 
 
 def _short_span(start, last):
-    """'Jun 11-13', 'Jul 30-Aug 1', or just 'Jun 12' for a one-day session."""
+    """'June 11\u201313', 'July 30\u2013Aug. 1', or just 'June 12' for a one-day session."""
     if last == start:
         return _short_date(start)
     if last.month == start.month:
