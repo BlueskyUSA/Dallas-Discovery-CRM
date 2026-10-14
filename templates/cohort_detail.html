@@ -1,6 +1,8 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ cohort.code }} #{{ cohort.session_number }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
+{# Small groups are turned off for every program for now. Change false to true to bring them back. #}
+{% set show_small_groups = false %}
 {% macro req_badge(contact_id, need) -%}
   {%- if need -%}
     {%- set have = enrolled_counts.get(contact_id, 0) -%}
@@ -30,7 +32,7 @@
 <div class="card">
   {% if roster %}
   <table>
-    <tr><th>Trainee</th><th>Sponsor</th>{% if cohort.code not in ['D2','D3','D4','D5','D6'] %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
+    <tr><th>Trainee</th><th>Sponsor</th>{% if show_small_groups %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
     <tr>
       <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
@@ -42,7 +44,7 @@
                  style="width:180px" onchange="this.form.submit()">
         </form>
       </td>
-      {% if cohort.code not in ['D2','D3','D4','D5','D6'] %}
+      {% if show_small_groups %}
       <td>
         <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
           <select name="small_group_id" onchange="this.form.submit()">
@@ -126,7 +128,7 @@
   <p class="muted">D2/D3 prerequisites are checked automatically at enrollment. Record each person's Sponsor (the person who brought them in) &mdash; a TA needs to have brought in at least {{ TA_MIN }}, a TA Team Captain at least {{ CAPTAIN_MIN }}. See the <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>.</p>
 </div>
 
-{% if cohort.code not in ['D2','D3','D4','D5','D6'] %}
+{% if show_small_groups %}
 <h2>Small groups</h2>
 <div class="card">
   {% if small_groups %}
