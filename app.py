@@ -4113,6 +4113,56 @@ CALENDAR_COLORS = {
 }
 
 
+def _us_holidays(year):
+    """{date: name} of the usual US holidays for a year, worked out by rule (no outside service needed)."""
+    import calendar as _c
+    def nth(month, weekday, n):          # nth weekday (Mon=0) of a month
+        first = date(year, month, 1)
+        d = 1 + (weekday - first.weekday()) % 7 + 7 * (n - 1)
+        return date(year, month, d)
+    def last(month, weekday):
+        d = date(year, month, _c.monthrange(year, month)[1])
+        return d - timedelta(days=(d.weekday() - weekday) % 7)
+    def easter(y):
+        a, b, c = y % 19, y // 100, y % 100
+        d, e = b // 4, b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i, k = c // 4, c % 4
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        mo = (h + l - 7 * m + 114) // 31
+        da = (h + l - 7 * m + 114) % 31 + 1
+        return date(y, mo, da)
+    e = easter(year)
+    hol = {
+        date(year, 1, 1): "New Year's Day",
+        nth(1, 0, 3): "Martin Luther King Jr. Day",
+        date(year, 2, 2): "Groundhog Day",
+        date(year, 2, 14): "Valentine's Day",
+        nth(2, 0, 3): "Presidents' Day",
+        date(year, 3, 17): "St. Patrick's Day",
+        e - timedelta(days=2): "Good Friday",
+        e: "Easter",
+        nth(5, 6, 2): "Mother's Day",
+        last(5, 0): "Memorial Day",
+        nth(6, 6, 3): "Father's Day",
+        date(year, 6, 19): "Juneteenth",
+        date(year, 7, 4): "Independence Day",
+        nth(9, 0, 1): "Labor Day",
+        nth(10, 0, 2): "Columbus Day",
+        date(year, 10, 31): "Halloween",
+        date(year, 11, 11): "Veterans Day",
+        nth(11, 3, 4): "Thanksgiving",
+        date(year, 12, 24): "Christmas Eve",
+        date(year, 12, 25): "Christmas Day",
+        date(year, 12, 31): "New Year's Eve",
+    }
+    hol[nth(11, 3, 4) + timedelta(days=1)] = "Day after Thanksgiving"
+    return hol
+
+
 def _calendar_data(year, public=False):
     """Everything the year calendar needs. public=True is the visitor-facing
     version: cancelled sessions are left out and nothing links to a staff page."""
@@ -4158,9 +4208,12 @@ def _calendar_data(year, public=False):
                 by_day.setdefault(d.isoformat(), []).append(g)
             d += timedelta(days=1)
 
+    holidays = _us_holidays(year)
+
     def day_cell(d, m):
         iso = f"{year}-{m:02d}-{d:02d}"
-        cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": []}
+        cell = {"day": d, "today": iso == date.today().isoformat(), "sessions": [],
+                "holiday": holidays.get(date(year, m, d))}
         found = by_day.get(iso, [])
         if not found:
             return cell
@@ -4184,7 +4237,7 @@ def _calendar_data(year, public=False):
                 (f"{r['code']} #{r['session_number']} " if not public else f"{r['code']} ")
                 + r["span"] + ("" if public else f" ({r['status']})")
                 for r in sessions
-            ),
+            ) + (f"; {cell['holiday']}" if cell["holiday"] else ""),
         })
         return cell
 
@@ -4199,6 +4252,7 @@ def _calendar_data(year, public=False):
             "name": _cal.month_name[m],
             "weeks": weeks,
             "opens": [g for g in groups if g["start"].year == year and g["start"].month == m],
+            "holidays": [(h.day, name) for h, name in sorted(holidays.items()) if h.month == m],
         })
     return {
         "year": year, "months": months, "groups": groups, "colors": CALENDAR_COLORS,
