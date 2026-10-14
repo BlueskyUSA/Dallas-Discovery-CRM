@@ -1,6 +1,39 @@
 {% extends "crm_base.html" %}
 {% block title %}Programs — {{ program_name }} ERP{% endblock %}
 {% block content %}
+{% macro session_rows(p, sessions, is_lead, has_contacts_access) %}
+    {% for c in sessions %}
+    <tr>
+      <td>{{ p.code }} #{{ c.session_number }}</td>
+      <td>{{ c|date_span }}</td>
+      <td>{{ c.status }}</td>
+      <td>
+        {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}
+        {% if is_lead %}
+        <details style="display:inline-block; margin-left:12px; vertical-align:top;">
+          <summary style="cursor:pointer; font-size:0.85rem; color:#c0392b; font-weight:600;">Change or Delete a Session</summary>
+          <p class="muted" style="margin:6px 0; max-width:360px; font-size:0.82rem;">Affects only {{ p.code }} #{{ c.session_number }}. The {{ p.code }} program and its other sessions are not touched.</p>
+          <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px">
+            <input type="hidden" name="back" value="programs">
+            <input type="date" name="session_date" value="{{ c.session_date }}" required>
+            <span class="muted">through</span>
+            <input type="date" name="end_date" value="{{ c.end_date or '' }}">
+            <select name="status">
+              {% for st in ['Scheduled', 'Completed', 'Cancelled'] %}<option {{ 'selected' if c.status == st }}>{{ st }}</option>{% endfor %}
+            </select>
+            <button class="btn secondary" type="submit">Save session</button>
+          </form>
+          <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
+                onsubmit='return confirm({{ ("Delete the session " ~ p.code ~ " #" ~ c.session_number ~ " (" ~ (c.session_date|fdate) ~ ")? Only this one session is removed, not the " ~ p.code ~ " program. A session with enrolled people or staff can\'t be deleted -- set it to Cancelled instead.")|tojson }});'>
+            <input type="hidden" name="back" value="programs">
+            <button class="btn danger" type="submit">Delete {{ p.code }} #{{ c.session_number }}</button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+{% endmacro %}
 <p><a href="{{ url_for('.programs_list') }}">&larr; All programs</a></p>
 <h1>{{ programs[0].name }}</h1>
 
@@ -35,43 +68,21 @@
   </details>
   {% endif %}
 
-  <h4 style="margin:6px 0">Scheduled {{ p.code }} sessions</h4>
+  <h4 style="margin:6px 0">Upcoming {{ p.code }} sessions</h4>
   <table>
     <tr><th>Session</th><th>Date</th><th>Status</th><th></th></tr>
-    {% for c in cohorts_by_program[p.id] %}
-    <tr>
-      <td>{{ p.code }} #{{ c.session_number }}</td>
-      <td>{{ c|date_span }}</td>
-      <td>{{ c.status }}</td>
-      <td>
-        {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}
-        {% if is_lead %}
-        <details style="display:inline-block; margin-left:12px; vertical-align:top;">
-          <summary style="cursor:pointer; font-size:0.85rem; color:#c0392b; font-weight:600;">Change or Delete a Session</summary>
-          <p class="muted" style="margin:6px 0; max-width:360px; font-size:0.82rem;">Affects only {{ p.code }} #{{ c.session_number }}. The {{ p.code }} program and its other sessions are not touched.</p>
-          <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px">
-            <input type="hidden" name="back" value="programs">
-            <input type="date" name="session_date" value="{{ c.session_date }}" required>
-            <span class="muted">through</span>
-            <input type="date" name="end_date" value="{{ c.end_date or '' }}">
-            <select name="status">
-              {% for st in ['Scheduled', 'Completed', 'Cancelled'] %}<option {{ 'selected' if c.status == st }}>{{ st }}</option>{% endfor %}
-            </select>
-            <button class="btn secondary" type="submit">Save session</button>
-          </form>
-          <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
-                onsubmit='return confirm({{ ("Delete the session " ~ p.code ~ " #" ~ c.session_number ~ " (" ~ (c.session_date|fdate) ~ ")? Only this one session is removed, not the " ~ p.code ~ " program. A session with enrolled people or staff can\'t be deleted -- set it to Cancelled instead.")|tojson }});'>
-            <input type="hidden" name="back" value="programs">
-            <button class="btn danger" type="submit">Delete {{ p.code }} #{{ c.session_number }}</button>
-          </form>
-        </details>
-        {% endif %}
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="4" class="muted">No sessions scheduled yet.</td></tr>
-    {% endfor %}
+    {{ session_rows(p, upcoming_by_program[p.id], is_lead, has_contacts_access) }}
+    {% if not upcoming_by_program[p.id] %}<tr><td colspan="4" class="muted">No upcoming sessions scheduled.</td></tr>{% endif %}
   </table>
+  {% if past_by_program[p.id] %}
+  <details style="margin-top:10px">
+    <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Past {{ p.code }} sessions ({{ past_by_program[p.id]|length }})</summary>
+    <table>
+      <tr><th>Session</th><th>Date</th><th>Status</th><th></th></tr>
+      {{ session_rows(p, past_by_program[p.id], is_lead, has_contacts_access) }}
+    </table>
+  </details>
+  {% endif %}
 
   {% if is_lead %}
   {% set next_num = (cohorts_by_program[p.id]|map(attribute='session_number')|list|max) + 1 if cohorts_by_program[p.id] else 1 %}
