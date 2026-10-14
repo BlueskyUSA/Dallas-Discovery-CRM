@@ -4273,6 +4273,22 @@ def session_letter_preview(cohort_id, key, contact_id):
                            person=person, subject=subject, letter_html=html_content, live=_session_letters_live())
 
 
+@crm.route("/cohorts/<int:cohort_id>/letters/<key>/view")
+@area_required("contacts")
+@leadership_required
+def session_letter_view(cohort_id, key):
+    """Shows the letter itself (with [First name] as a stand-in), for reading and revising. Sends nothing."""
+    if key not in SESSION_LETTERS:
+        abort(404)
+    conn = get_db()
+    cohort = _letter_cohort(conn, cohort_id)
+    conn.close()
+    sample = {"contact_id": 0, "name": "", "first_name": "[First name]", "email": "", "roles": ["Lead Facilitator"], "duties": []}
+    subject, html_content, _t = _session_letter_for(cohort, sample, key)
+    return render_template("session_letter_view.html", cohort=cohort, spec=SESSION_LETTERS[key],
+                           subject=subject, letter_html=html_content)
+
+
 def _staff_email():
     conn = get_db()
     row = conn.execute("SELECT email FROM staff WHERE id = ?", (session.get("staff_id"),)).fetchone()
