@@ -19,6 +19,8 @@
   <input type="date" name="session_date" value="{{ cohort.session_date }}" required>
   <label style="margin:0">through (optional):</label>
   <input type="date" name="end_date" value="{{ cohort.end_date or '' }}">
+  <label style="margin:0">Location:</label>
+  <input type="text" name="location" value="{{ cohort.location or '' }}" style="width:200px">
   <button class="btn secondary" type="submit">Save dates</button>
 </form>
 {% endif %}

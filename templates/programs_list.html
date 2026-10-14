@@ -6,6 +6,7 @@
     <tr>
       <td>{{ p.code }} #{{ c.session_number }}</td>
       <td>{{ c|date_span }}</td>
+      <td>{{ c.location or '' }}</td>
       <td>{{ c.status }}</td>
       <td>
         {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}">Open &rarr;</a>{% endif %}
@@ -18,6 +19,7 @@
             <input type="date" name="session_date" value="{{ c.session_date }}" required>
             <span class="muted">through</span>
             <input type="date" name="end_date" value="{{ c.end_date or '' }}">
+            <input type="text" name="location" value="{{ c.location or '' }}" placeholder="Location" style="width:170px">
             <select name="status">
               {% for st in ['Scheduled', 'Completed', 'Cancelled'] %}<option {{ 'selected' if c.status == st }}>{{ st }}</option>{% endfor %}
             </select>
@@ -70,7 +72,7 @@
 
   <h4 style="margin:6px 0">Upcoming {{ p.code }} sessions</h4>
   <table>
-    <tr><th>Session</th><th>Date</th><th>Status</th><th></th></tr>
+    <tr><th>Session</th><th>Date</th><th>Location</th><th>Status</th><th></th></tr>
     {{ session_rows(p, upcoming_by_program[p.id], is_lead, has_contacts_access) }}
     {% if not upcoming_by_program[p.id] %}<tr><td colspan="4" class="muted">No upcoming sessions scheduled.</td></tr>{% endif %}
   </table>
@@ -78,7 +80,7 @@
   <details style="margin-top:10px">
     <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Past {{ p.code }} sessions ({{ past_by_program[p.id]|length }})</summary>
     <table>
-      <tr><th>Session</th><th>Date</th><th>Status</th><th></th></tr>
+      <tr><th>Session</th><th>Date</th><th>Location</th><th>Status</th><th></th></tr>
       {{ session_rows(p, past_by_program[p.id], is_lead, has_contacts_access) }}
     </table>
   </details>
@@ -99,6 +101,19 @@
       <strong style="color:#c0392b">Step 2.</strong> Check the list, then save them all at once.
     </div>
     <input type="hidden" name="session_date"><input type="hidden" name="end_date">
+    <div style="margin:6px 0">
+      <label style="font-weight:600">Location <span class="muted" style="font-weight:400">(optional)</span>
+        <input type="text" name="location" placeholder="e.g. venue or city" style="width:260px"></label>
+    </div>
+    {% if p.code in ['D1','D2','D3','D5'] %}
+    <div style="margin:6px 0; padding:8px 10px; background:#fff; border:1px solid var(--border); border-radius:6px; font-size:0.9rem">
+      <strong>Same weekend, same location.</strong> D1, D2, D3 and Refocus are held together. Also schedule:
+      {% for q in all_programs if q.code in ['D1','D2','D3','D5'] and q.id != p.id %}
+      <label style="margin-left:12px; white-space:nowrap"><input type="checkbox" name="also" value="{{ q.id }}" checked> {{ q.code }}{% if q.code == 'D5' %} (Sat &amp; Sun){% endif %}</label>
+      {% endfor %}
+      <div class="muted" style="font-size:0.82rem; margin-top:4px">Each gets its own session number and its own roster. Untick any you don't want this time.</div>
+    </div>
+    {% endif %}
     <div class="batch-list" style="margin:8px 0"></div>
     <div><button class="btn sched-btn" type="submit" disabled>{{ sched_label }}</button></div>
     <input type="hidden" name="cal_year" value="{{ pick_cal.year }}">
