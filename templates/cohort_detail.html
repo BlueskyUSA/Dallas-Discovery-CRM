@@ -11,8 +11,9 @@
 <datalist id="contact-picks">
   {% for c in all_contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
 </datalist>
-<h1>{{ cohort.code }} #{{ cohort.session_number }}</h1>
-<p class="muted">{{ cohort.name }} &middot; {{ cohort|date_span }} &middot; <span class="badge">{{ cohort.status }}</span></p>
+{% set full_title = cohort.name if cohort.name.startswith(cohort.code) else (cohort.code ~ '-' ~ cohort.name) %}
+<h1>{{ full_title }} (Session # {{ cohort.session_number }})</h1>
+<p class="muted">{{ cohort|date_span }}{% if cohort.location %} &middot; {{ cohort.location }}{% endif %} &middot; <span class="badge">{{ cohort.status }}</span></p>
 {% if session.is_owner or session.staff_role == 'Leadership' %}
 <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=cohort.id) }}" style="margin:0 0 10px">
   <label style="margin:0">Starts:</label>
