@@ -16,7 +16,8 @@
           <p class="muted" style="margin:6px 0; max-width:360px; font-size:0.82rem;">Affects only {{ p.code }} #{{ c.session_number }}. The {{ p.code }} program and its other sessions are not touched.</p>
           <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px">
             <input type="hidden" name="back" value="programs">
-            <input type="date" name="session_date" value="{{ c.session_date }}" required>
+            <input type="date" name="session_date" value="{{ c.session_date }}" data-was="{{ c.session_date }}" required
+                   onchange="var e=this.form.end_date; if(e.value && this.dataset.was){var d=(new Date(e.value)-new Date(this.dataset.was))/86400000; var n=new Date(this.value); n.setDate(n.getDate()+d); e.value=n.toISOString().slice(0,10);} this.dataset.was=this.value;">
             <span class="muted">through</span>
             <input type="date" name="end_date" value="{{ c.end_date or '' }}">
             <input type="text" name="location" value="{{ c.location or '' }}" placeholder="Location" style="width:170px">
