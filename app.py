@@ -3743,7 +3743,22 @@ def cohort_update_dates(cohort_id):
     if not start:
         flash("Please enter a start date. Nothing was changed.")
         return _after_cohort_change(cohort_id)
-    end_date, date_error = _clean_end_date(start, request.form.get("end_date"))
+    raw_end = (request.form.get("end_date") or "").strip()
+    moved_note = ""
+    if raw_end and raw_end < start:
+        # The start was moved later but the old end date was left in the box. Keep the session the same length
+        # as before instead of refusing the save.
+        conn0 = get_db()
+        old = conn0.execute("SELECT session_date, end_date FROM cohorts WHERE id = ?", (cohort_id,)).fetchone()
+        conn0.close()
+        try:
+            span = (datetime.strptime(str(old["end_date"] or old["session_date"])[:10], "%Y-%m-%d")
+                    - datetime.strptime(str(old["session_date"])[:10], "%Y-%m-%d")).days if old else 0
+            raw_end = (datetime.strptime(start, "%Y-%m-%d") + timedelta(days=max(span, 0))).strftime("%Y-%m-%d")
+            moved_note = " The end date was moved too, so the session keeps its length."
+        except ValueError:
+            pass
+    end_date, date_error = _clean_end_date(start, raw_end)
     if date_error:
         flash(date_error)
         return _after_cohort_change(cohort_id)
@@ -3762,7 +3777,7 @@ def cohort_update_dates(cohort_id):
         conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, cohort_id))
     conn.commit()
     conn.close()
-    flash("Session saved.")
+    flash("Session saved." + moved_note)
     return _after_cohort_change(cohort_id)
 
 
