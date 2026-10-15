@@ -17,31 +17,27 @@
       <a href="{{ url_for('.staff_list') }}">Site Access</a>
       {% endif %}
       {% set is_lead = session.staff_role == 'Leadership' %}
-      {% if is_lead or has_contacts_access %}
+      {% set show_contacts = is_lead or has_contacts_access %}
+      {% set show_donations = is_lead or has_donations_access %}
+      {% set show_finance = session.is_owner or has_accounting_access %}
+      {% if show_contacts or show_donations or show_finance or is_lead %}
       <details class="navmenu">
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
+          {% if show_contacts %}
           <a href="{{ url_for('.contacts_list') }}">Contacts</a>
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
+          {% endif %}
+          {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
+          {% if show_finance %}<a href="{{ url_for('.finance') }}">Finance</a>{% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
         </div>
       </details>
-      <a href="{{ url_for('.calendar_view') }}">Calendar</a>
-      {% elif is_lead %}
-      <details class="navmenu">
-        <summary>Admin &#9662;</summary>
-        <div class="navmenu-items"><a href="{{ url_for('.lists_manage') }}">Data Sources</a></div>
-      </details>
       {% endif %}
+      {% if show_contacts %}<a href="{{ url_for('.calendar_view') }}">Calendar</a>{% endif %}
       {% if session.staff_role == 'Leadership' or has_program_access %}
       <a href="{{ url_for('.programs_list') }}">Programs</a>
-      {% endif %}
-      {% if session.staff_role == 'Leadership' or has_donations_access %}
-      <a href="{{ url_for('.donations_list') }}">Donations</a>
-      {% endif %}
-      {% if session.is_owner or has_accounting_access %}
-      <a href="{{ url_for('.finance') }}">Finance</a>
       {% endif %}
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
