@@ -3905,7 +3905,8 @@ def cohort_detail(cohort_id):
     small_groups = conn.execute("SELECT * FROM small_groups WHERE cohort_id = ? ORDER BY label", (cohort_id,)).fetchall()
     staffing = conn.execute(
         f"""SELECT cs.*, {full_name_sql('ct')} AS full_name, ct.cell_phone AS cell,
-                  ct.partner_name AS partner_name, ct.partner_email AS partner_email, ct.email AS email
+                  ct.partner_name AS partner_name, ct.partner_email AS partner_email, ct.email AS email,
+                  ct.first_name AS first_name, ct.last_name AS last_name
            FROM cohort_staffing cs
            JOIN contacts ct ON ct.id = cs.contact_id WHERE cs.cohort_id = ?""",
         (cohort_id,),
@@ -3934,28 +3935,13 @@ def cohort_detail(cohort_id):
             "rank": min([_role_rank.get(r["role"], 9) for r in rows] +
                         [2 for r in rows if (r["duty"] or "").strip().lower() == "team captain"]),
             "partner_name": rows[0]["partner_name"], "partner_email": rows[0]["partner_email"],
-            "email": rows[0]["email"],
+            "email": rows[0]["email"], "first_name": rows[0]["first_name"], "last_name": rows[0]["last_name"],
         })
-    # Pair spouses: a team member whose saved partner (name or email) is also on the team.
-    _key = lambda s: " ".join((s or "").lower().replace(",", " ").split())
-    by_name = {_key(t["full_name"]): t for t in team}
-    by_mail = {(t["email"] or "").strip().lower(): t for t in team if t["email"]}
     for t in team:
-        other = None
-        if t["partner_email"] and t["partner_email"].strip().lower() in by_mail:
-            other = by_mail[t["partner_email"].strip().lower()]
-        elif t["partner_name"] and _key(t["partner_name"]) in by_name:
-            other = by_name[_key(t["partner_name"])]
-        if other is not None and other is not t:
-            t["spouse_id"] = other["contact_id"]
-            other.setdefault("spouse_id", t["contact_id"])
-    by_id = {t["contact_id"]: t for t in team}
+        t["name"], t["first"], t["last"] = t["full_name"], t["first_name"], t["last_name"]
+    team = _order_team(team)
     for t in team:
-        s = by_id.get(t.get("spouse_id"))
-        t["group_rank"] = min(t["rank"], s["rank"]) if s else t["rank"]
-        t["group_name"] = min((t["full_name"] or "").lower(), (s["full_name"] or "").lower()) if s else (t["full_name"] or "").lower()
-        t["spouse_name"] = s["full_name"] if s else None
-    team.sort(key=lambda t: (t["group_rank"], t["group_name"], (t["full_name"] or "").lower()))
+        t["spouse_name"] = ", ".join(t["with_names"]) if t["with_names"] else None
     staffing = team
     sg_staffing = conn.execute(
         f"""SELECT sgs.*, {full_name_sql('ct')} AS full_name,
@@ -4322,6 +4308,46 @@ def staffing_remove(cohort_id, staffing_id):
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
+def _order_team(members):
+    """Orders a session team: facilitators, then Team Captain, then the rest. People who share a last name, or
+    whose saved partner is also on the team, are kept together (alphabetical by last name, then first name).
+    Each member is a dict with contact_id, rank, last, first, name, email, partner_name, partner_email."""
+    key = lambda s: " ".join((s or "").lower().replace(",", " ").split())
+    parent = {m["contact_id"]: m["contact_id"] for m in members}
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    def union(x, y):
+        parent[find(x)] = find(y)
+    by_last, by_name, by_mail = {}, {}, {}
+    for m in members:
+        by_name[key(m["name"])] = m
+        if m["email"]:
+            by_mail[m["email"].strip().lower()] = m
+        if (m["last"] or "").strip():
+            by_last.setdefault(key(m["last"]), []).append(m)
+    for grp in by_last.values():
+        for m in grp[1:]:
+            union(grp[0]["contact_id"], m["contact_id"])
+    for m in members:
+        o = by_mail.get((m["partner_email"] or "").strip().lower()) if m["partner_email"] else None
+        o = o or by_name.get(key(m["partner_name"]))
+        if o is not None and o["contact_id"] != m["contact_id"]:
+            union(m["contact_id"], o["contact_id"])
+    groups = {}
+    for m in members:
+        groups.setdefault(find(m["contact_id"]), []).append(m)
+    for g in groups.values():
+        g.sort(key=lambda m: (key(m["last"]), key(m["first"]), key(m["name"])))
+        for m in g:
+            others = [o for o in g if o is not m]
+            m["with_names"] = [o["name"] for o in others]
+    ordered = sorted(groups.values(), key=lambda g: (min(m["rank"] for m in g), key(g[0]["last"]), key(g[0]["first"])))
+    return [m for g in ordered for m in g]
+
+
 SESSION_ROLES = ["Lead Facilitator", "Support Facilitator", "TA", "Support Team", "Back-up TA", "Trainee"]
 SESSION_DUTIES = ["Sound Equipment", "Large Group Leader", "Team Captain", "Microphone 1", "Microphone 2",
                   "Lights", "Doors", "Signs / Security", "Mail & Name Tags", "Housekeeping", "Male Runner",
@@ -4385,8 +4411,7 @@ def _session_letter_recipients(conn, cohort_id):
             WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall():
         p = people.setdefault(r["contact_id"], {"contact_id": r["contact_id"], "name": r["name"],
                                                  "first_name": r["first_name"], "email": r["email"],
-                                                 "roles": [], "duties": [],
-                                                  "partner_name": r["partner_name"], "partner_email": r["partner_email"]})
+                                                 "roles": [], "duties": []})
         if r["role"] not in p["roles"]:
             p["roles"].append(r["role"])
         if r["duty"] and r["duty"] not in p["duties"]:
@@ -4605,7 +4630,8 @@ def cohort_team_print(cohort_id):
         return redirect(url_for(".programs_list"))
     rows = conn.execute(
         f"""SELECT cs.role, cs.duty, ct.id AS contact_id, {full_name_sql('ct')} AS full_name,
-                   ct.cell_phone, ct.email, ct.partner_name, ct.partner_email
+                   ct.cell_phone, ct.email, ct.partner_name, ct.partner_email,
+                   ct.first_name AS first_name, ct.last_name AS last_name
             FROM cohort_staffing cs JOIN contacts ct ON ct.id = cs.contact_id
             WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall()
     conn.close()
@@ -4614,28 +4640,16 @@ def cohort_team_print(cohort_id):
     for r in rows:
         p = people.setdefault(r["contact_id"], {"name": r["full_name"], "cell": r["cell_phone"], "email": r["email"],
                                                   "roles": [], "duties": [],
-                                                  "partner_name": r["partner_name"], "partner_email": r["partner_email"]})
+                                                  "partner_name": r["partner_name"], "partner_email": r["partner_email"],
+                                                  "first": r["first_name"], "last": r["last_name"]})
         if r["role"] not in p["roles"]:
             p["roles"].append(r["role"])
         if r["duty"] and r["duty"] not in p["duties"]:
             p["duties"].append(r["duty"])
     for cid_, p in people.items():
+        p["contact_id"] = cid_
         p["rank"] = min([rank.get(x, 9) for x in p["roles"]] + [2 for d in p["duties"] if d.strip().lower() == "team captain"])
-    _k = lambda s: " ".join((s or "").lower().replace(",", " ").split())
-    by_name = {_k(p["name"]): cid_ for cid_, p in people.items()}
-    by_mail = {(p["email"] or "").strip().lower(): cid_ for cid_, p in people.items() if p["email"]}
-    spouse = {}
-    for cid_, p in people.items():
-        o = by_mail.get((p["partner_email"] or "").strip().lower()) if p["partner_email"] else None
-        o = o or by_name.get(_k(p["partner_name"]))
-        if o and o != cid_:
-            spouse[cid_] = o
-            spouse.setdefault(o, cid_)
-    for cid_, p in people.items():
-        s = people.get(spouse.get(cid_))
-        p["group_rank"] = min(p["rank"], s["rank"]) if s else p["rank"]
-        p["group_name"] = min((p["name"] or "").lower(), (s["name"] or "").lower()) if s else (p["name"] or "").lower()
-    team = sorted(people.values(), key=lambda p: (p["group_rank"], p["group_name"], (p["name"] or "").lower()))
+    team = _order_team(list(people.values()))
     for p in team:
         p["roles"].sort(key=lambda x: rank.get(x, 9))
     return render_template("team_print.html", cohort=cohort, team=team, printed=date.today().isoformat())
