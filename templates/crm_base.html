@@ -41,12 +41,14 @@
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
       {% if session.staff_id %}
-      <span class="muted" style="color:#e6e2d0; font-size:0.82rem; margin-left:8px">
-        {% set _parts = (session.staff_name or '').split() %}
-        <span title="{{ session.staff_name }} ({{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %})">{{ (_parts|map('first')|join(''))[:3]|upper }} {{ 'Owner' if session.is_owner else role_label(session.staff_role) }}</span>
-        &middot; <a href="{{ url_for('.change_password') }}">Change password</a>
-        &middot; <a href="{{ url_for('.logout') }}">Log out</a>
-      </span>
+      <details class="navmenu account-menu">
+        <summary>Account &#9662;</summary>
+        <div class="navmenu-items" style="left:auto; right:-10px">
+          <div style="padding:8px 16px 6px; color:#cfc9b0; font-size:0.82rem; white-space:nowrap">Signed in as<br><strong style="color:#fff">{{ session.staff_name }}</strong><br>{{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %}</div>
+          <a href="{{ url_for('.change_password') }}">Change password</a>
+          <a href="{{ url_for('.logout') }}">Log out</a>
+        </div>
+      </details>
       <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
          onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       {% endif %}
