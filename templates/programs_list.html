@@ -25,6 +25,10 @@
               {% for st in ['Scheduled', 'Completed', 'Cancelled'] %}<option {{ 'selected' if c.status == st }}>{{ st }}</option>{% endfor %}
             </select>
             <button class="btn secondary" type="submit">Save session</button>
+            {% if p.code in ['D1','D2','D3','D5'] %}
+            <label style="display:block; margin-top:6px; font-weight:400; font-size:0.85rem"><input type="checkbox" name="move_together" value="1" checked>
+              Also move the other trainings (D1, D2, D3, D5) held on these same dates</label>
+            {% endif %}
           </form>
           <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
                 onsubmit='return confirm({{ ("Delete the session " ~ p.code ~ " #" ~ c.session_number ~ " (" ~ (c.session_date|fdate) ~ ")? Only this one session is removed, not the " ~ p.code ~ " program. A session with enrolled people or staff can\'t be deleted -- set it to Cancelled instead.")|tojson }});'>
