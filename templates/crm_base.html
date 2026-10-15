@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ program_name }} ERP{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* centered main menu */
+    .topbar nav { flex: 1 1 auto; text-align: center; }
+    .topbar nav .navmenu-items { text-align: left; }
+    .topbar nav a.backbtn { white-space: nowrap; display: inline-block; }
+    @media (min-width: 900px) { .topbar nav { padding-right: 90px; } }  /* balances the brand on the left so the menu looks centered */
+  </style>
 </head>
 <body>
   <header class="topbar">
