@@ -81,12 +81,32 @@
         {% endif %}
       </td>
       <td>
-        {% if e.payment_completed_at %}<span class="badge good">✓ {{ e.payment_completed_at|fdate }}</span>
-        <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline"><button class="btn secondary" name="payment_undo" value="1" type="submit" style="padding:1px 6px; font-size:0.75rem">Undo</button></form>
+        {% set pi = pay_info[e.id] %}
+        {% if e.payment_completed_at %}
+        <span class="badge good">✓ {{ e.payment_completed_at|fdate }}</span>
+        {% if pi.rows %}<div class="muted" style="font-size:0.78rem">${{ '{:,.2f}'.format(pi.total) }}{% if pi.rows[-1].method %} &middot; {{ pi.rows[-1].method }}{% endif %}{% if pi.via_partner %} (partner's payment){% endif %}</div>
+        {% else %}<div class="muted" style="font-size:0.78rem">no amount recorded</div>{% endif %}
+        {% if is_leader %}<form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline" onsubmit="return confirm('Undo this payment? It stays on record as voided.');"><button class="btn secondary" name="payment_undo" value="1" type="submit" style="padding:1px 6px; font-size:0.75rem">Undo</button></form>{% endif %}
         {% else %}
-        <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline">
-          <button class="btn secondary" name="payment_done" value="1" type="submit">Mark paid</button>
-        </form>
+        {% if pi.total %}<div class="muted" style="font-size:0.78rem">Deposit ${{ '{:,.2f}'.format(pi.total) }} so far</div>{% endif %}
+        {% if not can_money %}<span class="muted">not paid</span>{% else %}
+        <details>
+          <summary class="btn secondary" style="padding:3px 10px; cursor:pointer; list-style:none; display:inline-block">Record payment</summary>
+          <form method="post" action="{{ url_for('.enrollment_payment', enrollment_id=e.id) }}"
+                style="margin-top:6px; padding:8px 10px; background:#fff; border:1px solid var(--border); border-radius:6px; min-width:250px; text-align:left">
+            <label style="display:block; margin:2px 0">Amount received ($)
+              <input name="amount" inputmode="decimal" required style="width:100px" value="{% if fee_default and e.partner_enrollment_id %}{{ '%.2f'|format(fee_default) }}{% endif %}"></label>
+            {% if fee_default and e.partner_enrollment_id %}<div class="muted" style="font-size:0.78rem">${{ '{:,.0f}'.format(fee_default) }} per couple covers {{ partner_names.get(e.partner_enrollment_id) }} too.</div>{% endif %}
+            <label style="display:block; margin:6px 0 2px">Date <input type="date" name="paid_on" value="{{ today_iso }}"></label>
+            <label style="display:block; margin:2px 0">Method
+              <select name="method">{% for m in payment_methods %}<option>{{ m }}</option>{% endfor %}</select></label>
+            <label style="display:block; margin:2px 0">Check # or reference <input name="reference" style="width:130px"></label>
+            <label style="display:block; margin:2px 0">Note <input name="note" style="width:170px"></label>
+            <label style="display:block; margin:6px 0; font-weight:400"><input type="checkbox" name="completes" value="1" checked> This completes the payment</label>
+            <button class="btn" type="submit">Save payment</button>
+          </form>
+        </details>
+        {% endif %}
         {% endif %}
       </td>
       <td>

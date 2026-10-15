@@ -3,21 +3,45 @@
 {% block content %}
 <h1>Donations</h1>
 <div class="stat-row">
-  <div class="stat"><div class="num">${{ '%.2f'|format(total) }}</div><div class="label">Total recorded</div></div>
+  <div class="stat"><div class="num">${{ '{:,.2f}'.format(total) }}</div><div class="label">Total recorded</div></div>
 </div>
+
+{% if can_void %}
+<details class="card" style="margin-bottom:16px">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">Record a donation</summary>
+  <form method="post" style="margin-top:10px">
+    <datalist id="donor-picks">{% for c in contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}</datalist>
+    <datalist id="fund-picks">{% for f in funds %}<option value="{{ f }}"></option>{% endfor %}<option value="General Operating"></option></datalist>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end">
+      <label>Donor<br><input name="donor_pick" list="donor-picks" autocomplete="off" required placeholder="Start typing a name" style="width:240px"></label>
+      <label>Amount ($)<br><input name="amount" inputmode="decimal" required style="width:110px"></label>
+      <label>Date<br><input type="date" name="donation_date" value="{{ today }}"></label>
+      <label>Fund<br><input name="fund" list="fund-picks" placeholder="General Operating" style="width:170px"></label>
+      <label>Method<br><select name="payment_method"><option value=""></option>{% for m in methods %}<option>{{ m }}</option>{% endfor %}</select></label>
+      <label>Check # or reference<br><input name="reference" style="width:140px"></label>
+      <label>Note<br><input name="note" style="width:200px"></label>
+      <button class="btn" type="submit">Save donation</button>
+    </div>
+  </form>
+</details>
+{% endif %}
+
 <div class="card">
-  <table>
-    <tr><th>Date</th><th>Donor</th><th>Amount</th><th>Fund</th><th>Method</th></tr>
+  <table class="sticky-head">
+    <tr><th>Date</th><th>Donor</th><th>Amount</th><th>Fund</th><th>Method</th><th>Reference</th><th>Note</th><th></th></tr>
     {% for d in donations %}
     <tr>
       <td>{{ d.donation_date|fdate }}</td>
-      <td><a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a></td>
-      <td>${{ '%.2f'|format(d.amount) }}</td>
+      <td>{% if can_contacts %}<a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a>{% else %}{{ d.full_name }}{% endif %}</td>
+      <td>${{ '{:,.2f}'.format(d.amount) }}</td>
       <td>{{ d.fund }}</td>
       <td>{{ d.payment_method or '' }}</td>
+      <td>{{ d.reference or '' }}</td>
+      <td>{{ d.note or '' }}</td>
+      <td>{% if can_void %}<form method="post" action="{{ url_for('.donation_void', donation_id=d.id) }}" style="display:inline" onsubmit="return confirm('Void this donation? It stays on record but no longer counts.');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Void</button></form>{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="5" class="muted">No donations yet. Add one from a contact's page.</td></tr>
+    <tr><td colspan="8" class="muted">No donations yet. Use "Record a donation" above.</td></tr>
     {% endfor %}
   </table>
 </div>
