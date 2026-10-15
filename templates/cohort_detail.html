@@ -89,6 +89,7 @@
         {% if is_leader %}<form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline" onsubmit="return confirm('Undo this payment? It stays on record as voided.');"><button class="btn secondary" name="payment_undo" value="1" type="submit" style="padding:1px 6px; font-size:0.75rem">Undo</button></form>{% endif %}
         {% else %}
         {% if pi.total %}<div class="muted" style="font-size:0.78rem">Deposit ${{ '{:,.2f}'.format(pi.total) }} so far</div>{% endif %}
+        {% if not can_money %}<span class="muted">not paid</span>{% else %}
         <details>
           <summary class="btn secondary" style="padding:3px 10px; cursor:pointer; list-style:none; display:inline-block">Record payment</summary>
           <form method="post" action="{{ url_for('.enrollment_payment', enrollment_id=e.id) }}"
@@ -105,6 +106,7 @@
             <button class="btn" type="submit">Save payment</button>
           </form>
         </details>
+        {% endif %}
         {% endif %}
       </td>
       <td>
@@ -236,7 +238,7 @@
     <tr><th>Name</th><th>Phone</th><th>Role</th><th>Duty</th><th></th></tr>
     {% for t in staffing %}
     <tr>
-      <td>{{ t.full_name }}</td>
+      <td>{{ t.full_name }}{% if t.spouse_name %} <span class="muted" style="font-size:0.8rem">(with {{ t.spouse_name }})</span>{% endif %}</td>
       <td style="white-space:nowrap">{% if t.cell %}<a href="tel:{{ t.cell }}" style="color:inherit; text-decoration:none">{{ t.cell }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
       <td>{{ t.roles|join(', ') }}</td>
       <td>
