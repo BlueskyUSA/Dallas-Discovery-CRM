@@ -13,6 +13,10 @@
 .reserve-menu a strong { display: block; font-size: 1.02rem; }
 .reserve-menu a span { display: block; font-size: 0.88rem; color: #56697f; }
 .hero.hero-feature .hero-sub-last { max-width: 860px; }
+/* lighter photo: softer wash, slightly brighter image, stronger text shadow for readability */
+.hero.hero-feature::after { background: linear-gradient(180deg, rgba(55,70,110,0.20) 0%, rgba(55,70,110,0.12) 60%, rgba(20,30,60,0.08) 100%); }
+.hero.hero-feature::before { filter: brightness(1.12) saturate(0.85); }
+.hero-feature .hero-sub, .hero-feature .hero-kicker p, .hero-feature .hero-kicker h2 { text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 2px 14px rgba(0,0,0,0.5); }
 </style>
 <section class="hero hero-feature">
   <div class="hero-inner">
