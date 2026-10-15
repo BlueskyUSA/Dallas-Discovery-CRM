@@ -562,14 +562,21 @@ SESSION_LETTERS = {
         "audience": "Trainees",
         "subject": "You're confirmed for {training}",
         "paras": [
-            "We are delighted to confirm your place in {training}, {dates}{where}.",
-            "This is a powerful experience, and we are honored that you chose to be part of it. "
-            "A separate letter with the schedule, what to bring and directions will follow as the training gets closer.",
-            "In the meantime, please hold these dates open. If anything changes for you, or if you have any questions "
-            "at all, just reply to this email and let us know.",
+            "We are delighted to confirm your registration for the Discovery Relationship Training, {dates}{where}.",
+            "This will be a powerful experience for you and your partner, and we are honored that you have chosen to be part of it.",
+            "Soon you will receive a separate email with your personal link to a questionnaire we ask you to seriously ponder. Take your time to complete each question. "
+            "Let your experience, heart, and mind flow into your words. Be sure not to share your answers with your partner. "
+            "Your thoughts are yours alone\u2026we want just your voice. The form is designed so you can close your work and "
+            "pick up right where you left off by opening that same link again. For privacy, if you wish to create a password, please do so. "
+            "Your password will be saved, so if you forget it, reply to this email and we will call to help.",
+            "When we receive your completed questionnaire, we will email the program schedule, what to bring, and directions "
+            "as the training gets closer.",
+            "In the meantime, please hold these dates open. If anything changes for you, or if you have any questions at all, "
+            "just reply to this email and let us know.",
             "We look forward to seeing you.",
         ],
         "signoff": "Warmly,",
+        "signer": "Coach Kent and the Discovery Team",
     },
     "seminar_registration": {
         "title": "Seminar registration",
@@ -712,7 +719,7 @@ def session_letter_content(key, first_name, training, dates, location=None, role
         + "".join(
             (f'<p><a href="{_html.escape(link)}">{_html.escape(link)}</a></p>' if (link and p == link)
              else f"<p>{_html.escape(p)}</p>") for p in paras)
-        + f"<p>{_html.escape(spec['signoff'])}<br>Kent Hafemann</p>"
+        + f"<p>{_html.escape(spec['signoff'])}<br>{_html.escape(spec.get('signer', 'Kent Hafemann'))}</p>"
     )
-    text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\nKent Hafemann"
+    text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\n{spec.get('signer', 'Kent Hafemann')}"
     return subject, html_content, text_content
