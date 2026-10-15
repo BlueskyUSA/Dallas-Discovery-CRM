@@ -3,10 +3,15 @@
 {% block content %}
 <section class="hero hero-feature">
   <div class="hero-inner">
+    <div class="hero-kicker">
+      <h2>Live life Alive!</h2>
+      <p>You deserve Freedom and Peace.</p>
+    </div>
     <h1><span class="hl">This is the work that</span><br><span class="hl">changes everything.</span></h1>
-    <p class="hero-sub">Some pain you carry for years without understanding why. {{ program_name }} is where people
-       make sense of their story, break the patterns running their life, and build the marriage,
-       family, and future they actually want.</p>
+    <p class="hero-sub">Every human heart is sacred, and was designed to be the home of freedom and peace.
+       What is the state of your heart? What do you need to find freedom and peace in your life?
+       Come join us and find out.</p>
+    <p class="hero-sub hero-sub-last">You can&rsquo;t change or heal what you don&rsquo;t acknowledge.</p>
     {% if next_session %}
     <p class="hero-date">{{ date_text or (next_session|date_span) }}{% if next_session.location %}<br><span class="hero-place">{{ next_session.location }}</span>{% endif %}</p>
     {% endif %}
@@ -15,10 +20,6 @@
       <a class="pub-btn secondary hero-alt" href="{{ url_for('public_programs') }}">Explore the programs</a>
     </div>
   </div>
-</section>
-<section class="start-band">
-  <h2>Live life Alive!</h2>
-  <p>Everyone deserves Freedom and Peace.</p>
 </section>
 
 <section class="pub-section">
