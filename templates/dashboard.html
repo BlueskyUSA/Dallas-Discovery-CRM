@@ -31,9 +31,6 @@
       </ol>
     </li>
     {% endif %}
-    {% if session.staff_role == 'Leadership' or has_contacts_access or is_lead or has_program_access %}
-    <li><strong>Calendar</strong> &ndash; A year at a glance &ndash; schedule the program dates for each training.</li>
-    {% endif %}
     {% if session.staff_role == 'Leadership' or has_donations_access %}
     <li><strong>Donations</strong> &ndash; Under Development &ndash; link to Accounting software.</li>
     {% endif %}

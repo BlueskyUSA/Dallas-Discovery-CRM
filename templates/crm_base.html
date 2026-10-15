@@ -35,7 +35,6 @@
         </div>
       </details>
       {% endif %}
-      {% if show_contacts %}<a href="{{ url_for('.calendar_view') }}">Calendar</a>{% endif %}
       {% if session.staff_role == 'Leadership' or has_program_access %}
       <a href="{{ url_for('.programs_list') }}">Programs</a>
       {% endif %}

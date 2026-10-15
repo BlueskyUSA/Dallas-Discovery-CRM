@@ -4,6 +4,10 @@
 <h1>Programs</h1>
 <p class="muted">Click a program to open it: training materials, music, sessions and scheduling.</p>
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
+{% if is_lead or has_contacts_access %}
+<p><a href="{{ url_for('.calendar_view') }}" style="display:inline-block; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:6px 14px">Year calendar &rarr;</a>
+  <span class="muted" style="margin-left:8px">Every session across all programs, at a glance.</span></p>
+{% endif %}
 <div class="card">
   <table>
     <tr><th>Program</th><th>Upcoming sessions</th></tr>
