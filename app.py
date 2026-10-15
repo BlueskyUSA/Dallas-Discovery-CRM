@@ -5687,7 +5687,32 @@ def feedback_list():
 
 @app.route("/")
 def public_home():
-    return render_template("public_home.html")
+    nxt = None
+    try:
+        _ensure_cohort_location()
+        conn = get_db()
+        nxt = conn.execute(
+            """SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id
+               WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'
+               ORDER BY c.session_date ASC LIMIT 1"""
+        ).fetchone()
+        conn.close()
+    except Exception as e:
+        print(f"Home page next-session lookup failed: {e}", flush=True)
+    date_text = None
+    if nxt:
+        try:
+            d1 = datetime.strptime(str(nxt["session_date"])[:10], "%Y-%m-%d")
+            d2 = datetime.strptime(str(nxt["end_date"] or nxt["session_date"])[:10], "%Y-%m-%d")
+            if d1 == d2:
+                date_text = f"{d1:%B} {d1.day}, {d1.year}"
+            elif (d1.year, d1.month) == (d2.year, d2.month):
+                date_text = f"{d1:%B} {d1.day}\u2013{d2.day}, {d1.year}"
+            else:
+                date_text = f"{d1:%B} {d1.day} \u2013 {d2:%B} {d2.day}, {d2.year}"
+        except Exception:
+            date_text = None
+    return render_template("public_home.html", next_session=nxt, date_text=date_text)
 
 
 @app.route("/our-story")
