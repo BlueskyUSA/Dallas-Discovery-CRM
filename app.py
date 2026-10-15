@@ -267,7 +267,10 @@ ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
 # Accounting & Legal logins are view-only: any form submission is refused except
 # signing in/out and changing their own password.
 ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
-                            "crm.logout", "crm.change_password")
+                            "crm.logout", "crm.change_password",
+                            # money entry -- each of these also checks the Accounting / Donations area grant
+                            "crm.enrollment_payment", "crm.finance_record_payment", "crm.payment_void",
+                            "crm.donations_list", "crm.donation_void")
 
 
 def role_label(role):
@@ -3901,14 +3904,16 @@ def cohort_detail(cohort_id):
     roster = ordered
     small_groups = conn.execute("SELECT * FROM small_groups WHERE cohort_id = ? ORDER BY label", (cohort_id,)).fetchall()
     staffing = conn.execute(
-        f"""SELECT cs.*, {full_name_sql('ct')} AS full_name, ct.cell_phone AS cell
+        f"""SELECT cs.*, {full_name_sql('ct')} AS full_name, ct.cell_phone AS cell,
+                  ct.partner_name AS partner_name, ct.partner_email AS partner_email, ct.email AS email
            FROM cohort_staffing cs
            JOIN contacts ct ON ct.id = cs.contact_id WHERE cs.cohort_id = ?""",
         (cohort_id,),
     ).fetchall()
     # Lead Facilitator and Support Facilitator always head the team list. Someone with
     # several roles/duties appears once, with everything combined.
-    _role_rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "TA": 3,
+    # Order: facilitators, then the Team Captain(s), then everyone else. Husband and wife sit together.
+    _role_rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "Team Captain": 2, "TA": 3,
                   "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
     _by_person = {}
     for r in staffing:
@@ -3926,9 +3931,31 @@ def cohort_detail(cohort_id):
             "roles": roles,
             "duties": [r for r in rows if r["duty"]],
             "rows": rows,
-            "rank": min(_role_rank.get(r["role"], 9) for r in rows),
+            "rank": min([_role_rank.get(r["role"], 9) for r in rows] +
+                        [2 for r in rows if (r["duty"] or "").strip().lower() == "team captain"]),
+            "partner_name": rows[0]["partner_name"], "partner_email": rows[0]["partner_email"],
+            "email": rows[0]["email"],
         })
-    team.sort(key=lambda t: (t["rank"], (t["full_name"] or "").lower()))
+    # Pair spouses: a team member whose saved partner (name or email) is also on the team.
+    _key = lambda s: " ".join((s or "").lower().replace(",", " ").split())
+    by_name = {_key(t["full_name"]): t for t in team}
+    by_mail = {(t["email"] or "").strip().lower(): t for t in team if t["email"]}
+    for t in team:
+        other = None
+        if t["partner_email"] and t["partner_email"].strip().lower() in by_mail:
+            other = by_mail[t["partner_email"].strip().lower()]
+        elif t["partner_name"] and _key(t["partner_name"]) in by_name:
+            other = by_name[_key(t["partner_name"])]
+        if other is not None and other is not t:
+            t["spouse_id"] = other["contact_id"]
+            other.setdefault("spouse_id", t["contact_id"])
+    by_id = {t["contact_id"]: t for t in team}
+    for t in team:
+        s = by_id.get(t.get("spouse_id"))
+        t["group_rank"] = min(t["rank"], s["rank"]) if s else t["rank"]
+        t["group_name"] = min((t["full_name"] or "").lower(), (s["full_name"] or "").lower()) if s else (t["full_name"] or "").lower()
+        t["spouse_name"] = s["full_name"] if s else None
+    team.sort(key=lambda t: (t["group_rank"], t["group_name"], (t["full_name"] or "").lower()))
     staffing = team
     sg_staffing = conn.execute(
         f"""SELECT sgs.*, {full_name_sql('ct')} AS full_name,
@@ -3957,7 +3984,7 @@ def cohort_detail(cohort_id):
         cohort=cohort,
         roster=roster, partner_names=partner_names, bands=bands, pay_info=pay_info,
         fee_default=TRAINING_FEES.get(cohort["code"]), payment_methods=PAYMENT_METHODS, today_iso=date.today().isoformat(),
-        is_leader=_is_leader(),
+        is_leader=_is_leader(), can_money=_can_handle_money(),
         small_groups=small_groups,
         staffing=staffing,
         show_session_team=_can_see_session_part("session_team"),
@@ -4358,7 +4385,8 @@ def _session_letter_recipients(conn, cohort_id):
             WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall():
         p = people.setdefault(r["contact_id"], {"contact_id": r["contact_id"], "name": r["name"],
                                                  "first_name": r["first_name"], "email": r["email"],
-                                                 "roles": [], "duties": []})
+                                                 "roles": [], "duties": [],
+                                                  "partner_name": r["partner_name"], "partner_email": r["partner_email"]})
         if r["role"] not in p["roles"]:
             p["roles"].append(r["role"])
         if r["duty"] and r["duty"] not in p["duties"]:
@@ -4577,20 +4605,37 @@ def cohort_team_print(cohort_id):
         return redirect(url_for(".programs_list"))
     rows = conn.execute(
         f"""SELECT cs.role, cs.duty, ct.id AS contact_id, {full_name_sql('ct')} AS full_name,
-                   ct.cell_phone, ct.email
+                   ct.cell_phone, ct.email, ct.partner_name, ct.partner_email
             FROM cohort_staffing cs JOIN contacts ct ON ct.id = cs.contact_id
             WHERE cs.cohort_id = ?""", (cohort_id,)).fetchall()
     conn.close()
-    rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "TA": 3, "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
+    rank = {"Lead Facilitator": 0, "Support Facilitator": 1, "Team Captain": 2, "TA": 3, "Support Team": 4, "Back-up TA": 5, "Trainee": 6}
     people = {}
     for r in rows:
         p = people.setdefault(r["contact_id"], {"name": r["full_name"], "cell": r["cell_phone"], "email": r["email"],
-                                                  "roles": [], "duties": []})
+                                                  "roles": [], "duties": [],
+                                                  "partner_name": r["partner_name"], "partner_email": r["partner_email"]})
         if r["role"] not in p["roles"]:
             p["roles"].append(r["role"])
         if r["duty"] and r["duty"] not in p["duties"]:
             p["duties"].append(r["duty"])
-    team = sorted(people.values(), key=lambda p: (min(rank.get(x, 9) for x in p["roles"]), (p["name"] or "").lower()))
+    for cid_, p in people.items():
+        p["rank"] = min([rank.get(x, 9) for x in p["roles"]] + [2 for d in p["duties"] if d.strip().lower() == "team captain"])
+    _k = lambda s: " ".join((s or "").lower().replace(",", " ").split())
+    by_name = {_k(p["name"]): cid_ for cid_, p in people.items()}
+    by_mail = {(p["email"] or "").strip().lower(): cid_ for cid_, p in people.items() if p["email"]}
+    spouse = {}
+    for cid_, p in people.items():
+        o = by_mail.get((p["partner_email"] or "").strip().lower()) if p["partner_email"] else None
+        o = o or by_name.get(_k(p["partner_name"]))
+        if o and o != cid_:
+            spouse[cid_] = o
+            spouse.setdefault(o, cid_)
+    for cid_, p in people.items():
+        s = people.get(spouse.get(cid_))
+        p["group_rank"] = min(p["rank"], s["rank"]) if s else p["rank"]
+        p["group_name"] = min((p["name"] or "").lower(), (s["name"] or "").lower()) if s else (p["name"] or "").lower()
+    team = sorted(people.values(), key=lambda p: (p["group_rank"], p["group_name"], (p["name"] or "").lower()))
     for p in team:
         p["roles"].sort(key=lambda x: rank.get(x, 9))
     return render_template("team_print.html", cohort=cohort, team=team, printed=date.today().isoformat())
@@ -5253,6 +5298,22 @@ def contract_view(contract_id):
 
 # ---------- payments, donations and finance reports ----------
 
+def _can_handle_money():
+    """Who may record or void payments and donations: Leadership, or a login the Owner gave the Accounting area
+    (the accountant and bookkeeper). A plain Team login never can."""
+    return bool(_is_leader() or _has_area_access("accounting"))
+
+
+def money_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not _can_handle_money():
+            flash("Recording payments is limited to Leadership and the accountant or bookkeeper.")
+            return redirect(url_for(".dashboard"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
 # Training fee per the program code, and who it covers. Shown as the starting amount in "Record payment".
 TRAINING_FEES = {"D4": 1200.0}   # Relationship Training: $1,200 per couple (one payment covers both partners)
 PAYMENT_METHODS = ["Check", "Zelle", "Cash", "Card", "Other"]
@@ -5299,39 +5360,91 @@ def _money(text):
     return round(v, 2) if v > 0 else None
 
 
-@crm.route("/enrollments/<int:enrollment_id>/payment", methods=["POST"])
-@area_required("contacts")
-def enrollment_payment(enrollment_id):
-    """Records money received for a trainee. A couple's payment covers both partners."""
-    _ensure_enrollment_extras()
-    _ensure_finance_tables()
-    conn = get_db()
+def _record_payment(conn, enrollment_id, form):
+    """Saves one payment from a submitted form. Returns (cohort_id, message)."""
     enr = conn.execute("SELECT * FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
     if not enr:
-        conn.close()
-        abort(404)
-    amount = _money(request.form.get("amount"))
+        return None, "That trainee wasn't found."
+    amount = _money(form.get("amount"))
     if amount is None:
-        conn.close()
-        flash("Please enter the amount received, for example 1200.")
-        return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
-    paid_on = request.form.get("paid_on") or date.today().isoformat()
-    method = request.form.get("method") if request.form.get("method") in PAYMENT_METHODS else None
-    completes = 1 if request.form.get("completes") else 0
+        return enr["cohort_id"], "Please enter the amount received, for example 1200."
+    paid_on = form.get("paid_on") or date.today().isoformat()
+    method = form.get("method") if form.get("method") in PAYMENT_METHODS else None
+    completes = 1 if form.get("completes") else 0
     conn.execute(
         """INSERT INTO payments (enrollment_id, contact_id, cohort_id, amount, paid_on, method, reference, note,
                                  completes_payment, recorded_by) VALUES (?,?,?,?,?,?,?,?,?,?)""",
         (enrollment_id, enr["contact_id"], enr["cohort_id"], amount, paid_on, method,
-         (request.form.get("reference") or "").strip() or None, (request.form.get("note") or "").strip() or None,
+         (form.get("reference") or "").strip() or None, (form.get("note") or "").strip() or None,
          completes, session.get("staff_name")))
     if completes:
         ids = [enrollment_id] + ([enr["partner_enrollment_id"]] if enr["partner_enrollment_id"] else [])
         for i in ids:
             conn.execute("UPDATE enrollments SET payment_completed_at = ? WHERE id = ?", (paid_on, i))
     conn.commit()
+    return enr["cohort_id"], ("Payment recorded." if completes else "Deposit recorded. The balance is still outstanding.")
+
+
+@crm.route("/enrollments/<int:enrollment_id>/payment", methods=["POST"])
+@money_required
+def enrollment_payment(enrollment_id):
+    """Records money received for a trainee (from the session page). A couple's payment covers both partners."""
+    _ensure_enrollment_extras()
+    _ensure_finance_tables()
+    conn = get_db()
+    cohort_id, msg = _record_payment(conn, enrollment_id, request.form)
     conn.close()
-    flash("Payment recorded." if completes else "Deposit recorded. The balance is still outstanding.")
-    return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
+    if cohort_id is None:
+        abort(404)
+    flash(msg)
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+@crm.route("/finance/record-payment", methods=["POST"])
+@money_required
+def finance_record_payment():
+    """Same as above, from the Finance page, so the accountant or bookkeeper never needs the trainee roster."""
+    _ensure_enrollment_extras()
+    _ensure_finance_tables()
+    eid = request.form.get("enrollment_id", type=int)
+    conn = get_db()
+    cohort_id, msg = _record_payment(conn, eid, request.form) if eid else (None, "Please choose who the payment is from.")
+    conn.close()
+    flash(msg)
+    return redirect(url_for(".finance"))
+
+
+def _recompute_paid(conn, enrollment_id):
+    """After a payment is voided: if nothing live still completes this trainee's (or their partner's) payment,
+    they go back to unpaid."""
+    row = conn.execute("SELECT partner_enrollment_id FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
+    ids = [enrollment_id] + ([row["partner_enrollment_id"]] if row and row["partner_enrollment_id"] else [])
+    marks = ",".join("?" for _ in ids)
+    live = conn.execute(
+        "SELECT COUNT(*) AS n FROM payments WHERE voided_at IS NULL AND completes_payment = 1 AND enrollment_id IN (" + marks + ")",
+        ids).fetchone()["n"]
+    if not live:
+        for i in ids:
+            conn.execute("UPDATE enrollments SET payment_completed_at = NULL WHERE id = ?", (i,))
+
+
+@crm.route("/payments/<int:payment_id>/void", methods=["POST"])
+@money_required
+def payment_void(payment_id):
+    """A payment entered by mistake is voided, not deleted, so the books keep a trail."""
+    _ensure_enrollment_extras()
+    _ensure_finance_tables()
+    conn = get_db()
+    p = conn.execute("SELECT * FROM payments WHERE id = ? AND voided_at IS NULL", (payment_id,)).fetchone()
+    if p:
+        conn.execute("UPDATE payments SET voided_at = ?, voided_by = ? WHERE id = ?",
+                     (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("staff_name"), payment_id))
+        if p["enrollment_id"]:
+            _recompute_paid(conn, p["enrollment_id"])
+        conn.commit()
+        flash("Payment voided. It no longer counts in the totals.")
+    conn.close()
+    return redirect(request.form.get("back") or url_for(".finance"))
 
 
 def _void_payments_for(conn, enr):
@@ -5365,6 +5478,10 @@ def donations_list():
     _ensure_finance_tables()
     conn = get_db()
     if request.method == "POST":
+        if not _can_handle_money():
+            conn.close()
+            flash("Recording donations is limited to Leadership and the accountant or bookkeeper.")
+            return redirect(url_for(".donations_list"))
         contact_id, pick_error = parse_contact_pick(conn, request.form.get("donor_pick"))
         amount = _money(request.form.get("amount"))
         if pick_error or not contact_id:
@@ -5395,12 +5512,12 @@ def donations_list():
     contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name FROM contacts ORDER BY last_name, first_name").fetchall()
     conn.close()
     return render_template("donations_list.html", donations=rows, total=total, funds=funds, contacts=contacts,
-                           methods=PAYMENT_METHODS, today=date.today().isoformat(), can_void=_is_leader())
+                           methods=PAYMENT_METHODS, today=date.today().isoformat(), can_void=_can_handle_money(), can_contacts=_has_area_access("contacts"))
 
 
 @crm.route("/donations/<int:donation_id>/void", methods=["POST"])
 @area_required("donations")
-@leadership_required
+@money_required
 def donation_void(donation_id):
     """A donation entered by mistake is voided, not deleted, so the books keep a trail."""
     _ensure_finance_tables()
@@ -5436,14 +5553,15 @@ def _finance_ledger(conn, start, end):
         rows.append({"date": p["paid_on"], "type": "Training payment" if p["completes_payment"] else "Training deposit",
                      "name": p["name"], "email": p["email"] or "", "what": what, "amount": p["amount"],
                      "method": p["method"] or "", "reference": p["reference"] or "", "note": p["note"] or "",
-                     "covers": p["partner_name"] or "", "contact_id": p["contact_id"], "recorded_by": p["recorded_by"] or ""})
+                     "covers": p["partner_name"] or "", "contact_id": p["contact_id"], "recorded_by": p["recorded_by"] or "",
+                     "kind": "payment", "id": p["id"]})
     for d in conn.execute(
         f"""SELECT d.*, {full_name_sql('ct')} AS name, ct.email FROM donations d JOIN contacts ct ON ct.id = d.contact_id
             WHERE d.voided_at IS NULL AND d.donation_date >= ? AND d.donation_date <= ?""", (start, end)).fetchall():
         rows.append({"date": d["donation_date"], "type": "Donation", "name": d["name"], "email": d["email"] or "",
                      "what": d["fund"] or "General Operating", "amount": d["amount"], "method": d["payment_method"] or "",
                      "reference": d["reference"] or "", "note": d["note"] or "", "covers": "",
-                     "contact_id": d["contact_id"], "recorded_by": d["recorded_by"] or ""})
+                     "contact_id": d["contact_id"], "recorded_by": d["recorded_by"] or "", "kind": "donation", "id": d["id"]})
     rows.sort(key=lambda r: (r["date"], r["name"] or ""), reverse=True)
     return rows
 
@@ -5476,11 +5594,14 @@ def finance():
         dep = conn.execute("SELECT COALESCE(SUM(amount),0) AS t FROM payments WHERE voided_at IS NULL AND enrollment_id IN (?, ?)",
                            (e["id"], e["pe"] or 0)).fetchone()["t"]
         outstanding.append({"name": e["name"], "contact_id": e["contact_id"], "what": f"{e['code']} #{e['session_number']}",
-                            "date": e["session_date"], "deposit": dep, "couple": bool(e["pe"])})
+                            "date": e["session_date"], "deposit": dep, "couple": bool(e["pe"]), "eid": e["id"],
+                            "fee": (TRAINING_FEES.get(e["code"]) if e["pe"] else None)})
     conn.close()
     return render_template("finance.html", start=start, end=end, ledger=ledger, training=training,
                            donations_total=donations_total, by_session=sorted(by_session.items()),
-                           by_month=sorted(by_month.items(), reverse=True), outstanding=outstanding, entity=BOOKS_ENTITY)
+                           by_month=sorted(by_month.items(), reverse=True), outstanding=outstanding, entity=BOOKS_ENTITY,
+                           can_money=_can_handle_money(), can_contacts=_has_area_access("contacts"),
+                           methods=PAYMENT_METHODS, today=date.today().isoformat())
 
 
 @crm.route("/finance/export.csv")
