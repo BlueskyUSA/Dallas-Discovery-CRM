@@ -283,3 +283,11 @@ body { background: var(--pub-bg); font-family: var(--pub-font-body); color: var(
 .start-band { background: #1f2f45; color: #fff; text-align: center; padding: 44px 20px; }
 .start-band h2 { color: #f6dc6b; text-transform: uppercase; letter-spacing: 0.05em; font-size: clamp(1.5rem, 3.4vw, 2.3rem); margin: 0 0 10px; }
 .start-band p { margin: 0 auto; max-width: 620px; color: #dbe5f2; font-size: 1.1rem; }
+
+.hero.hero-feature::before { background-image: url("hero-ocean.webp"); background-position: center bottom; }
+.hero.hero-feature::after { background: linear-gradient(180deg, rgba(40,20,30,0.38) 0%, rgba(40,20,30,0.22) 60%, rgba(20,20,45,0.10) 100%); }
+.hero-feature .hero-sub, .hero-feature .hero-date { text-shadow: 0 1px 8px rgba(0,0,0,0.45); }
+
+.hero.hero-feature { padding-bottom: 290px; }
+@media (max-width: 640px) { .hero.hero-feature { padding-bottom: 200px; } }
+.hero-feature .hero-sub { font-weight: 500; }
