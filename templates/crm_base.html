@@ -63,5 +63,20 @@
     {% block content %}{% endblock %}
   </main>
   <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+  <script>
+    // Top-menu drop-downs (Admin, Account): close on a click anywhere else, on Esc, or when another one opens.
+    (function () {
+      var menus = document.querySelectorAll('details.navmenu');
+      function closeAll(except) { menus.forEach(function (m) { if (m !== except) m.open = false; }); }
+      document.addEventListener('click', function (e) {
+        var inside = e.target.closest ? e.target.closest('details.navmenu') : null;
+        closeAll(inside);
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(null); });
+      menus.forEach(function (m) {
+        m.addEventListener('toggle', function () { if (m.open) closeAll(m); });
+      });
+    })();
+  </script>
 </body>
 </html>
