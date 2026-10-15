@@ -5685,9 +5685,24 @@ def feedback_list():
 
 # ---------- public marketing site (blueskyusa.net root) ----------
 
+def _public_date_text(row):
+    """'February 12\u201314, 2027' style dates for the public pages."""
+    try:
+        d1 = datetime.strptime(str(row["session_date"])[:10], "%Y-%m-%d")
+        d2 = datetime.strptime(str(row["end_date"] or row["session_date"])[:10], "%Y-%m-%d")
+    except Exception:
+        return None
+    if d1 == d2:
+        return f"{d1:%B} {d1.day}, {d1.year}"
+    if (d1.year, d1.month) == (d2.year, d2.month):
+        return f"{d1:%B} {d1.day}\u2013{d2.day}, {d1.year}"
+    return f"{d1:%B} {d1.day} \u2013 {d2:%B} {d2.day}, {d2.year}"
+
+
 @app.route("/")
 def public_home():
     nxt = None
+    next_by_code = {}
     try:
         _ensure_cohort_location()
         conn = get_db()
@@ -5697,23 +5712,14 @@ def public_home():
         nxt = conn.execute(base + " AND p.code = 'D1' ORDER BY c.session_date ASC LIMIT 1").fetchone()
         if not nxt:
             nxt = conn.execute(base + " ORDER BY c.session_date ASC LIMIT 1").fetchone()
+        for r in conn.execute(base + " ORDER BY c.session_date ASC").fetchall():
+            if r["code"] not in next_by_code:
+                next_by_code[r["code"]] = _public_date_text(r)
         conn.close()
     except Exception as e:
         print(f"Home page next-session lookup failed: {e}", flush=True)
-    date_text = None
-    if nxt:
-        try:
-            d1 = datetime.strptime(str(nxt["session_date"])[:10], "%Y-%m-%d")
-            d2 = datetime.strptime(str(nxt["end_date"] or nxt["session_date"])[:10], "%Y-%m-%d")
-            if d1 == d2:
-                date_text = f"{d1:%B} {d1.day}, {d1.year}"
-            elif (d1.year, d1.month) == (d2.year, d2.month):
-                date_text = f"{d1:%B} {d1.day}\u2013{d2.day}, {d1.year}"
-            else:
-                date_text = f"{d1:%B} {d1.day} \u2013 {d2:%B} {d2.day}, {d2.year}"
-        except Exception:
-            date_text = None
-    return render_template("public_home.html", next_session=nxt, date_text=date_text)
+    date_text = _public_date_text(nxt) if nxt else None
+    return render_template("public_home.html", next_session=nxt, date_text=date_text, next_by_code=next_by_code)
 
 
 @app.route("/our-story")
@@ -5826,6 +5832,7 @@ def public_register():
     cal = _calendar_data(year, public=True)
     return render_template(
         "public_register.html", programs=programs, upcoming=upcoming, cal=cal,
+        preselect=(request.args.get("program") or "").upper(),
         prev_url=url_for("public_register", year=year - 1) + "#calendar",
         next_url=url_for("public_register", year=year + 1) + "#calendar",
         today_url=url_for("public_register") + "#calendar",
