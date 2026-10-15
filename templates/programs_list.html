@@ -19,8 +19,7 @@
             {% if p.code in ['D1','D2','D3','D5'] %}
             <label style="display:flex; align-items:center; gap:12px; flex-basis:100%; width:100%; box-sizing:border-box; margin:0 0 10px; padding:12px 16px; background:#fff4d6; border:2px solid #e8a13c; border-radius:10px; font-size:1.05rem; font-weight:700; color:#5a3b00; cursor:pointer">
               <input type="checkbox" name="move_together" value="1" checked style="width:26px; height:26px; flex:none; accent-color:#c0392b">
-              <span>Move all trainings held on these same dates together<br>
-                <span style="font-weight:400; font-size:0.88rem">D1, D2, D3 and D5 sessions scheduled for this same weekend change with it. Untick to change only {{ p.code }} #{{ c.session_number }}.</span></span>
+              <span>Schedule D1, D2, D3, and D5-Renew for this same weekend.</span>
             </label>
             {% endif %}
             <input type="date" name="session_date" value="{{ c.session_date }}" data-was="{{ c.session_date }}" required
