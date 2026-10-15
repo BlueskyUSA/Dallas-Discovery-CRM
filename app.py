@@ -5691,11 +5691,12 @@ def public_home():
     try:
         _ensure_cohort_location()
         conn = get_db()
-        nxt = conn.execute(
-            """SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id
-               WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'
-               ORDER BY c.session_date ASC LIMIT 1"""
-        ).fetchone()
+        base = """SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id
+               WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'"""
+        # The front page leads with the next D1 session (the entry program); if none is scheduled, the next of any program.
+        nxt = conn.execute(base + " AND p.code = 'D1' ORDER BY c.session_date ASC LIMIT 1").fetchone()
+        if not nxt:
+            nxt = conn.execute(base + " ORDER BY c.session_date ASC LIMIT 1").fetchone()
         conn.close()
     except Exception as e:
         print(f"Home page next-session lookup failed: {e}", flush=True)
