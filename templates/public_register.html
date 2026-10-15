@@ -16,7 +16,7 @@
   </div>
 </section>
 
-<section class="pub-section alt">
+<section class="pub-section alt" id="interested">
   <div class="pub-container">
     <h2>I'm interested</h2>
     <p class="lead">Tell us a bit about yourself and which program you're interested in. Our team will follow up with next steps and registration details.</p>
@@ -30,7 +30,7 @@
         <select name="program_code">
           <option value="">Not sure yet</option>
           {% for p in programs %}
-          <option value="{{ p.code }}">{{ p.code }} &mdash; {{ p.name }}</option>
+          <option value="{{ p.code }}" {{ 'selected' if p.code == preselect }}>{{ p.code }} &mdash; {{ p.name }}</option>
           {% endfor %}
         </select>
       </div>

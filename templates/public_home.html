@@ -15,7 +15,15 @@
     <p class="hero-date">{{ date_text or (next_session|date_span) }}{% if next_session.location %}<br><span class="hero-place">{{ next_session.location }}</span>{% endif %}</p>
     {% endif %}
     <div class="btn-row">
-      <a class="pub-btn hero-cta" href="{{ url_for('public_register') }}">Reserve Your Spot</a>
+      <details class="reserve" id="reserve">
+        <summary class="pub-btn hero-cta">Reserve Your Spot! &#9662;</summary>
+        <div class="reserve-menu">
+          <a href="{{ url_for('public_register', program='D1') }}#interested"><strong>D1 &ndash; The Beginning</strong>{% if next_by_code.get('D1') %}<span>{{ next_by_code['D1'] }}</span>{% endif %}</a>
+          <a href="{{ url_for('public_register', program='D2') }}#interested"><strong>D2 &ndash; Tools</strong>{% if next_by_code.get('D2') %}<span>{{ next_by_code['D2'] }}</span>{% endif %}</a>
+          <a href="{{ url_for('public_register', program='D3') }}#interested"><strong>D3 &ndash; Vision</strong>{% if next_by_code.get('D3') %}<span>{{ next_by_code['D3'] }}</span>{% endif %}</a>
+          <a href="{{ url_for('public_register', program='D4') }}#interested"><strong>D4 &ndash; Wisdom! &ndash; A Relationship Training</strong>{% if next_by_code.get('D4') %}<span>{{ next_by_code['D4'] }}</span>{% endif %}</a>
+        </div>
+      </details>
       <a class="pub-btn secondary hero-alt" href="{{ url_for('public_programs') }}">Explore the programs</a>
     </div>
   </div>
@@ -63,4 +71,10 @@
     </div>
   </div>
 </section>
+<script>
+  document.addEventListener('click', function (e) {
+    var d = document.getElementById('reserve');
+    if (d && d.open && !d.contains(e.target)) d.open = false;
+  });
+</script>
 {% endblock %}
