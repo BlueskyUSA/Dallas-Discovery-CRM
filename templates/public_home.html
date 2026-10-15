@@ -25,9 +25,6 @@
        What is the state of your heart? What do you need to find freedom, peace, strength, and power in your life?
        Let&rsquo;s find out. Come join us!</p>
     <p class="hero-sub hero-sub-last">We work hard, and we play hard&hellip; lots of fun!</p>
-    {% if next_session %}
-    <p class="hero-date">{{ date_text or (next_session|date_span) }}{% if next_session.location %}<br><span class="hero-place">{{ next_session.location }}</span>{% endif %}</p>
-    {% endif %}
     <div class="btn-row">
       <details class="reserve" id="reserve">
         <summary class="pub-btn hero-cta">Reserve Your Spot! &#9662;</summary>
