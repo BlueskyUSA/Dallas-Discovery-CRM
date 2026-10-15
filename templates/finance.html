@@ -15,33 +15,6 @@
   <div class="stat"><div class="num">${{ '{:,.2f}'.format(donations_total) }}</div><div class="label">Donations</div></div>
 </div>
 
-{% if can_money %}
-<details class="card" style="margin-bottom:16px">
-  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">Record a trainee payment</summary>
-  <form method="post" action="{{ url_for('.finance_record_payment') }}" style="margin-top:10px">
-    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end">
-      <label>Payment from<br>
-        <select name="enrollment_id" id="pay-who" required style="min-width:260px">
-          <option value="">Choose a trainee…</option>
-          {% for o in outstanding %}<option value="{{ o.eid }}" data-fee="{{ '%.2f'|format(o.fee) if o.fee else '' }}">{{ o.name }} — {{ o.what }}{% if o.couple %} (couple){% endif %}</option>{% endfor %}
-        </select></label>
-      <label>Amount ($)<br><input name="amount" id="pay-amt" inputmode="decimal" required style="width:110px"></label>
-      <label>Date<br><input type="date" name="paid_on" value="{{ today }}"></label>
-      <label>Method<br><select name="method">{% for m in methods %}<option>{{ m }}</option>{% endfor %}</select></label>
-      <label>Check # or reference<br><input name="reference" style="width:140px"></label>
-      <label>Note<br><input name="note" style="width:200px"></label>
-      <label style="font-weight:400"><input type="checkbox" name="completes" value="1" checked> This completes the payment</label>
-      <button class="btn" type="submit">Save payment</button>
-    </div>
-    <p class="muted" style="margin:8px 0 0">A couple's payment covers both partners. Mistakes are voided in the list below, never deleted.</p>
-  </form>
-  <script>
-    (function(){var s=document.getElementById('pay-who'),a=document.getElementById('pay-amt');
-      if(s&&a) s.addEventListener('change',function(){var f=s.options[s.selectedIndex].getAttribute('data-fee'); if(f&&!a.value) a.value=f;});})();
-  </script>
-</details>
-{% endif %}
-
 <h2>By session and fund</h2>
 <div class="card">
   <table class="sticky-head"><tr><th>Session or fund</th><th>Received</th></tr>
@@ -61,7 +34,7 @@
 <h2>Still to be paid (upcoming sessions)</h2>
 <div class="card">
   <table class="sticky-head"><tr><th>Trainee</th><th>Session</th><th>Starts</th><th>Deposit so far</th></tr>
-  {% for o in outstanding %}<tr><td>{% if can_contacts %}<a href="{{ url_for('.contact_detail', contact_id=o.contact_id) }}">{{ o.name }}</a>{% else %}{{ o.name }}{% endif %}{% if o.couple %} <span class="muted">(couple)</span>{% endif %}</td>
+  {% for o in outstanding %}<tr><td><a href="{{ url_for('.contact_detail', contact_id=o.contact_id) }}">{{ o.name }}</a>{% if o.couple %} <span class="muted">(couple)</span>{% endif %}</td>
     <td>{{ o.what }}</td><td>{{ o.date|fdate }}</td><td>{% if o.deposit %}${{ '{:,.2f}'.format(o.deposit) }}{% else %}<span class="muted">&mdash;</span>{% endif %}</td></tr>
   {% else %}<tr><td colspan="4" class="muted">Nobody is waiting to pay.</td></tr>{% endfor %}
   </table>
@@ -69,12 +42,11 @@
 
 <h2>Every payment and donation</h2>
 <div class="card">
-  <table class="sticky-head"><tr><th>Date</th><th>Type</th><th>Name</th><th>Session or fund</th><th>Amount</th><th>Method</th><th>Reference</th><th>Also covers</th><th></th></tr>
+  <table class="sticky-head"><tr><th>Date</th><th>Type</th><th>Name</th><th>Session or fund</th><th>Amount</th><th>Method</th><th>Reference</th><th>Also covers</th></tr>
   {% for r in ledger %}<tr><td>{{ r.date|fdate }}</td><td>{{ r.type }}</td>
-    <td>{% if can_contacts %}<a href="{{ url_for('.contact_detail', contact_id=r.contact_id) }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td><td>{{ r.what }}</td>
-    <td>${{ '{:,.2f}'.format(r.amount) }}</td><td>{{ r.method }}</td><td>{{ r.reference }}</td><td>{{ r.covers }}</td>
-    <td>{% if can_money %}<form method="post" action="{% if r.kind == 'payment' %}{{ url_for('.payment_void', payment_id=r.id) }}{% else %}{{ url_for('.donation_void', donation_id=r.id) }}{% endif %}" style="display:inline" onsubmit="return confirm('Void this entry? It stays on record but no longer counts.');"><button class="btn danger" type="submit" style="padding:1px 8px; font-size:0.78rem">Void</button></form>{% endif %}</td></tr>
-  {% else %}<tr><td colspan="9" class="muted">Nothing recorded in this period.</td></tr>{% endfor %}
+    <td><a href="{{ url_for('.contact_detail', contact_id=r.contact_id) }}">{{ r.name }}</a></td><td>{{ r.what }}</td>
+    <td>${{ '{:,.2f}'.format(r.amount) }}</td><td>{{ r.method }}</td><td>{{ r.reference }}</td><td>{{ r.covers }}</td></tr>
+  {% else %}<tr><td colspan="8" class="muted">Nothing recorded in this period.</td></tr>{% endfor %}
   </table>
 </div>
 {% endblock %}

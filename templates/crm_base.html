@@ -40,6 +40,9 @@
       {% if session.staff_role == 'Leadership' or has_donations_access %}
       <a href="{{ url_for('.donations_list') }}">Donations</a>
       {% endif %}
+      {% if session.is_owner or has_accounting_access %}
+      <a href="{{ url_for('.finance') }}">Finance</a>
+      {% endif %}
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public site &rarr;</a>
       {% if session.staff_id %}

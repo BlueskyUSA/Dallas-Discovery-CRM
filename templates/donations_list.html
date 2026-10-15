@@ -6,7 +6,7 @@
   <div class="stat"><div class="num">${{ '{:,.2f}'.format(total) }}</div><div class="label">Total recorded</div></div>
 </div>
 
-{% if can_void %}
+{% if session.is_owner or session.staff_role != 'Accounting' %}
 <details class="card" style="margin-bottom:16px">
   <summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">Record a donation</summary>
   <form method="post" style="margin-top:10px">
@@ -32,7 +32,7 @@
     {% for d in donations %}
     <tr>
       <td>{{ d.donation_date|fdate }}</td>
-      <td>{% if can_contacts %}<a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a>{% else %}{{ d.full_name }}{% endif %}</td>
+      <td><a href="{{ url_for('.contact_detail', contact_id=d.contact_id) }}">{{ d.full_name }}</a></td>
       <td>${{ '{:,.2f}'.format(d.amount) }}</td>
       <td>{{ d.fund }}</td>
       <td>{{ d.payment_method or '' }}</td>
