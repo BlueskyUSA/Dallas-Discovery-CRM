@@ -3765,6 +3765,24 @@ def cohort_update_dates(cohort_id):
     status = request.form.get("status")
     _ensure_cohort_location()
     conn = get_db()
+    # D1, D2, D3 and D5 are often held together, each as its own session record. If asked, move the sister
+    # sessions that were on exactly the same dates as this one was, so the weekend stays in step.
+    moved_with = []
+    if request.form.get("move_together"):
+        here = conn.execute(
+            "SELECT c.session_date, c.end_date, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?",
+            (cohort_id,)).fetchone()
+        if here and here["code"] in ("D1", "D2", "D3", "D5"):
+            sisters = conn.execute(
+                """SELECT c.id, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id
+                   WHERE p.code IN ('D1','D2','D3','D5') AND c.id != ? AND c.session_date = ?
+                     AND COALESCE(c.end_date, '') = ? AND c.status != 'Completed'""",
+                (cohort_id, here["session_date"], here["end_date"] or "")).fetchall()
+            for s in sisters:
+                conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, s["id"]))
+                moved_with.append(s["code"])
+    if moved_with:
+        moved_note += " Also moved " + ", ".join(moved_with) + " to the same dates."
     if "location" in request.form:
         conn.execute("UPDATE cohorts SET location = ? WHERE id = ?",
                      ((request.form.get("location") or "").strip() or None, cohort_id))
