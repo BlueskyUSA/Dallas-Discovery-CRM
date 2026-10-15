@@ -267,10 +267,7 @@ ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
 # Accounting & Legal logins are view-only: any form submission is refused except
 # signing in/out and changing their own password.
 ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
-                            "crm.logout", "crm.change_password",
-                            # money entry -- each of these also checks the Accounting / Donations area grant
-                            "crm.enrollment_payment", "crm.finance_record_payment", "crm.payment_void",
-                            "crm.donations_list", "crm.donation_void")
+                            "crm.logout", "crm.change_password")
 
 
 def role_label(role):
@@ -3960,7 +3957,7 @@ def cohort_detail(cohort_id):
         cohort=cohort,
         roster=roster, partner_names=partner_names, bands=bands, pay_info=pay_info,
         fee_default=TRAINING_FEES.get(cohort["code"]), payment_methods=PAYMENT_METHODS, today_iso=date.today().isoformat(),
-        is_leader=_is_leader(), can_money=_can_handle_money(),
+        is_leader=_is_leader(),
         small_groups=small_groups,
         staffing=staffing,
         show_session_team=_can_see_session_part("session_team"),
@@ -5256,22 +5253,6 @@ def contract_view(contract_id):
 
 # ---------- payments, donations and finance reports ----------
 
-def _can_handle_money():
-    """Who may record or void payments and donations: Leadership, or a login the Owner gave the Accounting area
-    (the accountant and bookkeeper). A plain Team login never can."""
-    return bool(_is_leader() or _has_area_access("accounting"))
-
-
-def money_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not _can_handle_money():
-            flash("Recording payments is limited to Leadership and the accountant or bookkeeper.")
-            return redirect(url_for(".dashboard"))
-        return view(*args, **kwargs)
-    return wrapped
-
-
 # Training fee per the program code, and who it covers. Shown as the starting amount in "Record payment".
 TRAINING_FEES = {"D4": 1200.0}   # Relationship Training: $1,200 per couple (one payment covers both partners)
 PAYMENT_METHODS = ["Check", "Zelle", "Cash", "Card", "Other"]
@@ -5318,91 +5299,39 @@ def _money(text):
     return round(v, 2) if v > 0 else None
 
 
-def _record_payment(conn, enrollment_id, form):
-    """Saves one payment from a submitted form. Returns (cohort_id, message)."""
+@crm.route("/enrollments/<int:enrollment_id>/payment", methods=["POST"])
+@area_required("contacts")
+def enrollment_payment(enrollment_id):
+    """Records money received for a trainee. A couple's payment covers both partners."""
+    _ensure_enrollment_extras()
+    _ensure_finance_tables()
+    conn = get_db()
     enr = conn.execute("SELECT * FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
     if not enr:
-        return None, "That trainee wasn't found."
-    amount = _money(form.get("amount"))
+        conn.close()
+        abort(404)
+    amount = _money(request.form.get("amount"))
     if amount is None:
-        return enr["cohort_id"], "Please enter the amount received, for example 1200."
-    paid_on = form.get("paid_on") or date.today().isoformat()
-    method = form.get("method") if form.get("method") in PAYMENT_METHODS else None
-    completes = 1 if form.get("completes") else 0
+        conn.close()
+        flash("Please enter the amount received, for example 1200.")
+        return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
+    paid_on = request.form.get("paid_on") or date.today().isoformat()
+    method = request.form.get("method") if request.form.get("method") in PAYMENT_METHODS else None
+    completes = 1 if request.form.get("completes") else 0
     conn.execute(
         """INSERT INTO payments (enrollment_id, contact_id, cohort_id, amount, paid_on, method, reference, note,
                                  completes_payment, recorded_by) VALUES (?,?,?,?,?,?,?,?,?,?)""",
         (enrollment_id, enr["contact_id"], enr["cohort_id"], amount, paid_on, method,
-         (form.get("reference") or "").strip() or None, (form.get("note") or "").strip() or None,
+         (request.form.get("reference") or "").strip() or None, (request.form.get("note") or "").strip() or None,
          completes, session.get("staff_name")))
     if completes:
         ids = [enrollment_id] + ([enr["partner_enrollment_id"]] if enr["partner_enrollment_id"] else [])
         for i in ids:
             conn.execute("UPDATE enrollments SET payment_completed_at = ? WHERE id = ?", (paid_on, i))
     conn.commit()
-    return enr["cohort_id"], ("Payment recorded." if completes else "Deposit recorded. The balance is still outstanding.")
-
-
-@crm.route("/enrollments/<int:enrollment_id>/payment", methods=["POST"])
-@money_required
-def enrollment_payment(enrollment_id):
-    """Records money received for a trainee (from the session page). A couple's payment covers both partners."""
-    _ensure_enrollment_extras()
-    _ensure_finance_tables()
-    conn = get_db()
-    cohort_id, msg = _record_payment(conn, enrollment_id, request.form)
     conn.close()
-    if cohort_id is None:
-        abort(404)
-    flash(msg)
-    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
-
-
-@crm.route("/finance/record-payment", methods=["POST"])
-@money_required
-def finance_record_payment():
-    """Same as above, from the Finance page, so the accountant or bookkeeper never needs the trainee roster."""
-    _ensure_enrollment_extras()
-    _ensure_finance_tables()
-    eid = request.form.get("enrollment_id", type=int)
-    conn = get_db()
-    cohort_id, msg = _record_payment(conn, eid, request.form) if eid else (None, "Please choose who the payment is from.")
-    conn.close()
-    flash(msg)
-    return redirect(url_for(".finance"))
-
-
-def _recompute_paid(conn, enrollment_id):
-    """After a payment is voided: if nothing live still completes this trainee's (or their partner's) payment,
-    they go back to unpaid."""
-    row = conn.execute("SELECT partner_enrollment_id FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
-    ids = [enrollment_id] + ([row["partner_enrollment_id"]] if row and row["partner_enrollment_id"] else [])
-    marks = ",".join("?" for _ in ids)
-    live = conn.execute(
-        "SELECT COUNT(*) AS n FROM payments WHERE voided_at IS NULL AND completes_payment = 1 AND enrollment_id IN (" + marks + ")",
-        ids).fetchone()["n"]
-    if not live:
-        for i in ids:
-            conn.execute("UPDATE enrollments SET payment_completed_at = NULL WHERE id = ?", (i,))
-
-
-@crm.route("/payments/<int:payment_id>/void", methods=["POST"])
-@money_required
-def payment_void(payment_id):
-    """A payment entered by mistake is voided, not deleted, so the books keep a trail."""
-    _ensure_enrollment_extras()
-    _ensure_finance_tables()
-    conn = get_db()
-    p = conn.execute("SELECT * FROM payments WHERE id = ? AND voided_at IS NULL", (payment_id,)).fetchone()
-    if p:
-        conn.execute("UPDATE payments SET voided_at = ?, voided_by = ? WHERE id = ?",
-                     (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("staff_name"), payment_id))
-        if p["enrollment_id"]:
-            _recompute_paid(conn, p["enrollment_id"])
-        conn.commit()
-        flash("Payment voided. It no longer counts in the totals.")
-    conn.close()
-    return redirect(request.form.get("back") or url_for(".finance"))
+    flash("Payment recorded." if completes else "Deposit recorded. The balance is still outstanding.")
+    return redirect(url_for(".cohort_detail", cohort_id=enr["cohort_id"]))
 
 
 def _void_payments_for(conn, enr):
@@ -5436,10 +5365,6 @@ def donations_list():
     _ensure_finance_tables()
     conn = get_db()
     if request.method == "POST":
-        if not _can_handle_money():
-            conn.close()
-            flash("Recording donations is limited to Leadership and the accountant or bookkeeper.")
-            return redirect(url_for(".donations_list"))
         contact_id, pick_error = parse_contact_pick(conn, request.form.get("donor_pick"))
         amount = _money(request.form.get("amount"))
         if pick_error or not contact_id:
@@ -5470,12 +5395,12 @@ def donations_list():
     contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name FROM contacts ORDER BY last_name, first_name").fetchall()
     conn.close()
     return render_template("donations_list.html", donations=rows, total=total, funds=funds, contacts=contacts,
-                           methods=PAYMENT_METHODS, today=date.today().isoformat(), can_void=_can_handle_money(), can_contacts=_has_area_access("contacts"))
+                           methods=PAYMENT_METHODS, today=date.today().isoformat(), can_void=_is_leader())
 
 
 @crm.route("/donations/<int:donation_id>/void", methods=["POST"])
 @area_required("donations")
-@money_required
+@leadership_required
 def donation_void(donation_id):
     """A donation entered by mistake is voided, not deleted, so the books keep a trail."""
     _ensure_finance_tables()
@@ -5511,15 +5436,14 @@ def _finance_ledger(conn, start, end):
         rows.append({"date": p["paid_on"], "type": "Training payment" if p["completes_payment"] else "Training deposit",
                      "name": p["name"], "email": p["email"] or "", "what": what, "amount": p["amount"],
                      "method": p["method"] or "", "reference": p["reference"] or "", "note": p["note"] or "",
-                     "covers": p["partner_name"] or "", "contact_id": p["contact_id"], "recorded_by": p["recorded_by"] or "",
-                     "kind": "payment", "id": p["id"]})
+                     "covers": p["partner_name"] or "", "contact_id": p["contact_id"], "recorded_by": p["recorded_by"] or ""})
     for d in conn.execute(
         f"""SELECT d.*, {full_name_sql('ct')} AS name, ct.email FROM donations d JOIN contacts ct ON ct.id = d.contact_id
             WHERE d.voided_at IS NULL AND d.donation_date >= ? AND d.donation_date <= ?""", (start, end)).fetchall():
         rows.append({"date": d["donation_date"], "type": "Donation", "name": d["name"], "email": d["email"] or "",
                      "what": d["fund"] or "General Operating", "amount": d["amount"], "method": d["payment_method"] or "",
                      "reference": d["reference"] or "", "note": d["note"] or "", "covers": "",
-                     "contact_id": d["contact_id"], "recorded_by": d["recorded_by"] or "", "kind": "donation", "id": d["id"]})
+                     "contact_id": d["contact_id"], "recorded_by": d["recorded_by"] or ""})
     rows.sort(key=lambda r: (r["date"], r["name"] or ""), reverse=True)
     return rows
 
@@ -5552,14 +5476,11 @@ def finance():
         dep = conn.execute("SELECT COALESCE(SUM(amount),0) AS t FROM payments WHERE voided_at IS NULL AND enrollment_id IN (?, ?)",
                            (e["id"], e["pe"] or 0)).fetchone()["t"]
         outstanding.append({"name": e["name"], "contact_id": e["contact_id"], "what": f"{e['code']} #{e['session_number']}",
-                            "date": e["session_date"], "deposit": dep, "couple": bool(e["pe"]), "eid": e["id"],
-                            "fee": (TRAINING_FEES.get(e["code"]) if e["pe"] else None)})
+                            "date": e["session_date"], "deposit": dep, "couple": bool(e["pe"])})
     conn.close()
     return render_template("finance.html", start=start, end=end, ledger=ledger, training=training,
                            donations_total=donations_total, by_session=sorted(by_session.items()),
-                           by_month=sorted(by_month.items(), reverse=True), outstanding=outstanding, entity=BOOKS_ENTITY,
-                           can_money=_can_handle_money(), can_contacts=_has_area_access("contacts"),
-                           methods=PAYMENT_METHODS, today=date.today().isoformat())
+                           by_month=sorted(by_month.items(), reverse=True), outstanding=outstanding, entity=BOOKS_ENTITY)
 
 
 @crm.route("/finance/export.csv")
