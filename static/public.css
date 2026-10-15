@@ -291,3 +291,10 @@ body { background: var(--pub-bg); font-family: var(--pub-font-body); color: var(
 .hero.hero-feature { padding-bottom: 290px; }
 @media (max-width: 640px) { .hero.hero-feature { padding-bottom: 200px; } }
 .hero-feature .hero-sub { font-weight: 500; }
+
+/* "Live life Alive!" now opens the hero so it shows the moment the page loads */
+.hero.hero-feature { padding-top: 56px; }
+.hero-kicker { margin: 0 auto 26px; }
+.hero-kicker h2 { color: #f6dc6b; text-transform: uppercase; letter-spacing: 0.06em; font-size: clamp(1.6rem, 3.6vw, 2.4rem); margin: 0 0 6px; text-shadow: 0 1px 8px rgba(0,0,0,0.45); }
+.hero.hero-feature .hero-kicker p { color: #fff; font-size: 1.2rem; margin: 0 auto; max-width: none; text-shadow: 0 1px 8px rgba(0,0,0,0.45); }
+.hero.hero-feature .hero-sub-last { font-style: italic; font-weight: 600; margin-top: -8px; }
