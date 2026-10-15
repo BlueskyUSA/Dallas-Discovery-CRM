@@ -558,7 +558,7 @@ def completion_letter_content(first_name, contracts_url, program_code, program_n
 # ---------------------------------------------------------------------------
 SESSION_LETTERS = {
     "trainee_confirm": {
-        "title": "Trainee confirmation",
+        "title": "Trainee Registration Confirmation",
         "audience": "Trainees",
         "subject": "You're confirmed for {training}",
         "paras": [
