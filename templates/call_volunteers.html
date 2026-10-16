@@ -7,6 +7,7 @@
 {% for g in groups %}
 <div class="card" style="margin-bottom:16px">
   <h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ g.max }})</span></h3>
+  {% if g.code == 'CAPTAIN' %}<p style="margin:0 0 10px"><a class="btn secondary" href="{{ url_for('public_cep_training') }}">Training Modules</a></p>{% endif %}
   <table>
     {% for v in g.vols %}
     <tr><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
