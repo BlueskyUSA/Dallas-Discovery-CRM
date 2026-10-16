@@ -643,7 +643,11 @@ def _attempt_login(next_url, door="team"):
             # been run against this database yet. Fail safe (no owner access)
             # rather than crash the login.
             session["is_owner"] = False
-        return redirect(next_url)
+        resp = redirect(next_url)
+        # Remember the email on this device only, so the login page fills it in next time (never the password).
+        resp.set_cookie("last_login_email", staff["email"], max_age=60 * 60 * 24 * 365, httponly=True,
+                        samesite="Lax", secure=request.is_secure)
+        return resp
     flash("Incorrect email or password.")
     return None
 
@@ -677,35 +681,11 @@ def _login_page(kind):
     title = next(t for k, _, t in LOGIN_PAGES if k == kind)
     return render_template(
         "login.html", next=next_url, page_title=title,
-        # TEMPORARY: the Owner door pre-fills Kent's email. Delete these two lines to undo.
-        prefill_email=(request.form.get("email") or "kent@blueskyusa.net") if kind == "owner" else request.form.get("email", ""),
-        # TEMPORARY: the Leadership door offers these emails as one-click suggestions. Delete this line to undo.
-        suggest_emails=(_leadership_suggestions() if kind == "leadership" else []),
+        prefill_email=(request.form.get("email") or request.cookies.get("last_login_email")
+                       or ("kent@blueskyusa.net" if kind == "owner" else "")),
         logins=[(LOGIN_BUTTON_TEXT[k], url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
     )
 
-
-LEADERSHIP_LOGIN_NAMES = [("Art", "Justice"), ("Max", "Thompson"), ("Pamela", "Hafemann")]
-
-
-def _leadership_suggestions():
-    """Email for each name above: their login account first, otherwise their contact record."""
-    out = []
-    conn = get_db()
-    try:
-        for first, last in LEADERSHIP_LOGIN_NAMES:
-            full = f"{first} {last}".lower()
-            row = conn.execute("SELECT email FROM staff WHERE lower(name) = ? AND active = 1 ORDER BY id LIMIT 1", (full,)).fetchone()
-            if not row or not row["email"]:
-                row = conn.execute("SELECT email FROM contacts WHERE lower(first_name) = ? AND lower(last_name) = ? "
-                                   "AND email IS NOT NULL AND email != '' ORDER BY id LIMIT 1", (first.lower(), last.lower())).fetchone()
-            if row and row["email"]:
-                out.append((f"{first} {last}", row["email"].strip().lower()))
-    except Exception as e:
-        print(f"login suggestions skipped: {e}", flush=True)
-    finally:
-        conn.close()
-    return out
 
 LOGIN_BUTTON_TEXT = {
     "team": "Volunteer Team Members Login Here",
