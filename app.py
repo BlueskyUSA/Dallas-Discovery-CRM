@@ -15,6 +15,7 @@ from db import get_db, init_db
 from seed import seed
 from config import PROGRAM_NAME
 from email_utils import send_email, EmailSendError
+import call_flow
 from email_templates import (
     SESSION_LETTERS, SESSION_LETTER_ORDER, SESSION_TRAINEE_LETTERS, session_letter_content,
     longform_followup_content,
@@ -5833,30 +5834,16 @@ def public_questionnaire(token):
 def public_register():
     conn = get_db()
     if request.method == "POST":
-        program_code = request.form.get("program_code") or ""
-        message = request.form.get("message", "").strip()
-        note_parts = []
-        if program_code:
-            note_parts.append(f"Interested in: {program_code}")
-        if message:
-            note_parts.append(message)
-        note_parts.append("(Submitted via website registration interest form)")
-        conn.execute(
-            """INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, marketing_source, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (
-                request.form["first_name"].strip(),
-                request.form.get("last_name", "").strip() or None,
-                request.form.get("email", "").strip() or None,
-                request.form.get("phone", "").strip() or None,
-                "\n".join(note_parts),
-                "Website",
-                "Interested Party",
-            ),
-        )
-        conn.commit()
         conn.close()
-        flash("Thanks! We've got your info and someone from our team will be in touch soon.")
+        form = request.form.to_dict()
+        form["page"] = "reserve"
+        ok, yes, err = call_flow.create_interest(get_db, form, "Reserve your spot form")
+        if not ok:
+            flash(err)
+            return redirect(url_for("public_register", program=form.get("program_code", "")) + "#interested")
+        if yes:
+            return redirect(url_for("public_talk_thanks", c="yes"))
+        flash("Thanks! We've got your information and someone from our team will be in touch soon.")
         return redirect(url_for("public_register"))
 
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
@@ -6223,6 +6210,7 @@ def inject_area_access():
 
 
 app.jinja_env.globals["role_label"] = role_label
+call_flow.register(app, crm, leadership_required, get_db)
 app.register_blueprint(crm)
 
 
@@ -6336,6 +6324,21 @@ def _completion_letter_loop():
 if _auto_letters_start() and not os.environ.get("DISABLE_BACKGROUND_THREADS"):
     import threading
     threading.Thread(target=_completion_letter_loop, daemon=True).start()
+
+
+def _call_sweep_loop():
+    import time
+    while True:
+        time.sleep(300)
+        try:
+            call_flow.sweep(get_db, (os.environ.get("PUBLIC_BASE_URL") or "https://dallas-discovery-crm.onrender.com").rstrip("/"))
+        except Exception as e:  # never let the loop die
+            print(f"call request check failed: {e}", flush=True)
+
+
+if not os.environ.get("DISABLE_BACKGROUND_THREADS"):
+    import threading
+    threading.Thread(target=_call_sweep_loop, daemon=True).start()
 
 
 if __name__ == "__main__":
