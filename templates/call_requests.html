@@ -14,13 +14,13 @@
 </div>
 <div class="card">
   <table>
-    <tr><th>Asked</th><th>Name</th><th>Program</th><th>Cell</th><th>Status</th><th>Volunteer</th><th>Outcome</th><th></th></tr>
+    <tr><th>Asked</th><th>Name</th><th>Program</th><th>Cell / prefers</th><th>Status</th><th>Volunteer</th><th>Outcome</th><th></th></tr>
     {% for r in items %}
     <tr {% if r.overdue %}style="background:#fff4e5"{% endif %}>
       <td class="muted">{{ r.when }}<br>{% if r.status in ('New','Claimed') %}{{ r.waiting_hours }} h ago{% endif %}</td>
       <td><a href="{{ url_for('.contact_detail', contact_id=r.contact_id) }}">{{ r.first_name }} {{ r.last_name or '' }}</a><br><span class="muted">{{ r.email }}</span></td>
       <td>{{ r.label }}</td>
-      <td>{{ r.phone_pretty }}</td>
+      <td>{{ r.phone_pretty }}<br><span class="muted">{{ r.pref }}</span></td>
       <td><span class="badge">{{ r.status }}</span>{% if r.overdue %} <strong style="color:#b45309">overdue</strong>{% endif %}</td>
       <td>{{ r.vol_name or '' }}{% if r.claimed_when %}<br><span class="muted">{{ r.claimed_when }}</span>{% endif %}</td>
       <td>{{ r.outcome or '' }}{% if r.outcome_note %}<br><span class="muted">{{ r.outcome_note }}</span>{% endif %}</td>

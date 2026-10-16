@@ -39,8 +39,7 @@
         <label>{{ call_consent_question }} *</label>
         <select name="call_ok" required>
           <option value="">Choose&hellip;</option>
-          <option value="yes">Yes</option>
-          <option value="no">No, please email me instead</option>
+          {% for v, label in call_consent_options %}<option value="{{ v }}">{{ label }}</option>{% endfor %}
         </select>
         <small class="muted" style="display:block; margin-top:6px">{{ call_consent_fine }}</small>
       </div>

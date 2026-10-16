@@ -17,7 +17,7 @@
 <section class="pub-section alt" id="talk">
   <div class="pub-container" style="max-width:820px">
     <h2>{{ cf_heading or 'May we reach out to you?' }}</h2>
-    <p class="lead">Curious but not ready to sign up? A Discovery team member will call you, usually within two hours. No pressure, just a conversation.</p>
+    <p class="lead">Curious but not ready to sign up? A Discovery team member will reach out, usually within two hours. No pressure, just a conversation.</p>
     {% for m in get_flashed_messages() %}<p class="flash" style="padding:10px 14px">{{ m }}</p>{% endfor %}
     <form class="pub-form" method="post" action="{{ url_for('public_talk_to_us') }}">
       <input type="hidden" name="page" value="{{ cf_page or 'other' }}">
@@ -39,8 +39,7 @@
         <label>{{ call_consent_question }} *</label>
         <select name="call_ok" required>
           <option value="">Choose&hellip;</option>
-          <option value="yes">Yes</option>
-          <option value="no">No, please email me instead</option>
+          {% for v, label in call_consent_options %}<option value="{{ v }}">{{ label }}</option>{% endfor %}
         </select>
         <small class="muted" style="display:block; margin-top:6px">{{ call_consent_fine }}</small>
       </div>

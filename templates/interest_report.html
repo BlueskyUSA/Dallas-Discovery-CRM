@@ -10,14 +10,16 @@
   {% endfor %}
   <a href="{{ url_for('.call_requests_queue') }}" style="margin-left:12px">Call requests &rarr;</a>
 </p>
-<div class="card" style="margin-bottom:16px"><strong style="font-size:1.4rem">{{ total.total }}</strong> interested &nbsp;&middot;&nbsp; {{ total.yes }} said yes to a call &nbsp;&middot;&nbsp; {{ total.reached }} reached &nbsp;&middot;&nbsp; {{ total.enrolled }} enrolled</div>
+<div class="card" style="margin-bottom:16px"><strong style="font-size:1.4rem">{{ total.total }}</strong> interested &nbsp;&middot;&nbsp; {{ total.yes }} OK to call or text &nbsp;&middot;&nbsp; {{ total.reached }} reached &nbsp;&middot;&nbsp; {{ total.enrolled }} enrolled</div>
 {% macro tbl(title, rows, first) %}
 <div class="card" style="margin-bottom:16px"><h3 style="margin-top:0">{{ title }}</h3>
-  <table><tr><th>{{ first }}</th><th>Interested</th><th>Yes to call</th><th>No</th><th>Reached</th><th>Enrolled</th></tr>
+  <table><tr><th>{{ first }}</th><th>Interested</th><th>OK to call/text</th><th>Email only</th><th>Reached</th><th>Enrolled</th></tr>
   {% for label, v in rows %}<tr><td>{{ label }}</td><td>{{ v.total }}</td><td>{{ v.yes }}</td><td>{{ v.no }}</td><td>{{ v.reached }}</td><td>{{ v.enrolled }}</td></tr>
   {% else %}<tr><td colspan="6" class="muted">Nothing yet.</td></tr>{% endfor %}</table></div>
 {% endmacro %}
 {% set pr = [] %}{% for code, label, v in prog_rows %}{% if pr.append((label, v)) %}{% endif %}{% endfor %}
+<div class="card" style="margin-bottom:16px"><h3 style="margin-top:0">How they want to be reached</h3>
+  <table><tr>{% for label, n in pref_rows %}<th>{{ label }}</th>{% endfor %}</tr><tr>{% for label, n in pref_rows %}<td>{{ n }}</td>{% endfor %}</tr></table></div>
 {{ tbl('By training', pr, 'Training') }}
 {{ tbl('By page they came from', page_rows, 'Page') }}
 {{ tbl('By day (most recent 14 days with activity)', day_rows, 'Day') }}
