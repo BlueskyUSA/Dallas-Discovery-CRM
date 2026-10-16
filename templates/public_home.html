@@ -33,7 +33,7 @@
       <details class="reserve" id="reserve">
         <summary class="pub-btn hero-cta">Reserve Your Spot! &#9662;</summary>
         <div class="reserve-menu">
-          <a href="{{ url_for('public_relationship_training') }}"><strong>Wisdom! &ndash; A Relationship Training</strong>{% if next_by_code.get('D4') %}<span>{{ next_by_code['D4'] }}</span>{% endif %}</a>
+          <a href="{{ url_for('public_relationship_training') }}"><strong>Relationship Training</strong>{% if next_by_code.get('D4') %}<span>{{ next_by_code['D4'] }}</span>{% endif %}</a>
           <a href="{{ url_for('public_register', program='D1') }}#interested"><strong>D1 &ndash; The Beginning</strong>{% if next_by_code.get('D1') %}<span>{{ next_by_code['D1'] }}</span>{% endif %}</a>
           <a href="{{ url_for('public_register', program='D2') }}#interested"><strong>D2 &ndash; Tools</strong>{% if next_by_code.get('D2') %}<span>{{ next_by_code['D2'] }}</span>{% endif %}</a>
           <a href="{{ url_for('public_register', program='D3') }}#interested"><strong>D3 &ndash; Vision</strong>{% if next_by_code.get('D3') %}<span>{{ next_by_code['D3'] }}</span>{% endif %}</a>
