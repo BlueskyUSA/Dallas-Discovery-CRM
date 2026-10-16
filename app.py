@@ -575,11 +575,43 @@ def _home_door_title(staff):
         staff["role"], "Volunteer Team Login")
 
 
+_must_change_ready = False
+
+
+def _ensure_must_change():
+    """Column that marks a temporary password (added the first time it's needed)."""
+    global _must_change_ready
+    if _must_change_ready:
+        return
+    conn = get_db()
+    try:
+        conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS must_change_password INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+        _must_change_ready = True
+    except Exception as e:
+        conn.rollback()
+        print(f"Couldn't add staff.must_change_password: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+@crm.before_request
+def force_password_change():
+    """After a reset or a new account, the person must choose their own password before using anything else."""
+    if not session.get("must_change") or not session.get("staff_id"):
+        return
+    if request.endpoint in ("crm.change_password", "crm.logout") or (request.endpoint or "").endswith(".static"):
+        return
+    flash("Please choose your own password to continue.")
+    return redirect(url_for(".change_password"))
+
+
 def _attempt_login(next_url, door="team"):
     """Shared by both login pages -- checks credentials against the same
     staff table regardless of which page (Team or Leadership) was used."""
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
+    _ensure_must_change()
     conn = get_db()
     staff = conn.execute("SELECT * FROM staff WHERE email = ? AND active = 1", (email,)).fetchone()
     conn.close()
@@ -600,6 +632,10 @@ def _attempt_login(next_url, door="team"):
         session["staff_id"] = staff["id"]
         session["staff_name"] = staff["name"]
         session["staff_role"] = staff["role"]
+        try:
+            session["must_change"] = bool(staff["must_change_password"])
+        except (KeyError, IndexError):
+            session["must_change"] = False
         try:
             session["is_owner"] = bool(staff["is_owner"])
         except (KeyError, IndexError):
@@ -714,9 +750,16 @@ def change_password():
         elif new != confirm:
             flash("New passwords didn't match.")
         else:
-            conn.execute("UPDATE staff SET password_hash = ? WHERE id = ?", (generate_password_hash(new), staff["id"]))
+            if new == current:
+                flash("Please choose a password different from the temporary one.")
+                conn.close()
+                return render_template("change_password.html")
+            _ensure_must_change()
+            conn.execute("UPDATE staff SET password_hash = ?, must_change_password = 0 WHERE id = ?",
+                         (generate_password_hash(new), staff["id"]))
             conn.commit()
             conn.close()
+            session["must_change"] = False
             flash("Password updated.")
             return redirect(url_for(".dashboard"))
     conn.close()
@@ -763,9 +806,10 @@ def staff_reset_password(staff_id):
             conn.close()
             return redirect(url_for(".staff_list"))
         temp_password = typed or secrets.token_urlsafe(9)
+        _ensure_must_change()
         conn.execute(
-            "UPDATE staff SET password_hash = ? WHERE id = ?",
-            (generate_password_hash(temp_password), staff_id),
+            "UPDATE staff SET password_hash = ?, must_change_password = ? WHERE id = ?",
+            (generate_password_hash(temp_password), 0 if staff_id == session.get("staff_id") else 1, staff_id),
         )
         conn.commit()
         flash(f"New password for {staff['name']} ({staff['email']}): {temp_password}")
@@ -898,9 +942,10 @@ def staff_new_for_contact(contact_id):
             flash("Enter an email to use for their ERP login.")
             conn.close()
             return render_template("staff_new_confirm.html", contact=contact)
+        _ensure_must_change()
         try:
             conn.execute(
-                "INSERT INTO staff (name, email, password_hash, role, contact_id) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO staff (name, email, password_hash, role, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, 1)",
                 (contact["full_name"], email, generate_password_hash(temp_password), role, contact_id),
             )
             conn.commit()
@@ -3496,8 +3541,9 @@ def authorized_users_assign(area_key):
                 conn.close()
                 return redirect(url_for(".authorized_users_area", area_key=area_key))
             temp_password = secrets.token_urlsafe(9)
+            _ensure_must_change()
             cur = conn.execute(
-                "INSERT INTO staff (name, email, password_hash, role, active) VALUES (?, ?, ?, 'Team', 1)",
+                "INSERT INTO staff (name, email, password_hash, role, active, must_change_password) VALUES (?, ?, ?, 'Team', 1, 1)",
                 (name, email, generate_password_hash(temp_password)),
             )
             conn.commit()
@@ -3557,9 +3603,10 @@ def authorized_users_reset_password(area_key, staff_id):
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
     if staff:
         temp_password = secrets.token_urlsafe(9)
+        _ensure_must_change()
         conn.execute(
-            "UPDATE staff SET password_hash = ? WHERE id = ?",
-            (generate_password_hash(temp_password), staff_id),
+            "UPDATE staff SET password_hash = ?, must_change_password = ? WHERE id = ?",
+            (generate_password_hash(temp_password), 0 if staff_id == session.get("staff_id") else 1, staff_id),
         )
         conn.commit()
         flash(f"New password for {staff['name']} ({staff['email']}): {temp_password}")
