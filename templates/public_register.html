@@ -30,9 +30,8 @@
         <label>Which program would you like to reserve?</label>
         <select name="program_code">
           <option value="">Not sure yet</option>
-          {% for p in programs %}
-          <option value="{{ p.code }}" {{ 'selected' if p.code == preselect }}>{{ p.code }} &mdash; {{ p.name }}</option>
-          {% endfor %}
+          <option value="D1" {{ 'selected' if preselect == 'D1' }}>D1 &mdash; The Beginning</option>
+          <option value="D4" {{ 'selected' if preselect == 'D4' }}>Relationship Training</option>
         </select>
       </div>
       <div class="field">

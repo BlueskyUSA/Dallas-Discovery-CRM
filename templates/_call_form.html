@@ -31,9 +31,8 @@
         <label>Which program would you like to know more about?</label>
         <select name="program_code">
           <option value="">Not sure yet</option>
-          {% for p in call_form_programs %}
-          <option value="{{ p.code }}" {{ 'selected' if p.code == cf_program }}>{{ p.code }} &mdash; {{ p.name }}</option>
-          {% endfor %}
+          <option value="D1" {{ 'selected' if cf_program == 'D1' }}>D1 &mdash; The Beginning</option>
+          <option value="D4" {{ 'selected' if cf_program == 'D4' }}>Relationship Training</option>
         </select>
       </div>
       <div class="field">
