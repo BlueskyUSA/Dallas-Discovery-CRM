@@ -43,9 +43,14 @@ PAGES = {"home": "Front page", "programs": "Programs page", "relationship": "Rel
 WINDOW_HOURS = 2
 SEND_FROM_HOUR, SEND_TO_HOUR = 8, 20   # Central time
 MAX_ALERT_ROUNDS = 4
-OUTCOMES = ["Spoke with them", "Left a voicemail", "No answer – will try again", "Not interested", "Wrong number"]
+OUTCOMES = ["Spoke with them", "Left a voicemail", "Texted \u2013 waiting for a reply", "No answer – will try again", "Not interested", "Wrong number"]
 
 CONSENT_QUESTION = "Do we have permission to text or call you?"
+CONSENT_OPTIONS = [("either", "Yes, call or text is fine"), ("text", "Yes, but text only"),
+                   ("call", "Yes, but call only"), ("email", "No, please email me")]
+PREF_WORD = {"either": "call or text", "text": "text", "call": "call"}
+PREF_SHORT = {"either": "Call or text", "text": "Text only", "call": "Call only", "email": "Email only"}
+LEGACY = {"yes": "either", "no": "email"}
 CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within two hours. "
                 "Message and data rates may apply. Reply STOP to stop texts.")
 CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
@@ -138,6 +143,7 @@ def ensure_tables(get_db):
             cell_phone TEXT,
             note TEXT,
             source TEXT,
+            contact_pref TEXT,
             consent_text TEXT,
             consent_at TEXT,
             consent_ip TEXT,
@@ -153,6 +159,7 @@ def ensure_tables(get_db):
             outcome TEXT,
             outcome_note TEXT,
             closed_at TEXT)""")
+        conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS contact_pref TEXT")
         conn.execute("""CREATE TABLE IF NOT EXISTS call_notices (
             id SERIAL PRIMARY KEY,
             request_id INTEGER NOT NULL,
@@ -178,7 +185,7 @@ def ensure_tables(get_db):
 
 # ---------------------------------------------------------------- creating a request
 def create_interest(get_db, form, source):
-    """Saves a person from one of the public forms. Returns (ok, consent_yes, error_message)."""
+    """Saves a person from one of the public forms. Returns (ok, how_they_want_to_be_reached, error_message)."""
     first = (form.get("first_name") or "").strip()
     last = (form.get("last_name") or "").strip() or None
     email = (form.get("email") or "").strip()
@@ -186,12 +193,15 @@ def create_interest(get_db, form, source):
     program = (form.get("program_code") or "").strip().upper()
     message = (form.get("message") or "").strip()
     consent = (form.get("call_ok") or "").strip().lower()
+    consent = LEGACY.get(consent, consent)
+    if consent not in PREF_SHORT:
+        consent = ""
     if form.get("website"):            # hidden spam-trap field: real people leave it empty
         return True, False, None
     if not first or not email:
         return False, False, "Please enter your first name and email."
-    if consent == "yes" and len(_digits(phone)) < 10:
-        return False, False, "To have someone call you, please enter your cell phone number."
+    if consent in PREF_WORD and len(_digits(phone)) < 10:
+        return False, False, "To have someone call or text you, please enter your cell phone number."
 
     ensure_tables(get_db)
     conn = get_db()
@@ -221,7 +231,7 @@ def create_interest(get_db, form, source):
         conn.execute("INSERT INTO interest_log (contact_id, program_code, page, call_ok, created_at) VALUES (?, ?, ?, ?, ?)",
                      (cid, program or None, page, consent or None, _ts(_utc_now())))
         req_id = None
-        if consent == "yes":
+        if consent in PREF_WORD:
             recent = conn.execute(
                 """SELECT id FROM call_requests WHERE contact_id = ? AND status IN ('New', 'Claimed') AND created_at >= ?""",
                 (cid, _ts(_utc_now() - timedelta(hours=24)))).fetchone()
@@ -230,9 +240,10 @@ def create_interest(get_db, form, source):
                 now = _ts(_utc_now())
                 cur = conn.execute(
                     """INSERT INTO call_requests (contact_id, program_code, cell_phone, note, source, consent_text,
-                                                  consent_at, consent_ip, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (cid, program or None, phone, message or None, source, CONSENT_WORDING, now, ip, now))
+                                                  consent_at, consent_ip, created_at, contact_pref)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (cid, program or None, phone, message or None, source,
+                     f"{CONSENT_WORDING} Answer: {dict(CONSENT_OPTIONS).get(consent, consent)}", now, ip, now, consent))
                 req_id = cur.lastrowid
         conn.commit()
     except Exception as e:
@@ -246,7 +257,7 @@ def create_interest(get_db, form, source):
             dispatch(get_db, req_id, _base_url())
         except Exception as e:
             print(f"Call alert dispatch failed: {e}", flush=True)
-    return True, consent == "yes", None
+    return True, consent, None
 
 
 # ---------------------------------------------------------------- alerts
@@ -314,14 +325,17 @@ def dispatch(get_db, request_id, base_url, force=False):
             token = _notice_for(conn, request_id, v["id"])
             url = f"{base_url}/call/{token}"
             again = "" if first_round else " (second reminder: no one has claimed this yet)"
-            subject = f"Please call {who} within 2 hours – {label}"
+            pw = PREF_WORD.get(req["contact_pref"] or "either", "call or text")
+            subject = f"Please reach out to {who} within 2 hours – {label}"
             html = (f"<p>Hi {v['name'].split()[0]},</p>"
-                    f"<p><strong>{who}</strong> asked for a call about <strong>{label}</strong>{again}.</p>"
-                    f"<p>Can you call them within two hours? Tap here to say yes:<br>"
+                    f"<p><strong>{who}</strong> asked to be reached about <strong>{label}</strong>{again}. "
+                    f"They prefer: <strong>{PREF_SHORT.get(req['contact_pref'] or 'either')}</strong>.</p>"
+                    f"<p>Can you {pw} them within two hours? Tap here to say yes:<br>"
                     f"<a href=\"{url}\">{url}</a></p>"
                     f"<p>If another volunteer already took it, the page will tell you. Thank you for helping!</p>")
-            text = (f"Hi {v['name'].split()[0]},\n\n{who} asked for a call about {label}{again}.\n\n"
-                    f"Can you call them within two hours? Tap here to say yes:\n{url}\n\n"
+            text = (f"Hi {v['name'].split()[0]},\n\n{who} asked to be reached about {label}{again}. "
+                    f"They prefer: {PREF_SHORT.get(req['contact_pref'] or 'either')}.\n\n"
+                    f"Can you {pw} them within two hours? Tap here to say yes:\n{url}\n\n"
                     f"If another volunteer already took it, the page will tell you. Thank you for helping!")
             try:
                 _send(v["email"], subject, html, text, to_name=v["name"])
@@ -356,14 +370,15 @@ def _tell_prospect(conn, req, vol, base_url):
         return
     label = _program_label(req["program_code"])
     vphone = pretty_phone(vol["cell_phone"])
-    subject = "Your Discovery team member will call you"
+    pw = PREF_WORD.get(req["contact_pref"] or "either", "call or text")
+    subject = f"Your Discovery team member will {pw} you"
     html = (f"<p>Hi {contact['first_name']},</p>"
-            f"<p>Thank you for your interest in {label}. <strong>{vol['name']}</strong> from our Discovery team will call you "
-            f"from <strong>{vphone}</strong> within about two hours (we call between 8 am and 8 pm Central).</p>"
+            f"<p>Thank you for your interest in {label}. <strong>{vol['name']}</strong> from our Discovery team will {pw} you "
+            f"from <strong>{vphone}</strong> within about two hours (between 8 am and 8 pm Central).</p>"
             f"<p>If it isn&rsquo;t a good time, just reply to this email and we&rsquo;ll find a better one.</p>"
             f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>")
     text = (f"Hi {contact['first_name']},\n\nThank you for your interest in {label}. {vol['name']} from our Discovery team will "
-            f"call you from {vphone} within about two hours (we call between 8 am and 8 pm Central).\n\n"
+            f"{pw} you from {vphone} within about two hours (between 8 am and 8 pm Central).\n\n"
             f"If it isn't a good time, just reply to this email and we'll find a better one.\n\n"
             f"We're looking forward to meeting you!\n\nWarmly,\nCoach Kent and the Discovery Team")
     try:
@@ -427,7 +442,7 @@ def register(app, crm, leadership_required, get_db):
                 _programs_cache["at"] = now
             except Exception:
                 pass
-        return {"call_form_programs": _programs_cache["rows"], "call_consent_question": CONSENT_QUESTION, "call_consent_fine": CONSENT_FINE}
+        return {"call_form_programs": _programs_cache["rows"], "call_consent_question": CONSENT_QUESTION, "call_consent_fine": CONSENT_FINE, "call_consent_options": CONSENT_OPTIONS}
 
     @app.route("/talk-to-us", methods=["POST"])
     def public_talk_to_us():
@@ -435,11 +450,14 @@ def register(app, crm, leadership_required, get_db):
         if not ok:
             flash(err)
             return redirect(request.referrer or url_for("public_home"))
-        return redirect(url_for("public_talk_thanks", c="yes" if yes else "no"))
+        return redirect(url_for("public_talk_thanks", c=yes or "email"))
 
     @app.route("/talk-to-us/thanks")
     def public_talk_thanks():
-        return render_template("public_talk_thanks.html", yes=(request.args.get("c") == "yes"))
+        c = request.args.get("c", "")
+        c = LEGACY.get(c, c)
+        return render_template("public_talk_thanks.html", pref=c if c in PREF_SHORT else "either",
+                               yes=(c in PREF_WORD), pw=PREF_WORD.get(c, "call or text"))
 
     # ----- the volunteer's personal link
     def _load(token):
@@ -479,6 +497,8 @@ def register(app, crm, leadership_required, get_db):
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
                                    label=_program_label(req["program_code"]), token=token,
                                    phone=pretty_phone(req["cell_phone"]), outcomes=OUTCOMES,
+                                   pref=(req["contact_pref"] or "either"), pref_short=PREF_SHORT.get(req["contact_pref"] or "either"),
+                                   tel=_digits(req["cell_phone"]),
                                    claimed_text=local_text(req["claimed_at"]))
         finally:
             conn.close()
@@ -494,7 +514,7 @@ def register(app, crm, leadership_required, get_db):
             if outcome not in OUTCOMES:
                 flash("Please choose how the call went.")
                 return redirect(url_for("public_call_claim", token=token))
-            keep_open = outcome.startswith("No answer")
+            keep_open = outcome.startswith(("No answer", "Texted"))
             conn.execute("UPDATE call_requests SET outcome = ?, outcome_note = ?, status = ?, closed_at = ? WHERE id = ?",
                          (outcome, note or None, "Claimed" if keep_open else "Called",
                           None if keep_open else _ts(_utc_now()), req["id"]))
@@ -524,6 +544,7 @@ def register(app, crm, leadership_required, get_db):
         for r in rows:
             d = dict(r)
             d["label"] = _program_label(r["program_code"])
+            d["pref"] = PREF_SHORT.get(r["contact_pref"] or "either")
             d["when"] = local_text(r["created_at"])
             d["phone_pretty"] = pretty_phone(r["cell_phone"])
             d["claimed_when"] = local_text(r["claimed_at"])
@@ -581,8 +602,11 @@ def register(app, crm, leadership_required, get_db):
 
         def add(d, r):
             d["total"] += 1
-            d["yes"] += r["call_ok"] == "yes"
-            d["no"] += r["call_ok"] == "no"
+            pref = LEGACY.get(r["call_ok"], r["call_ok"])
+            d["yes"] += pref in PREF_WORD
+            d["no"] += pref == "email"
+            if pref in PREF_SHORT:
+                d.setdefault("prefs", {})[pref] = d.setdefault("prefs", {}).get(pref, 0) + 1
             d["reached"] += r["contact_id"] in reached
             d["enrolled"] += (r["contact_id"], r["program_code"]) in enrolled
 
@@ -594,7 +618,8 @@ def register(app, crm, leadership_required, get_db):
             add(by_day.setdefault(local_text(r["created_at"]).split(",")[0], blank()), r)
         prog_rows = sorted(((k, (f"{k} \u2013 {names[k]}" if k in names else k), v) for k, v in by_prog.items()),
                            key=lambda x: -x[2]["total"])
-        return render_template("interest_report.html", total=total, prog_rows=prog_rows,
+        pref_rows = [(PREF_SHORT[k], total.get("prefs", {}).get(k, 0)) for k in ("either", "call", "text", "email")]
+        return render_template("interest_report.html", total=total, pref_rows=pref_rows, prog_rows=prog_rows,
                                page_rows=sorted(by_page.items(), key=lambda x: -x[1]["total"]),
                                day_rows=list(by_day.items())[-14:][::-1], days=days)
 
