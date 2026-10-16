@@ -49,6 +49,11 @@
       {% endif %}
       {% endif %}
       {% if session.staff_id %}
+      <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
+         onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
+      {% endif %}
+      <a href="{{ url_for('public_home') }}">Public Web Site &rarr;</a>
+      {% if session.staff_id %}
       <details class="navmenu account-menu">
         <summary>Log Out &#9662;</summary>
         <div class="navmenu-items" style="left:auto; right:-10px">
@@ -57,10 +62,7 @@
           <a href="{{ url_for('.logout') }}">Log out</a>
         </div>
       </details>
-      <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
-         onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       {% endif %}
-      <a href="{{ url_for('public_home') }}">Public Web Site &rarr;</a>
     </nav>
   </header>
   <main class="container">
