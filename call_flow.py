@@ -167,7 +167,8 @@ def ensure_tables(get_db):
         conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS contact_pref TEXT")
         for col in ("reserve_token TEXT", "link_sent_at TEXT", "link_sent_via TEXT", "reserved_at TEXT",
                     "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT",
-                    "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT"):
+                    "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT",
+                    "reserved_notified_at TEXT", "paid_notified_at TEXT"):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
@@ -651,6 +652,61 @@ def sweep(get_db, base_url):
                         print(f"Reminder failed: {e}", flush=True)
         finally:
             conn.close()
+    if in_send_hours():
+        try:
+            _notify_milestones(get_db)
+        except Exception as e:
+            print(f"Milestone notes failed: {e}", flush=True)
+
+
+def _notify_milestones(get_db):
+    """Tell the CEP volunteer when the person they helped has registered, and again when they have paid."""
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            """SELECT r.id, r.contact_id, r.program_code, r.claimed_by, r.reserve_cohort_id, r.partner_name,
+                      r.reserved_notified_at, r.paid_notified_at, c.first_name, c.last_name
+               FROM call_requests r JOIN contacts c ON c.id = r.contact_id
+               WHERE r.reserve_result = 'Enrolled' AND r.claimed_by IS NOT NULL AND r.reserve_cohort_id IS NOT NULL
+                 AND (r.reserved_notified_at IS NULL OR r.paid_notified_at IS NULL)""").fetchall()
+        for r in rows:
+            vol = conn.execute("SELECT name, email FROM call_volunteers WHERE id = ?", (r["claimed_by"],)).fetchone()
+            coh = conn.execute("SELECT c.*, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?",
+                               (r["reserve_cohort_id"],)).fetchone()
+            enr = conn.execute("SELECT payment_completed_at AS p FROM enrollments WHERE contact_id = ? AND cohort_id = ?",
+                               (r["contact_id"], r["reserve_cohort_id"])).fetchone()
+            if not vol or not vol["email"] or not coh:
+                continue
+            who = f"{r['first_name']} {r['last_name'] or ''}".strip() + (f" and {r['partner_name']}" if r["partner_name"] else "")
+            what = f"{_program_label(r['program_code'])}, {span_text(coh)}"
+            first = vol["name"].split()[0]
+            if not r["reserved_notified_at"]:
+                claim = conn.execute("UPDATE call_requests SET reserved_notified_at = ? WHERE id = ? AND reserved_notified_at IS NULL",
+                                     (_ts(_utc_now()), r["id"]))
+                conn.commit()
+                if claim.rowcount == 1:
+                    _milestone_mail(vol, f"{r['first_name']} has registered!",
+                                    f"Hi {first},", f"Good news: <strong>{who}</strong> registered for {what}, thanks to your conversation. "
+                                    f"Payment is still pending. We will let you know when it comes in.")
+            if enr and enr["p"] and not r["paid_notified_at"]:
+                claim = conn.execute("UPDATE call_requests SET paid_notified_at = ? WHERE id = ? AND paid_notified_at IS NULL",
+                                     (_ts(_utc_now()), r["id"]))
+                conn.commit()
+                if claim.rowcount == 1:
+                    _milestone_mail(vol, f"{r['first_name']} has registered and paid!",
+                                    f"Hi {first},", f"<strong>{who}</strong> has paid for {what}. Their spot is secure. "
+                                    f"Thank you for helping them take this step!")
+    finally:
+        conn.close()
+
+
+def _milestone_mail(vol, subject, hello, body_html):
+    plain = body_html.replace("<strong>", "").replace("</strong>", "")
+    try:
+        _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>",
+              f"{hello}\n\n{plain}\n\nWarmly,\nCoach Kent and the Discovery Team", to_name=vol["name"])
+    except Exception as e:
+        print(f"Couldn't send a milestone note to {vol['email']}: {e}", flush=True)
 
 
 # ---------------------------------------------------------------- routes
