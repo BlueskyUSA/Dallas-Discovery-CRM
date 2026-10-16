@@ -34,10 +34,10 @@ except Exception:  # pragma: no cover
     CHI = None
 
 POOLS = [
+    ("CAPTAIN", "CEP Team Captain (oversees the team)"),
     ("D1", "D1 – The Beginning"),
     ("D4", "Wisdom! – A Relationship Training"),
     ("ALL", "Everything else (also the back-up if a program has no volunteers)"),
-    ("CAPTAIN", "CEP Team Captain (oversees the team)"),
 ]
 MAX_PER_POOL = 6
 
@@ -649,6 +649,11 @@ def register(app, crm, leadership_required, get_db):
         c = LEGACY.get(c, c)
         return render_template("public_talk_thanks.html", pref=c if c in PREF_SHORT else "either",
                                yes=(c in PREF_WORD), pw=PREF_WORD.get(c, "call or text"))
+
+    @app.route("/cep-training")
+    def public_cep_training():
+        """The CEP Team's how-to guide. Not linked from the public site; the team reaches it from their call page."""
+        return render_template("public_cep_training.html")
 
     # ----- the volunteer's personal link
     def _load(token):
