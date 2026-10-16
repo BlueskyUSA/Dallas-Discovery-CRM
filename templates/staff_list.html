@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}Site Access — {{ program_name }} CRM{% endblock %}
+{% block title %}Site Access — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Site Access</h1>
 <p class="muted">
@@ -37,7 +37,7 @@
             <div style="margin-top:8px; min-width:260px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
               {% if s.role != 'Accounting' %}
               <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
-                    onsubmit="return confirm('Give {{ s.name }} full access to every area of the CRM?');" style="margin-bottom:10px;">
+                    onsubmit="return confirm('Give {{ s.name }} full access to every area of the ERP?');" style="margin-bottom:10px;">
                 <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
               </form>
               {% endif %}
@@ -52,9 +52,13 @@
               {% endif %}
               <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
                 <input type="hidden" name="redirect_to" value="staff_list">
-                {% with fixed=(accounting_areas if s.role == 'Accounting' else fixed_areas), groups=([] if s.role == 'Accounting' else program_groups), granted=granted_keys, id_prefix='area_' ~ s.id ~ '_' %}
-                {% include "_access_checkboxes.html" %}
-                {% endwith %}
+                {% for area_key, label in (accounting_areas if s.role == 'Accounting' else all_areas) %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="area_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
                 <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
               </form>
             </div>
@@ -94,10 +98,14 @@
           </form>
           {% endif %}
           {% if session.is_owner %}
-          <form method="post" action="{{ url_for('.staff_reset_password', staff_id=s.id) }}"
-                onsubmit="return confirm('Reset {{ s.name }}\'s password? They\'ll need the new one to log in.');" style="display:inline">
-            <button class="btn secondary" type="submit">Reset password</button>
-          </form>
+          <details style="display:inline-block; vertical-align:top">
+            <summary class="btn secondary" style="display:inline-block; cursor:pointer">Reset password</summary>
+            <form method="post" action="{{ url_for('.staff_reset_password', staff_id=s.id) }}" style="margin-top:6px"
+                  onsubmit="return confirm('Set a new password for {{ s.name }}? They\'ll need it to log in.');">
+              <input type="text" name="new_password" placeholder="Type a password (8+ characters), or leave blank for a random one" autocomplete="off" style="width:260px">
+              <button class="btn" type="submit">Save new password</button>
+            </form>
+          </details>
           {% endif %}
         {% endif %}
         {% if session.is_owner and not is_self_owner_row and s.is_owner %}
