@@ -38,6 +38,7 @@
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
           <a href="{{ url_for('.interest_report') }}">Interest report</a>
+          {% if is_lead %}<a href="{{ url_for('.call_volunteers_page') }}">Call volunteers</a>{% endif %}
           <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
           {% endif %}
           {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
