@@ -5755,6 +5755,22 @@ def public_home():
     return render_template("public_home.html", next_session=nxt, date_text=date_text, next_by_code=next_by_code)
 
 
+@app.route("/relationship-training")
+def public_relationship_training():
+    date_text = None
+    try:
+        conn = get_db()
+        r = conn.execute("""SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id
+               WHERE p.code = 'D4' AND COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'
+               ORDER BY c.session_date ASC LIMIT 1""").fetchone()
+        conn.close()
+        if r:
+            date_text = _public_date_text(r)
+    except Exception as e:
+        print(f"Relationship Training date lookup failed: {e}", flush=True)
+    return render_template("public_relationship.html", date_text=date_text)
+
+
 @app.route("/our-story")
 def public_our_story():
     return render_template("public_our_story.html")
