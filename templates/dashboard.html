@@ -1,8 +1,8 @@
 {% extends "crm_base.html" %}
-{% block title %}Dashboard — {{ program_name }} ERP{% endblock %}
+{% block title %}Dashboard — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
-<p class="muted">{{ program_name }} — ERP &amp; registration</p>
+<p class="muted">{{ program_name }} — registration &amp; training management</p>
 
 {% set can_contacts = session.staff_role != 'Accounting' and (session.staff_role == 'Leadership' or has_contacts_access) %}
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
