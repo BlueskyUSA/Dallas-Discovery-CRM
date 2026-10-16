@@ -36,7 +36,7 @@ except Exception:  # pragma: no cover
 POOLS = [
     ("CAPTAIN", "CEP Team Captain (oversees the team)"),
     ("D1", "D1 – The Beginning"),
-    ("D4", "Wisdom! – A Relationship Training"),
+    ("D4", "Relationship Training"),
     ("ALL", "Everything else (also the back-up if a program has no volunteers)"),
 ]
 MAX_PER_POOL = 6
