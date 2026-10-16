@@ -3787,6 +3787,10 @@ def cohort_update_dates(cohort_id):
     if "location" in request.form:
         conn.execute("UPDATE cohorts SET location = ? WHERE id = ?",
                      ((request.form.get("location") or "").strip() or None, cohort_id))
+    if "capacity" in request.form:
+        call_flow.ensure_capacity_column(get_db)
+        conn.execute("UPDATE cohorts SET capacity = ? WHERE id = ?",
+                     (request.form.get("capacity", type=int) or None, cohort_id))
     if status in COHORT_STATUSES:
         conn.execute(
             "UPDATE cohorts SET session_date = ?, end_date = ?, status = ? WHERE id = ?",
@@ -6326,6 +6330,91 @@ if _auto_letters_start() and not os.environ.get("DISABLE_BACKGROUND_THREADS"):
     threading.Thread(target=_completion_letter_loop, daemon=True).start()
 
 
+def _auto_letter_send(conn, cohort, person, sent_key, content_key):
+    """Sends one automatic letter, once per person (the same record the manual Send button uses)."""
+    if not person.get("email"):
+        return False
+    claim = conn.execute(
+        """INSERT INTO session_letters_sent (cohort_id, contact_id, letter_key, sent_by) VALUES (?,?,?,?)
+           ON CONFLICT (cohort_id, contact_id, letter_key) DO NOTHING""",
+        (cohort["id"], person["contact_id"], sent_key, "automatic"))
+    conn.commit()
+    if not claim.rowcount:
+        return False
+    subject, html_content, text_content = _session_letter_for(cohort, person, content_key)
+    try:
+        send_email(to_email=person["email"], to_name=person["first_name"], subject=subject,
+                   html_content=html_content, text_content=text_content)
+        print(f"SENT automatic letter {sent_key} to contact {person['contact_id']} cohort {cohort['id']}", flush=True)
+        return True
+    except EmailSendError as e:
+        conn.execute("DELETE FROM session_letters_sent WHERE cohort_id = ? AND contact_id = ? AND letter_key = ?",
+                     (cohort["id"], person["contact_id"], sent_key))
+        conn.commit()
+        print(f"Automatic letter {sent_key} failed for contact {person['contact_id']}: {e}", flush=True)
+        return False
+
+
+def _auto_letters_sweep():
+    """For people who reserved through a volunteer's personal link:
+       - the Trainee Registration Confirmation goes to both partners right after they reserve;
+       - a payment reminder goes to the person who reserved 3 days after enrolling, and again within
+         2 weeks of the session, but only while payment has not been made.
+       OFF unless BOTH SESSION_LETTERS_LIVE=1 and AUTO_LETTERS_LIVE=1 are set. Only sends 8 am - 8 pm Central."""
+    if not (_session_letters_live() and (os.environ.get("AUTO_LETTERS_LIVE") or "").strip() == "1"):
+        return
+    if not call_flow.in_send_hours():
+        return
+    _ensure_cohort_location()
+    _ensure_enrollment_extras()
+    conn = get_db()
+    try:
+        _ensure_session_letters_table(conn)
+        today = date.today()
+        now = datetime.utcnow()
+        reqs = conn.execute("SELECT contact_id, reserve_cohort_id FROM call_requests "
+                            "WHERE reserve_result = 'Enrolled' AND reserve_cohort_id IS NOT NULL").fetchall()
+        for rq in reqs:
+            cohort = conn.execute("""SELECT c.*, p.code, p.name FROM cohorts c JOIN programs p ON p.id = c.program_id
+                                     WHERE c.id = ?""", (rq["reserve_cohort_id"],)).fetchone()
+            if not cohort or cohort["status"] == "Cancelled" or str(cohort["session_date"])[:10] < today.isoformat():
+                continue
+            enr = conn.execute(
+                """SELECT e.created_at, e.payment_completed_at AS p_at, pe.contact_id AS partner_id
+                   FROM enrollments e LEFT JOIN enrollments pe ON pe.id = e.partner_enrollment_id
+                   WHERE e.contact_id = ? AND e.cohort_id = ?""", (rq["contact_id"], cohort["id"])).fetchone()
+            if not enr:
+                continue
+            rec = _session_letter_recipients(conn, cohort["id"])
+            wanted = {rq["contact_id"], enr["partner_id"]}
+            for person in rec["trainee_confirm"]:
+                if person["contact_id"] in wanted:
+                    _auto_letter_send(conn, cohort, person, "trainee_confirm", "trainee_confirm")
+            if enr["p_at"]:
+                continue
+            person = next((x for x in rec["payment_reminder"] if x["contact_id"] == rq["contact_id"]), None)
+            if not person:
+                continue
+            try:
+                age = now - datetime.strptime(str(enr["created_at"])[:19], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+            if age >= timedelta(days=3):
+                _auto_letter_send(conn, cohort, person, "payment_reminder", "payment_reminder")
+                first = conn.execute("SELECT sent_at FROM session_letters_sent WHERE cohort_id = ? AND contact_id = ? "
+                                     "AND letter_key = 'payment_reminder'", (cohort["id"], person["contact_id"])).fetchone()
+                days_to = (datetime.strptime(str(cohort["session_date"])[:10], "%Y-%m-%d").date() - today).days
+                if first and days_to <= 14:
+                    try:
+                        gap = now - datetime.strptime(str(first["sent_at"])[:19], "%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        continue
+                    if gap >= timedelta(days=3):
+                        _auto_letter_send(conn, cohort, person, "payment_reminder_2", "payment_reminder")
+    finally:
+        conn.close()
+
+
 def _call_sweep_loop():
     import time
     while True:
@@ -6334,6 +6423,10 @@ def _call_sweep_loop():
             call_flow.sweep(get_db, (os.environ.get("PUBLIC_BASE_URL") or "https://dallas-discovery-crm.onrender.com").rstrip("/"))
         except Exception as e:  # never let the loop die
             print(f"call request check failed: {e}", flush=True)
+        try:
+            _auto_letters_sweep()
+        except Exception as e:
+            print(f"automatic letters check failed: {e}", flush=True)
 
 
 if not os.environ.get("DISABLE_BACKGROUND_THREADS"):
