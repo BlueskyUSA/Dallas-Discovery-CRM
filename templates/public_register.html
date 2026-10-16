@@ -11,22 +11,23 @@
     </div>
 
     {% if not upcoming %}
-      <p class="muted" style="margin-top:20px">No sessions are on the calendar yet &mdash; check back soon, or let us know you're interested below and we'll reach out when the next one is scheduled.</p>
+      <p class="muted" style="margin-top:20px">No sessions are on the calendar yet &mdash; check back soon, or reserve your spot below and we'll reach out when the next one is scheduled.</p>
     {% endif %}
   </div>
 </section>
 
 <section class="pub-section alt" id="interested">
   <div class="pub-container">
-    <h2>I'm interested</h2>
-    <p class="lead">Tell us a bit about yourself and which program you're interested in. Our team will follow up with next steps and registration details.</p>
+    <h2>Reserve your spot</h2>
+    <p class="lead">Tell us a bit about yourself and which program you'd like to join. Our team will follow up with next steps and registration details.</p>
     <form class="pub-form" method="post">
+      <div style="position:absolute; left:-9999px" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
       <div class="field"><label>First name *</label><input name="first_name" required></div>
       <div class="field"><label>Last name</label><input name="last_name"></div>
       <div class="field"><label>Email *</label><input type="email" name="email" required></div>
-      <div class="field"><label>Phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
+      <div class="field"><label>Cell phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
       <div class="field">
-        <label>Which program are you interested in?</label>
+        <label>Which program would you like to reserve?</label>
         <select name="program_code">
           <option value="">Not sure yet</option>
           {% for p in programs %}
@@ -34,8 +35,17 @@
           {% endfor %}
         </select>
       </div>
+      <div class="field">
+        <label>{{ call_consent_question }} *</label>
+        <select name="call_ok" required>
+          <option value="">Choose&hellip;</option>
+          <option value="yes">Yes</option>
+          <option value="no">No, please email me instead</option>
+        </select>
+        <small class="muted" style="display:block; margin-top:6px">{{ call_consent_fine }}</small>
+      </div>
       <div class="field"><label>Anything you'd like us to know?</label><textarea name="message" rows="4"></textarea></div>
-      <button class="pub-btn dark" type="submit">Submit interest</button>
+      <button class="pub-btn dark" type="submit">Reserve your spot</button>
     </form>
   </div>
 </section>

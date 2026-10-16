@@ -1,0 +1,37 @@
+{# "Have a Discovery team member call you" form. Include with: {% set cf_page='home' %}{% set cf_program='D1' %}{% include '_call_form.html' %} #}
+<section class="pub-section alt" id="talk">
+  <div class="pub-container" style="max-width:820px">
+    <h2>{{ cf_heading or 'Have a question? Let us call you.' }}</h2>
+    <p class="lead">Curious but not ready to sign up? Tell us a little about yourself and a Discovery team member will call you, usually within two hours. No pressure, just a conversation.</p>
+    {% for m in get_flashed_messages() %}<p class="flash" style="padding:10px 14px">{{ m }}</p>{% endfor %}
+    <form class="pub-form" method="post" action="{{ url_for('public_talk_to_us') }}">
+      <input type="hidden" name="page" value="{{ cf_page or 'other' }}">
+      <div style="position:absolute; left:-9999px" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="field"><label>First name *</label><input name="first_name" required></div>
+      <div class="field"><label>Last name</label><input name="last_name"></div>
+      <div class="field"><label>Email *</label><input type="email" name="email" required></div>
+      <div class="field"><label>Cell phone</label><input name="phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12"></div>
+      <div class="field">
+        <label>Which program would you like to know more about?</label>
+        <select name="program_code">
+          <option value="">Not sure yet</option>
+          {% for p in call_form_programs %}
+          <option value="{{ p.code }}" {{ 'selected' if p.code == cf_program }}>{{ p.code }} &mdash; {{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ call_consent_question }} *</label>
+        <select name="call_ok" required>
+          <option value="">Choose&hellip;</option>
+          <option value="yes">Yes</option>
+          <option value="no">No, please email me instead</option>
+        </select>
+        <small class="muted" style="display:block; margin-top:6px">{{ call_consent_fine }}</small>
+      </div>
+      <div class="field"><label>Anything you'd like us to know?</label><textarea name="message" rows="3"></textarea></div>
+      <button class="pub-btn dark" type="submit">Have someone call me</button>
+    </form>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='phone-mask.js') }}"></script>

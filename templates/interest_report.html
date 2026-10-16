@@ -1,0 +1,24 @@
+{% extends "crm_base.html" %}
+{% block title %}Interest report — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Interest report</h1>
+<p class="muted">Every &ldquo;I&rsquo;m interested&rdquo; and &ldquo;Reserve your spot&rdquo; submission from the website, so we can see which training and which page bring people in.
+  <strong>Reached</strong> = a volunteer logged a call. <strong>Enrolled</strong> = they have since been enrolled in that training.</p>
+<p>
+  {% for d, label in [(7,'Last 7 days'),(30,'Last 30 days'),(90,'Last 90 days'),(0,'All time')] %}
+  <a class="btn {{ '' if days == d else 'secondary' }}" href="{{ url_for('.interest_report', days=d) }}">{{ label }}</a>
+  {% endfor %}
+  <a href="{{ url_for('.call_requests_queue') }}" style="margin-left:12px">Call requests &rarr;</a>
+</p>
+<div class="card" style="margin-bottom:16px"><strong style="font-size:1.4rem">{{ total.total }}</strong> interested &nbsp;&middot;&nbsp; {{ total.yes }} said yes to a call &nbsp;&middot;&nbsp; {{ total.reached }} reached &nbsp;&middot;&nbsp; {{ total.enrolled }} enrolled</div>
+{% macro tbl(title, rows, first) %}
+<div class="card" style="margin-bottom:16px"><h3 style="margin-top:0">{{ title }}</h3>
+  <table><tr><th>{{ first }}</th><th>Interested</th><th>Yes to call</th><th>No</th><th>Reached</th><th>Enrolled</th></tr>
+  {% for label, v in rows %}<tr><td>{{ label }}</td><td>{{ v.total }}</td><td>{{ v.yes }}</td><td>{{ v.no }}</td><td>{{ v.reached }}</td><td>{{ v.enrolled }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Nothing yet.</td></tr>{% endfor %}</table></div>
+{% endmacro %}
+{% set pr = [] %}{% for code, label, v in prog_rows %}{% if pr.append((label, v)) %}{% endif %}{% endfor %}
+{{ tbl('By training', pr, 'Training') }}
+{{ tbl('By page they came from', page_rows, 'Page') }}
+{{ tbl('By day (most recent 14 days with activity)', day_rows, 'Day') }}
+{% endblock %}

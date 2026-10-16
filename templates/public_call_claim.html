@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Call request — {{ program_name }}{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container" style="max-width:640px">
+    {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+    <h2>Hi {{ vol.name.split()[0] }}!</h2>
+    {% if mine %}
+      <p class="lead">Thank you for taking this one{% if claimed_text %} ({{ claimed_text }}){% endif %}. Please call within two hours.</p>
+      <div class="card" style="padding:20px; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.08)">
+        <p style="margin:0 0 6px"><strong style="font-size:1.3rem">{{ req.first_name }} {{ req.last_name or '' }}</strong></p>
+        <p style="margin:0 0 6px">Cell: <a href="tel:{{ phone }}" style="font-size:1.25rem; font-weight:700">{{ phone }}</a></p>
+        <p style="margin:0 0 6px">Interested in: <strong>{{ label }}</strong></p>
+        {% if req.note %}<p style="margin:0 0 6px">They wrote: &ldquo;{{ req.note }}&rdquo;</p>{% endif %}
+        <p class="muted" style="margin:0">They said yes to calls and texts. They have been told to expect your call from your number.</p>
+      </div>
+      {% if req.status == 'Called' %}
+        <p class="lead" style="margin-top:20px">Logged: <strong>{{ req.outcome }}</strong>{% if req.outcome_note %} &ndash; {{ req.outcome_note }}{% endif %}. Thank you!</p>
+      {% else %}
+      <h3 style="margin-top:28px">After you call, tell us how it went</h3>
+      <form class="pub-form" method="post" action="{{ url_for('public_call_done', token=token) }}">
+        <div class="field"><label>How did it go? *</label>
+          <select name="outcome" required><option value="">Choose&hellip;</option>{% for o in outcomes %}<option>{{ o }}</option>{% endfor %}</select></div>
+        <div class="field"><label>Notes (what they&rsquo;re hoping for, questions, next step)</label><textarea name="note" rows="4"></textarea></div>
+        <button class="pub-btn dark" type="submit">Save</button>
+      </form>
+      {% endif %}
+    {% elif req.status == 'New' %}
+      <p class="lead"><strong>{{ req.first_name }}</strong> asked for a call about <strong>{{ label }}</strong>. Can you call them within two hours (between 8 am and 8 pm)?</p>
+      <form method="post"><button class="pub-btn dark" type="submit">Yes, I&rsquo;ll call within 2 hours</button></form>
+      <p class="muted">You&rsquo;ll see their number as soon as you tap. If someone else already took it, we&rsquo;ll tell you.</p>
+    {% else %}
+      <p class="lead">Thank you! {{ claimer.name if claimer else 'Another volunteer' }} already has this one. We&rsquo;ll send you the next one.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
