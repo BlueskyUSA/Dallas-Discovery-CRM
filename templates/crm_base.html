@@ -49,8 +49,14 @@
       {% endif %}
       {% endif %}
       {% if session.staff_id %}
-      <a href="{{ url_for('.change_password') }}" title="Signed in as {{ session.staff_name }} ({{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %})">Change password</a>
-      <a href="{{ url_for('.logout') }}">Log Out</a>
+      <details class="navmenu account-menu">
+        <summary>Log Out &#9662;</summary>
+        <div class="navmenu-items" style="left:auto; right:-10px">
+          <div style="padding:8px 16px 6px; color:#cfc9b0; font-size:0.82rem; white-space:nowrap">Signed in as<br><strong style="color:#fff">{{ session.staff_name }}</strong><br>{{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %}</div>
+          <a href="{{ url_for('.change_password') }}">Change password</a>
+          <a href="{{ url_for('.logout') }}">Log out</a>
+        </div>
+      </details>
       <a href="{{ url_for('.dashboard') }}" class="backbtn" title="Go back to the page you were just on"
          onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       {% endif %}
