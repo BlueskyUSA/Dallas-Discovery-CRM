@@ -1,0 +1,16 @@
+{% extends "crm_base.html" %}
+{% block title %}Download for Claude — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Download for Claude</h1>
+<p class="muted">Makes a zip of spreadsheets (one per list) that you can attach in your chat with Claude, so Claude can look at your real data. Only you, the Owner, can use this. Passwords and private links are never included.</p>
+<form method="post" class="card" style="max-width:560px">
+  <h3 style="margin-top:0">What to include</h3>
+  {% for key, label, pii in tables %}
+  <p style="margin:4px 0"><label><input type="checkbox" name="table" value="{{ key }}" {{ 'checked' if key in ('contacts','cohorts','enrollments','programs','call_requests','interest_log') }}> {{ label }}</label></p>
+  {% endfor %}
+  <hr>
+  <p style="margin:8px 0"><label><input type="checkbox" name="with_private" value="1"> Also include emails, phone numbers and addresses</label><br>
+    <span class="muted">Leave this unchecked unless the question needs them (for example, finding someone&rsquo;s email). Names, dates and statuses are always included.</span></p>
+  <button class="btn" type="submit">Download the zip</button>
+</form>
+{% endblock %}

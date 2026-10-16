@@ -43,6 +43,7 @@
           {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
           {% if show_finance %}<a href="{{ url_for('.finance') }}">Finance</a>{% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
+          {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
         </div>
       </details>
       {% endif %}
