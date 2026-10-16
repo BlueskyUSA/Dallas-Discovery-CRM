@@ -10,7 +10,6 @@
     .topbar nav { flex: 1 1 auto; text-align: center; }
     .topbar nav .navmenu-items { text-align: left; }
     .topbar nav a.backbtn { white-space: nowrap; display: inline-block; }
-    @media (min-width: 900px) { .topbar nav { padding-right: 90px; } }  /* balances the brand on the left so the menu looks centered */
   </style>
 </head>
 <body>
@@ -53,17 +52,17 @@
          onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back</a>
       {% endif %}
       <a href="{{ url_for('public_home') }}">Public Web Site &rarr;</a>
+    </nav>
       {% if session.staff_id %}
       <details class="navmenu account-menu">
         <summary>Log Out &#9662;</summary>
-        <div class="navmenu-items" style="left:auto; right:-10px">
+        <div class="navmenu-items" style="left:auto; right:0">
           <div style="padding:8px 16px 6px; color:#cfc9b0; font-size:0.82rem; white-space:nowrap">Signed in as<br><strong style="color:#fff">{{ session.staff_name }}</strong><br>{{ role_label(session.staff_role) }}{% if session.is_owner %}, Owner{% endif %}</div>
           <a href="{{ url_for('.change_password') }}">Change password</a>
           <a href="{{ url_for('.logout') }}">Log out</a>
         </div>
       </details>
       {% endif %}
-    </nav>
   </header>
   <main class="container">
     {% with messages = get_flashed_messages() %}
