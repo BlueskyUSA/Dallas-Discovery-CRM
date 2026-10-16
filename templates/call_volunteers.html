@@ -1,19 +1,19 @@
 {% extends "crm_base.html" %}
-{% block title %}Call volunteers — {{ program_name }}{% endblock %}
+{% block title %}CEP Team — {{ program_name }}{% endblock %}
 {% block content %}
-<h1>Call volunteers</h1>
-<p class="muted">Up to {{ max_per }} volunteers per program. When someone asks for a call, all of that program's volunteers are alerted and the first to tap &ldquo;I&rsquo;ll call&rdquo; gets it. If a program has no volunteers, the &ldquo;Everything else&rdquo; group is used. Volunteers don&rsquo;t need a login; they use a personal link. Their cell number is shared with the person they call.</p>
+<h1>CEP Team <span class="muted" style="font-size:.6em">Client Engagement Protocol Team</span></h1>
+<p class="muted">Up to {{ max_per }} CEP Team members for each program (D1 and the Relationship Training), plus one CEP Team Captain who oversees the team and is also emailed when a request goes unclaimed for 2 hours. When someone asks for a call, all of that program's volunteers are alerted and the first to tap &ldquo;I&rsquo;ll call&rdquo; gets it. If a program has no volunteers, the &ldquo;Everything else&rdquo; group is used. Volunteers don&rsquo;t need a login; they use a personal link. Their cell number is shared with the person they call.</p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% for g in groups %}
 <div class="card" style="margin-bottom:16px">
-  <h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ max_per }})</span></h3>
+  <h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ g.max }})</span></h3>
   <table>
     {% for v in g.vols %}
     <tr><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
       <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form></td></tr>
     {% else %}<tr><td class="muted">No one yet.</td></tr>{% endfor %}
   </table>
-  {% if g.vols|length < max_per %}
+  {% if g.vols|length < g.max %}
   <details class="picker" data-prog="{{ g.code }}" style="margin-top:12px">
     <summary class="btn">Choose from my people</summary>
     <div style="margin-top:10px">

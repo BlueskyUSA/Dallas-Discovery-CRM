@@ -19,6 +19,21 @@
         {% if req.note %}<p style="margin:0 0 6px">They wrote: &ldquo;{{ req.note }}&rdquo;</p>{% endif %}
         <p class="muted" style="margin:0">They said yes to being contacted this way. They have been told to expect to hear from you at your number.</p>
       </div>
+      {% if link %}
+      <div class="card" style="padding:20px; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.08); margin-top:20px">
+        <h3 style="margin-top:0">Ready to register? Send {{ req.first_name }} their link</h3>
+        {% if req.reserve_result %}
+          <p>{{ req.first_name }} has used the link: <strong>{{ 'Enrolled (payment pending)' if req.reserve_result == 'Enrolled' else 'Date was full &ndash; waitlist' }}</strong>.</p>
+        {% else %}
+        <p class="muted" style="margin-top:0">The link already has their name, email and cell filled in. They only pick a date.</p>
+        <p style="margin:0 0 10px">
+          <a class="pub-btn dark" href="sms:{{ tel }}?&amp;body={{ sms_body|urlencode }}" onclick="try{navigator.sendBeacon('{{ url_for('public_call_link_sent', token=token) }}')}catch(e){}">Text it from my phone</a>
+          <form method="post" action="{{ url_for('public_call_email_link', token=token) }}" style="display:inline"><button class="pub-btn secondary" type="submit">Email it</button></form>
+        </p>
+        {% if req.link_sent_at %}<p class="muted" style="margin:0">Sent by {{ req.link_sent_via }}.</p>{% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
       {% if req.status == 'Called' %}
         <p class="lead" style="margin-top:20px">Logged: <strong>{{ req.outcome }}</strong>{% if req.outcome_note %} &ndash; {{ req.outcome_note }}{% endif %}. Thank you!</p>
       {% else %}
@@ -30,6 +45,7 @@
         <button class="pub-btn dark" type="submit">Save</button>
       </form>
       {% endif %}
+      {% if captain %}<p class="muted" style="margin-top:24px">Questions or stuck? Your CEP Team Captain is <strong>{{ captain.name }}</strong>, {{ captain.phone }}.</p>{% endif %}
     {% elif req.status == 'New' %}
       <p class="lead"><strong>{{ req.first_name }}</strong> asked for a call about <strong>{{ label }}</strong>. Can you reach out within two hours (between 8 am and 8 pm)? They prefer: <strong>{{ pref_short }}</strong>.</p>
       <form method="post"><button class="pub-btn dark" type="submit">Yes, I&rsquo;ll reach out within 2 hours</button></form>

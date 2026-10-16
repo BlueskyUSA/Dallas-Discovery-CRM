@@ -9,12 +9,12 @@
   {% if live %}<strong style="color:#1a7f37">Sending is ON.</strong>{% else %}<strong style="color:#b45309">Sending is OFF.</strong> Requests are saved here, but no emails go to volunteers or to the person who asked. (Turn on by setting CALL_ALERTS_LIVE=1 in Render.){% endif %}
   Alerts go out 8 am&ndash;8 pm Central{% if live %} (right now: {{ 'open' if in_hours else 'closed, will send at 8 am' }}){% endif %}.
   &nbsp; Volunteers: {% for code, label in pool_list %}{{ code }}: {{ pools[code] }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
-  &nbsp; <a href="{{ url_for('.call_volunteers_page') }}">Manage call volunteers &rarr;</a> &nbsp; <a href="{{ url_for('.interest_report') }}">Interest report &rarr;</a>
+  &nbsp; <a href="{{ url_for('.call_volunteers_page') }}">Manage the CEP Team &rarr;</a> &nbsp; <a href="{{ url_for('.interest_report') }}">Interest report &rarr;</a>
   <form method="post" action="{{ url_for('.call_requests_check_now') }}" class="inline" style="margin-left:10px"><button class="btn secondary" type="submit">Check now</button></form>
 </div>
 <div class="card">
   <table>
-    <tr><th>Asked</th><th>Name</th><th>Program</th><th>Cell / prefers</th><th>Status</th><th>Volunteer</th><th>Outcome</th><th></th></tr>
+    <tr><th>Asked</th><th>Name</th><th>Program</th><th>Cell / prefers</th><th>Status</th><th>Volunteer</th><th>Outcome</th><th>Registration</th><th></th></tr>
     {% for r in items %}
     <tr {% if r.overdue %}style="background:#fff4e5"{% endif %}>
       <td class="muted">{{ r.when }}<br>{% if r.status in ('New','Claimed') %}{{ r.waiting_hours }} h ago{% endif %}</td>
@@ -24,6 +24,7 @@
       <td><span class="badge">{{ r.status }}</span>{% if r.overdue %} <strong style="color:#b45309">overdue</strong>{% endif %}</td>
       <td>{{ r.vol_name or '' }}{% if r.claimed_when %}<br><span class="muted">{{ r.claimed_when }}</span>{% endif %}</td>
       <td>{{ r.outcome or '' }}{% if r.outcome_note %}<br><span class="muted">{{ r.outcome_note }}</span>{% endif %}</td>
+      <td>{% if r.reserve_result == 'Enrolled' %}<span class="badge good">Enrolled &ndash; payment pending</span>{% elif r.reserve_result == 'Waitlist' %}<span class="badge warn">WAITLIST &ndash; needs another date</span>{% elif r.link_sent_at %}Link sent ({{ r.link_sent_via }}){% endif %}</td>
       <td>
         {% if r.status == 'New' %}<form method="post" action="{{ url_for('.call_request_resend', request_id=r.id) }}" class="inline"><button class="btn secondary" type="submit">Alert volunteers now</button></form>{% endif %}
         {% if r.status != 'Closed' and r.status != 'Called' %}<form method="post" action="{{ url_for('.call_request_close', request_id=r.id) }}" class="inline"><button class="btn secondary" type="submit">Close</button></form>{% endif %}
