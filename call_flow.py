@@ -166,10 +166,12 @@ def ensure_tables(get_db):
             closed_at TEXT)""")
         conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS contact_pref TEXT")
         for col in ("reserve_token TEXT", "link_sent_at TEXT", "link_sent_via TEXT", "reserved_at TEXT",
-                    "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT"):
+                    "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT",
+                    "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT"):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
+        conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS questionnaire_token TEXT")
         conn.execute("""CREATE TABLE IF NOT EXISTS call_notices (
             id SERIAL PRIMARY KEY,
             request_id INTEGER NOT NULL,
@@ -368,6 +370,38 @@ def _tell_waitlist(conn, req, person, partner, label):
             _send(addr, subject, html, text)
         except Exception as e:
             print(f"Couldn't send waitlist note to {addr}: {e}", flush=True)
+
+def questionnaire_links(conn, req, base_url):
+    """Questionnaire links for the person (and partner) once they are enrolled.
+    Returns {"person": link or None, "partner": {"name", "email", "link"} or None}."""
+    out = {"person": None, "partner": None}
+    if req["reserve_result"] != "Enrolled" or not req["reserve_cohort_id"]:
+        return out
+
+    def link_for(enrollment_id):
+        row = conn.execute("SELECT questionnaire_token FROM enrollments WHERE id = ?", (enrollment_id,)).fetchone()
+        if not row:
+            return None
+        tok = row["questionnaire_token"]
+        if not tok:
+            tok = secrets.token_urlsafe(24)
+            conn.execute("UPDATE enrollments SET questionnaire_token = ? WHERE id = ?", (tok, enrollment_id))
+            conn.commit()
+        return f"{base_url}/questionnaire/{tok}"
+
+    me = conn.execute("SELECT id, partner_enrollment_id AS pe FROM enrollments WHERE contact_id = ? AND cohort_id = ?",
+                      (req["contact_id"], req["reserve_cohort_id"])).fetchone()
+    if not me:
+        return out
+    out["person"] = link_for(me["id"])
+    if me["pe"]:
+        pc = conn.execute("""SELECT ct.first_name, ct.last_name, ct.email FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
+                             WHERE e.id = ?""", (me["pe"],)).fetchone()
+        if pc:
+            out["partner"] = {"name": f"{pc['first_name']} {pc['last_name'] or ''}".strip(), "first": pc["first_name"],
+                              "email": pc["email"], "link": link_for(me["pe"])}
+    return out
+
 
 # ---------------------------------------------------------------- creating a request
 def create_interest(get_db, form, source):
@@ -695,10 +729,13 @@ def register(app, crm, leadership_required, get_db):
                 link = reserve_link(conn, req, _base_url())
                 sms_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link "
                             f"to reserve your spot in {_program_label(req['program_code'])}: {link}")
+            q = questionnaire_links(conn, req, _base_url()) if mine else {"person": None, "partner": None}
+            q_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link to the "
+                      f"questionnaire. You can stop and come back to it any time by opening the same link: {q['person']}") if q["person"] else None
             cap = conn.execute("SELECT name, cell_phone FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id LIMIT 1").fetchone()
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
                                    captain=(dict(name=cap["name"], phone=pretty_phone(cap["cell_phone"])) if cap else None),
-                                   link=link, sms_body=sms_body,
+                                   link=link, sms_body=sms_body, q=q, q_body=q_body,
                                    label=_program_label(req["program_code"]), token=token,
                                    phone=pretty_phone(req["cell_phone"]), outcomes=OUTCOMES,
                                    pref=(req["contact_pref"] or "either"), pref_short=PREF_SHORT.get(req["contact_pref"] or "either"),
@@ -779,6 +816,65 @@ def register(app, crm, leadership_required, get_db):
                          "WHERE id = ?", (_ts(_utc_now()), req["id"]))
             conn.commit()
             flash(f"Sent to {req['email']}.")
+            return redirect(url_for("public_call_claim", token=token))
+        finally:
+            conn.close()
+
+    @app.route("/call/<token>/questionnaire-sent", methods=["POST"])
+    def public_call_q_sent(token):
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"]:
+                abort(403)
+            conn.execute("UPDATE call_requests SET questionnaire_sent_at = COALESCE(questionnaire_sent_at, ?), "
+                         "questionnaire_sent_via = COALESCE(questionnaire_sent_via, 'text') WHERE id = ?", (_ts(_utc_now()), req["id"]))
+            conn.commit()
+            return ("", 204)
+        finally:
+            conn.close()
+
+    @app.route("/call/<token>/email-questionnaire", methods=["POST"])
+    def public_call_email_questionnaire(token):
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"]:
+                abort(403)
+            if not alerts_live():
+                flash("Email sending is switched off right now, so nothing was sent. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            q = questionnaire_links(conn, req, _base_url())
+            if not q["person"]:
+                flash("They need to reserve a date first, then the questionnaire link is ready.")
+                return redirect(url_for("public_call_claim", token=token))
+            label = _program_label(req["program_code"])
+            sent_to = []
+            targets = [(req["first_name"], req["email"], q["person"])]
+            if q["partner"] and q["partner"]["email"]:
+                targets.append((q["partner"]["first"], q["partner"]["email"], q["partner"]["link"]))
+            for first, addr, link in targets:
+                if not addr or not link:
+                    continue
+                html = (f"<p>Hi {first},</p><p>Here is your personal link to the questionnaire for <strong>{label}</strong>. "
+                        f"Please take your time and answer it thoughtfully.</p><p><a href=\"{link}\">{link}</a></p>"
+                        f"<p>You can close it and pick up right where you left off by opening the same link again. "
+                        f"This link is just for you, so please don&rsquo;t share it.</p>"
+                        f"<p>Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.</p>"
+                        f"<p>Warmly,<br>{vol['name']} and the Discovery Team</p>")
+                text = (f"Hi {first},\n\nHere is your personal link to the questionnaire for {label}. Please take your time and answer it thoughtfully.\n{link}\n\n"
+                        f"You can close it and pick up right where you left off by opening the same link again. This link is just for you, so please don't share it.\n\n"
+                        f"Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.\n\nWarmly,\n{vol['name']} and the Discovery Team")
+                try:
+                    _send(addr, f"Your personal questionnaire link \u2013 {label}", html, text, to_name=first)
+                    sent_to.append(addr)
+                except Exception as e:
+                    print(f"Couldn't email questionnaire link for request {req['id']} to {addr}: {e}", flush=True)
+            if not sent_to:
+                flash("The email didn't go through. Please use the text button.")
+            else:
+                conn.execute("UPDATE call_requests SET questionnaire_sent_at = COALESCE(questionnaire_sent_at, ?), "
+                             "questionnaire_sent_via = COALESCE(questionnaire_sent_via, 'email') WHERE id = ?", (_ts(_utc_now()), req["id"]))
+                conn.commit()
+                flash("Sent to " + " and ".join(sent_to) + ".")
             return redirect(url_for("public_call_claim", token=token))
         finally:
             conn.close()
