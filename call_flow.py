@@ -5,7 +5,7 @@ How it works
   1. Someone fills in the short form (front page, program pages, or the Reserve form) and answers Yes/No to
      "Do we have permission to call and text you on your cell phone?"
   2. On Yes, a call request is saved and the volunteers for that program (set up on the Call volunteers page,
-     up to four per program) are alerted. Each alert has a personal link.
+     up to six per program, plus a CEP Team Captain) are alerted. Each alert has a personal link.
   3. The first volunteer to open their link and tap "I'll call within 2 hours" gets the request. The others see
      "already claimed". The interested person is then told the volunteer's name and number.
   4. After calling, the volunteer logs the outcome on the same link.
@@ -37,8 +37,13 @@ POOLS = [
     ("D1", "D1 – The Beginning"),
     ("D4", "Wisdom! – A Relationship Training"),
     ("ALL", "Everything else (also the back-up if a program has no volunteers)"),
+    ("CAPTAIN", "CEP Team Captain (oversees the team)"),
 ]
-MAX_PER_POOL = 4
+MAX_PER_POOL = 6
+
+
+def max_for(code):
+    return 1 if code == "CAPTAIN" else MAX_PER_POOL
 PAGES = {"home": "Front page", "programs": "Programs page", "relationship": "Relationship Training page", "reserve": "Reserve your spot form", "other": "Other"}
 WINDOW_HOURS = 2
 SEND_FROM_HOUR, SEND_TO_HOUR = 8, 20   # Central time
@@ -531,13 +536,18 @@ def dispatch(get_db, request_id, base_url, force=False):
             why = ("No volunteers are set up for this program." if not vols
                    else "No volunteer could be emailed." if sent_to == 0
                    else "Nobody has claimed this request in 2 hours; the volunteers were alerted again.")
-            try:
-                _send(_leadership_email(), f"Unclaimed call request: {who} ({label})",
-                      f"<p>{why}</p><p>Open Call requests in the CRM to follow up: "
-                      f"<a href=\"{base_url}/crm/call-requests\">{base_url}/crm/call-requests</a></p>",
-                      f"{why}\n\nOpen Call requests in the CRM: {base_url}/crm/call-requests")
-            except Exception as e:
-                print(f"Couldn't email leadership about call request {request_id}: {e}", flush=True)
+            to_list = [_leadership_email()]
+            cap = conn.execute("SELECT email FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id LIMIT 1").fetchone()
+            if cap and cap["email"] and cap["email"].lower() not in [x.lower() for x in to_list]:
+                to_list.append(cap["email"])
+            for addr in to_list:
+                try:
+                    _send(addr, f"Unclaimed call request: {who} ({label})",
+                          f"<p>{why}</p><p>Open Call requests in the CRM to follow up: "
+                          f"<a href=\"{base_url}/crm/call-requests\">{base_url}/crm/call-requests</a></p>",
+                          f"{why}\n\nOpen Call requests in the CRM: {base_url}/crm/call-requests")
+                except Exception as e:
+                    print(f"Couldn't email {addr} about call request {request_id}: {e}", flush=True)
         return f"alerted {sent_to}"
     finally:
         conn.close()
@@ -680,7 +690,9 @@ def register(app, crm, leadership_required, get_db):
                 link = reserve_link(conn, req, _base_url())
                 sms_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link "
                             f"to reserve your spot in {_program_label(req['program_code'])}: {link}")
+            cap = conn.execute("SELECT name, cell_phone FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id LIMIT 1").fetchone()
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
+                                   captain=(dict(name=cap["name"], phone=pretty_phone(cap["cell_phone"])) if cap else None),
                                    link=link, sms_body=sms_body,
                                    label=_program_label(req["program_code"]), token=token,
                                    phone=pretty_phone(req["cell_phone"]), outcomes=OUTCOMES,
@@ -1007,8 +1019,8 @@ def register(app, crm, leadership_required, get_db):
                     flash("Choose a program.")
                 elif not (name and email and len(_digits(phone)) >= 10):
                     flash("Please enter a name, a cell phone number, and an email.")
-                elif have >= MAX_PER_POOL:
-                    flash(f"That group already has {MAX_PER_POOL} volunteers. Remove one first.")
+                elif have >= max_for(code):
+                    flash(f"That group already has {max_for(code)}. Remove one first.")
                 else:
                     conn.execute("INSERT INTO call_volunteers (program_code, name, cell_phone, email) VALUES (?, ?, ?, ?)",
                                  (code, name, phone, email))
@@ -1025,8 +1037,8 @@ def register(app, crm, leadership_required, get_db):
                     flash("Choose a person and a program.")
                 elif len(_digits(phone)) < 10 or not email:
                     flash("That contact needs a cell phone and an email. Enter them below the name and try again.")
-                elif have >= MAX_PER_POOL:
-                    flash(f"That group already has {MAX_PER_POOL} volunteers. Remove one first.")
+                elif have >= max_for(code):
+                    flash(f"That group already has {max_for(code)}. Remove one first.")
                 else:
                     name = f"{ct['first_name']} {ct['last_name'] or ''}".strip()
                     conn.execute("INSERT INTO call_volunteers (program_code, name, cell_phone, email) VALUES (?, ?, ?, ?)",
@@ -1045,6 +1057,6 @@ def register(app, crm, leadership_required, get_db):
         groups = []
         for code, label in POOLS:
             vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
-            groups.append(dict(code=code, label=label, vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
+            groups.append(dict(code=code, label=label, max=max_for(code), vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
         conn.close()
         return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL)
