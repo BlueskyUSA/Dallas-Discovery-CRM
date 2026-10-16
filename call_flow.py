@@ -597,15 +597,31 @@ def _tell_prospect(conn, req, vol, base_url):
     label = _program_label(req["program_code"])
     vphone = pretty_phone(vol["cell_phone"])
     pw = PREF_WORD.get(req["contact_pref"] or "either", "call or text")
-    subject = f"Your Discovery team member will {pw} you"
-    html = (f"<p>Hi {contact['first_name']},</p>"
-            f"<p>Thank you for your interest in {label}. <strong>{vol['name']}</strong> from our Discovery team will {pw} you "
-            f"from <strong>{vphone}</strong> within about two hours (between 8 am and 8 pm Central).</p>"
+    vfirst = vol["name"].split()[0]
+    subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
+    first = contact["first_name"]
+    html = (f"<p>Hi {first},</p>"
+            f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
+            f"<p><strong>{vol['name']}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong> "
+            f"within about two hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
+            f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
+            f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
+            f"excited to share how it changed their life. Ask anything you like.</p>"
             f"<p>If it isn&rsquo;t a good time, just reply to this email and we&rsquo;ll find a better one.</p>"
+            f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
+            f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
+            f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
             f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>")
-    text = (f"Hi {contact['first_name']},\n\nThank you for your interest in {label}. {vol['name']} from our Discovery team will "
-            f"{pw} you from {vphone} within about two hours (between 8 am and 8 pm Central).\n\n"
+    text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
+            f"{vol['name']}, an experienced Discovery volunteer, will {pw} you from {vphone} within about two hours. "
+            f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
+            f"For your security, here is their name and number, so you will know it is us.\n\n"
+            f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
+            f"share how it changed their life. Ask anything you like.\n\n"
             f"If it isn't a good time, just reply to this email and we'll find a better one.\n\n"
+            f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
+            f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
+            f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
             f"We're looking forward to meeting you!\n\nWarmly,\nCoach Kent and the Discovery Team")
     try:
         _send(contact["email"], subject, html, text, to_name=contact["first_name"])
