@@ -1,20 +1,22 @@
 {% extends "crm_base.html" %}
-{% block title %}Programs — {{ program_name }} ERP{% endblock %}
+{% block title %}Programs — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Programs</h1>
 <p class="muted">Click a program to open it: training materials, music, sessions and scheduling.</p>
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 {% if is_lead or has_contacts_access %}
 <p><a href="{{ url_for('.calendar_view') }}" style="display:inline-block; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:6px 14px">Year calendar &rarr;</a>
-  <span class="muted" style="margin-left:8px">Every session across all programs, at a glance.</span></p>
+  <span class="muted" style="display:block; margin-top:8px">Every session across all programs, at a glance.</span></p>
 {% endif %}
 <div class="card">
   <table>
-    <tr><th>Program</th><th>Upcoming sessions</th></tr>
+    <tr><th>Program</th><th class="num">Upcoming sessions</th></tr>
     {% for p in programs %}
     <tr>
-      <td><a href="{{ url_for('.program_open', program_id=p.id) }}"><strong>{{ p.name }}</strong></a>{% if p.code == 'D4' or 'relationship' in p.name|lower %} <span style="color:#3f5643; font-weight:600">&mdash; In Process</span>{% else %} <span style="color:#a15c00; font-weight:600">&mdash; Under Development</span>{% endif %}{% if p.description %}<br><span class="muted">{{ p.description }}</span>{% endif %}</td>
-      <td>{{ upcoming[p.id] or '&mdash;'|safe }}</td>
+      <td><a class="prog-name" href="{{ url_for('.program_open', program_id=p.id) }}">{{ p.name }}</a>
+        {% if p.code == 'D4' or 'relationship' in p.name|lower %}<span class="pill pill-go">In Process</span>{% else %}<span class="pill pill-dev">Under Development</span>{% endif %}
+        {% if p.description %}<div class="muted prog-desc">{{ p.description }}</div>{% endif %}</td>
+      <td class="num">{{ upcoming[p.id] or '&mdash;'|safe }}</td>
     </tr>
     {% else %}
     <tr><td colspan="2" class="muted">No programs yet.</td></tr>
