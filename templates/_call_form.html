@@ -1,7 +1,7 @@
 {# "Have a Discovery team member call you" form. Include with: {% set cf_page='home' %}{% set cf_program='D1' %}{% include '_call_form.html' %} #}
 <section class="pub-section alt" id="talk">
   <div class="pub-container" style="max-width:820px">
-    <h2>{{ cf_heading or 'Have a question? Let us call you.' }}</h2>
+    <h2>{{ cf_heading or 'May we reach out to you?' }}</h2>
     <p class="lead">Curious but not ready to sign up? Tell us a little about yourself and a Discovery team member will call you, usually within two hours. No pressure, just a conversation.</p>
     {% for m in get_flashed_messages() %}<p class="flash" style="padding:10px 14px">{{ m }}</p>{% endfor %}
     <form class="pub-form" method="post" action="{{ url_for('public_talk_to_us') }}">
