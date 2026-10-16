@@ -14,13 +14,58 @@
     {% else %}<tr><td class="muted">No one yet.</td></tr>{% endfor %}
   </table>
   {% if g.vols|length < max_per %}
+  <details class="picker" data-prog="{{ g.code }}" style="margin-top:12px">
+    <summary class="btn">Choose from my people</summary>
+    <div style="margin-top:10px">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <input class="pk-q" placeholder="Search any part of a name, email, or phone" style="min-width:280px" autocomplete="off">
+        <select class="pk-mode">
+          {% if g.code in ('D1','D4') %}<option value="team|{{ g.code }}">Team who served on {{ g.code }}</option>{% endif %}
+          <option value="team|">All team members</option>
+          <option value="all|">Everyone in Contacts (type to search)</option>
+        </select>
+      </div>
+      <p class="muted pk-hint" style="margin:6px 0">Team members are people who have served on a session team or have a login, most recent first.</p>
+      <div class="pk-list" style="max-height:320px; overflow:auto; border:1px solid #d9e2ec; border-radius:10px; background:#fff"></div>
+    </div>
+  </details>
+  <details style="margin-top:10px"><summary class="muted" style="cursor:pointer">Or type someone in by hand</summary>
   <form method="post" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
     <input type="hidden" name="action" value="add"><input type="hidden" name="program_code" value="{{ g.code }}">
     <input name="name" placeholder="Name" required><input name="cell_phone" class="phone-input" placeholder="Cell 000-000-0000" required>
     <input type="email" name="email" placeholder="Email" required><button class="btn" type="submit">Add</button>
-  </form>
+  </form></details>
   {% endif %}
 </div>
 {% endfor %}
 <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
+<script>
+(function () {
+  var URL = "{{ url_for('.call_volunteer_people') }}";
+  function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  document.querySelectorAll('details.picker').forEach(function (box) {
+    var q = box.querySelector('.pk-q'), mode = box.querySelector('.pk-mode'), list = box.querySelector('.pk-list'), hint = box.querySelector('.pk-hint');
+    var prog = box.dataset.prog, timer = null;
+    function load() {
+      var m = mode.value.split('|');
+      fetch(URL + '?mode=' + m[0] + '&prog=' + encodeURIComponent(m[1] || '') + '&q=' + encodeURIComponent(q.value)).then(function (r) { return r.json(); }).then(function (rows) {
+        if (!rows.length) { list.innerHTML = '<p class="muted" style="padding:10px">' + (m[0] === 'all' && q.value.length < 2 ? 'Type at least two letters.' : 'No one found. Try fewer letters, or switch to \u201cEveryone in Contacts\u201d.') + '</p>'; return; }
+        list.innerHTML = rows.map(function (p) {
+          var need = (!p.cell || !p.email);
+          return '<form method="post" style="display:flex; gap:10px; align-items:center; padding:8px 10px; border-bottom:1px solid #eef2f6; flex-wrap:wrap">' +
+            '<input type="hidden" name="action" value="add_contact"><input type="hidden" name="program_code" value="' + prog + '"><input type="hidden" name="contact_id" value="' + p.id + '">' +
+            '<div style="flex:1 1 220px"><strong>' + esc(p.name) + '</strong>' + (p.team ? ' <span class="badge">Team</span>' : '') +
+            '<br><span class="muted">' + esc(p.last ? 'Last served: ' + p.last : (p.team ? 'Team' : 'Contact')) + (p.sessions > 1 ? ' (' + p.sessions + ' sessions)' : '') + '</span></div>' +
+            (p.cell ? '<span>' + esc(p.cell) + '</span>' : '<input name="cell_phone" class="phone-input" placeholder="Cell needed" required style="width:130px">') +
+            (p.email ? '' : '<input type="email" name="email" placeholder="Email needed" required style="width:170px">') +
+            (p.already ? '<span class="muted">Already a volunteer</span>' : '<button class="btn" type="submit">Add</button>') + '</form>';
+        }).join('');
+      });
+    }
+    box.addEventListener('toggle', function () { if (box.open) load(); });
+    q.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(load, 250); });
+    mode.addEventListener('change', load);
+  });
+})();
+</script>
 {% endblock %}
