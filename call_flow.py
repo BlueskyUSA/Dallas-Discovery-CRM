@@ -45,7 +45,7 @@ SEND_FROM_HOUR, SEND_TO_HOUR = 8, 20   # Central time
 MAX_ALERT_ROUNDS = 4
 OUTCOMES = ["Spoke with them", "Left a voicemail", "No answer – will try again", "Not interested", "Wrong number"]
 
-CONSENT_QUESTION = "Do we have permission to call and text you on your cell phone to connect with you?"
+CONSENT_QUESTION = "Do we have permission to text or call you?"
 CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within two hours. "
                 "Message and data rates may apply. Reply STOP to stop texts.")
 CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
