@@ -679,9 +679,33 @@ def _login_page(kind):
         "login.html", next=next_url, page_title=title,
         # TEMPORARY: the Owner door pre-fills Kent's email. Delete these two lines to undo.
         prefill_email=(request.form.get("email") or "kent@blueskyusa.net") if kind == "owner" else request.form.get("email", ""),
+        # TEMPORARY: the Leadership door offers these emails as one-click suggestions. Delete this line to undo.
+        suggest_emails=(_leadership_suggestions() if kind == "leadership" else []),
         logins=[(LOGIN_BUTTON_TEXT[k], url_for("." + ep), k == kind) for k, ep, t in LOGIN_PAGES],
     )
 
+
+LEADERSHIP_LOGIN_NAMES = [("Art", "Justice"), ("Max", "Thompson"), ("Pamela", "Hafemann")]
+
+
+def _leadership_suggestions():
+    """Email for each name above: their login account first, otherwise their contact record."""
+    out = []
+    conn = get_db()
+    try:
+        for first, last in LEADERSHIP_LOGIN_NAMES:
+            full = f"{first} {last}".lower()
+            row = conn.execute("SELECT email FROM staff WHERE lower(name) = ? AND active = 1 ORDER BY id LIMIT 1", (full,)).fetchone()
+            if not row or not row["email"]:
+                row = conn.execute("SELECT email FROM contacts WHERE lower(first_name) = ? AND lower(last_name) = ? "
+                                   "AND email IS NOT NULL AND email != '' ORDER BY id LIMIT 1", (first.lower(), last.lower())).fetchone()
+            if row and row["email"]:
+                out.append((f"{first} {last}", row["email"].strip().lower()))
+    except Exception as e:
+        print(f"login suggestions skipped: {e}", flush=True)
+    finally:
+        conn.close()
+    return out
 
 LOGIN_BUTTON_TEXT = {
     "team": "Volunteer Team Members Login Here",
@@ -815,6 +839,65 @@ def staff_reset_password(staff_id):
         flash(f"New password for {staff['name']} ({staff['email']}): {temp_password}")
     conn.close()
     return redirect(url_for(".staff_list"))
+
+
+# ---------- "Download for Claude": an Owner-only snapshot of the data, as spreadsheets ----------
+EXPORT_TABLES = [
+    ("contacts", "Contacts", True), ("programs", "Programs", False), ("cohorts", "Sessions", False),
+    ("enrollments", "Enrollments (who is in which session, payment status)", False),
+    ("payments", "Payments", False), ("cohort_staffing", "Session teams", False),
+    ("staff", "Site logins (name, role, active; never passwords)", True),
+    ("call_requests", "Call requests", True), ("call_volunteers", "Call volunteers", True),
+    ("interest_log", "Interest log", False), ("session_letters_sent", "Letters sent", False),
+    ("donations", "Donations", False),
+]
+EXPORT_PRIVATE_WORDS = ("email", "phone", "cell", "mobile", "fax", "address", "street", "zip", "birth", "ssn")
+
+
+@crm.route("/export-for-claude", methods=["GET", "POST"])
+@owner_required
+def export_for_claude():
+    if request.method == "GET":
+        return render_template("export_for_claude.html", tables=EXPORT_TABLES)
+    import zipfile
+    picked = set(request.form.getlist("table"))
+    with_private = bool(request.form.get("with_private"))
+    buf = io.BytesIO()
+    summary = []
+    conn = get_db()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for table, label, _pii in EXPORT_TABLES:
+            if table not in picked:
+                continue
+            try:
+                rows = conn.execute(f"SELECT * FROM {table} LIMIT 50000").fetchall()
+            except Exception:
+                conn.rollback()
+                summary.append(f"{table}: not found")
+                continue
+            if not rows:
+                summary.append(f"{table}: 0 rows")
+                continue
+            cols = [c for c in dict(rows[0]).keys()
+                    if "password" not in c.lower() and "token" not in c.lower()
+                    and (with_private or not any(w in c.lower() for w in EXPORT_PRIVATE_WORDS))]
+            out = io.StringIO()
+            w = csv.writer(out)
+            w.writerow(cols)
+            for r in rows:
+                d = dict(r)
+                w.writerow([d.get(c) for c in cols])
+            z.writestr(f"{table}.csv", out.getvalue())
+            summary.append(f"{table}: {len(rows)} rows")
+        z.writestr("README.txt", "Exported " + datetime.now().strftime("%Y-%m-%d %H:%M") + "\n"
+                   + ("Includes emails, phones and addresses.\n" if with_private else "Emails, phones and addresses left out.\n")
+                   + "Passwords and private links are never included.\n\n" + "\n".join(summary) + "\n")
+    conn.close()
+    resp = make_response(buf.getvalue())
+    resp.headers["Content-Type"] = "application/zip"
+    resp.headers["Content-Disposition"] = f"attachment; filename=dallas-discovery-data-{date.today().isoformat()}.zip"
+    print(f"Owner downloaded a data snapshot ({'with' if with_private else 'without'} contact details): {', '.join(summary)}", flush=True)
+    return resp
 
 
 @crm.route("/staff/<int:staff_id>/access", methods=["GET", "POST"])
