@@ -47,7 +47,7 @@ OUTCOMES = ["Spoke with them", "Left a voicemail", "Texted \u2013 waiting for a 
 
 CONSENT_QUESTION = "Do we have permission to text or call you?"
 CONSENT_OPTIONS = [("either", "Yes, call or text is fine"), ("text", "Yes, but text only"),
-                   ("call", "Yes, but call only"), ("email", "No, please email me")]
+                   ("call", "Yes, but call only"), ("email", "Yes, but please email me")]
 PREF_WORD = {"either": "call or text", "text": "text", "call": "call"}
 PREF_SHORT = {"either": "Call or text", "text": "Text only", "call": "Call only", "email": "Email only"}
 LEGACY = {"yes": "either", "no": "email"}
@@ -160,6 +160,11 @@ def ensure_tables(get_db):
             outcome_note TEXT,
             closed_at TEXT)""")
         conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS contact_pref TEXT")
+        for col in ("reserve_token TEXT", "link_sent_at TEXT", "link_sent_via TEXT", "reserved_at TEXT",
+                    "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT"):
+            conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
+        conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
+        conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
         conn.execute("""CREATE TABLE IF NOT EXISTS call_notices (
             id SERIAL PRIMARY KEY,
             request_id INTEGER NOT NULL,
@@ -182,6 +187,182 @@ def ensure_tables(get_db):
     finally:
         conn.close()
 
+
+
+# ---------------------------------------------------------------- seats, dates, the personal reservation link
+DEFAULT_CAPACITY = {"D4": 40}     # Relationship Training: 40 COUPLES unless the session says otherwise
+COUPLE_PROGRAMS = ("D4",)
+
+
+def capacity_of(cohort, code):
+    """Seats for a session (couples for D4, people otherwise), or None for no limit."""
+    try:
+        cap = cohort["capacity"]
+    except (KeyError, IndexError):
+        cap = None
+    if cap:
+        return int(cap)
+    return DEFAULT_CAPACITY.get(code)
+
+
+def _loc(c):
+    try:
+        return c["location"]
+    except (KeyError, IndexError):
+        return None
+
+
+def seats_used(conn, cohort_id, code):
+    rows = conn.execute("SELECT id, partner_enrollment_id AS pe FROM enrollments WHERE cohort_id = ?",
+                        (cohort_id,)).fetchall()
+    if code in COUPLE_PROGRAMS:
+        return sum(1 for r in rows if not r["pe"] or r["id"] < r["pe"])
+    return len(rows)
+
+
+def ensure_capacity_column(get_db):
+    """Called by the session form so the 'seats' box works the first time it is used."""
+    conn = get_db()
+    try:
+        conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Couldn't add cohorts.capacity: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+def span_text(c):
+    def one(d):
+        try:
+            return datetime.strptime(str(d)[:10], "%Y-%m-%d")
+        except ValueError:
+            return None
+    a, b = one(c["session_date"]), one(c["end_date"]) if c["end_date"] else None
+    if not a:
+        return str(c["session_date"])
+    if not b or b == a:
+        return a.strftime("%B ") + str(a.day) + a.strftime(", %Y")
+    if a.month == b.month and a.year == b.year:
+        return a.strftime("%B ") + f"{a.day}\u2013{b.day}" + a.strftime(", %Y")
+    return a.strftime("%B ") + str(a.day) + " \u2013 " + b.strftime("%B ") + str(b.day) + b.strftime(", %Y")
+
+
+def reserve_link(conn, req, base_url):
+    """The person's personal Reserve link (made the first time it is needed)."""
+    tok = req["reserve_token"]
+    if not tok:
+        tok = secrets.token_urlsafe(16)
+        conn.execute("UPDATE call_requests SET reserve_token = ? WHERE id = ?", (tok, req["id"]))
+        conn.commit()
+    return f"{base_url}/reserve/{tok}"
+
+
+def _find_or_make_contact(conn, first, last, email, phone, note):
+    row = conn.execute("SELECT id FROM contacts WHERE lower(email) = lower(?) ORDER BY id LIMIT 1", (email,)).fetchone()
+    if row:
+        conn.execute("UPDATE contacts SET cell_phone = COALESCE(NULLIF(cell_phone, ''), ?) WHERE id = ?", (phone or None, row["id"]))
+        return row["id"]
+    cur = conn.execute(
+        """INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, marketing_source, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""", (first, last or None, email, phone or None, note, "Website", "Interested Party"))
+    return cur.lastrowid
+
+
+def _add_note(conn, contact_id, line):
+    cur = conn.execute("SELECT notes FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    merged = ((cur["notes"] + "\n") if cur and cur["notes"] else "") + line
+    conn.execute("UPDATE contacts SET notes = ? WHERE id = ?", (merged, contact_id))
+
+
+def reserve_seat(get_db, req_id, cohort_id, person, partner):
+    """Enrolls the person (and partner, for couples) or puts them on the waitlist when the date is full.
+    Returns ("Enrolled" | "Waitlist" | "Already", cohort_row, message)."""
+    conn = get_db()
+    try:
+        req = conn.execute("SELECT * FROM call_requests WHERE id = ?", (req_id,)).fetchone()
+        coh = conn.execute("""SELECT c.*, p.code, p.name AS pname FROM cohorts c JOIN programs p ON p.id = c.program_id
+                              WHERE c.id = ?""", (cohort_id,)).fetchone()
+        if not coh or coh["code"] != (req["program_code"] or coh["code"]):
+            return "Error", None, "Please choose one of the dates in the list."
+        code = coh["code"]
+        couple = code in COUPLE_PROGRAMS
+        label = f"{code} #{coh['session_number']}, {span_text(coh)}"
+        cid = req["contact_id"]
+        conn.execute("UPDATE contacts SET first_name = ?, last_name = ?, email = ?, cell_phone = ? WHERE id = ?",
+                     (person["first"], person["last"] or None, person["email"], person["phone"] or None, cid))
+        pid = None
+        if couple:
+            pid = _find_or_make_contact(conn, partner["first"], partner["last"], partner["email"], "",
+                                        f"Partner of {person['first']} {person['last']} (reserved {label} by personal link)")
+            if pid == cid:
+                conn.rollback()
+                return "Error", None, "Your partner needs their own name and email address."
+        have = conn.execute("SELECT id FROM enrollments WHERE contact_id = ? AND cohort_id = ?", (cid, cohort_id)).fetchone()
+        if have:
+            conn.rollback()
+            return "Already", coh, ""
+        cap = capacity_of(coh, code)
+        used = seats_used(conn, cohort_id, code)
+        result = "Enrolled"
+        if cap is not None and used + 1 > cap:
+            result = "Waitlist"
+        else:
+            e1 = conn.execute("INSERT INTO enrollments (contact_id, cohort_id) VALUES (?, ?)", (cid, cohort_id)).lastrowid
+            e2 = None
+            if couple:
+                row = conn.execute("SELECT id FROM enrollments WHERE contact_id = ? AND cohort_id = ?", (pid, cohort_id)).fetchone()
+                e2 = row["id"] if row else conn.execute(
+                    "INSERT INTO enrollments (contact_id, cohort_id) VALUES (?, ?)", (pid, cohort_id)).lastrowid
+                conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (e2, e1))
+                conn.execute("UPDATE enrollments SET partner_enrollment_id = ? WHERE id = ?", (e1, e2))
+            # two people finishing at the same moment: recount, and if we went over, step back to the waitlist
+            if cap is not None and seats_used(conn, cohort_id, code) > cap:
+                for e in (e1, e2):
+                    if e:
+                        conn.execute("DELETE FROM enrollments WHERE id = ?", (e,))
+                result = "Waitlist"
+        now = _ts(_utc_now())
+        conn.execute("""UPDATE call_requests SET reserved_at = ?, reserve_result = ?, reserve_cohort_id = ?,
+                        partner_name = ?, partner_email = ? WHERE id = ?""",
+                     (now, result, cohort_id, (f"{partner['first']} {partner['last']}".strip() if couple else None),
+                      (partner["email"] if couple else None), req_id))
+        _add_note(conn, cid, f"{'Reserved' if result == 'Enrolled' else 'WAITLIST for'} {label} by personal link, "
+                             f"{local_text(now)}" + (f" (with {partner['first']} {partner['last']})" if couple else "")
+                  + ("; payment pending" if result == "Enrolled" else ""))
+        conn.commit()
+        if result == "Waitlist":
+            _tell_waitlist(conn, req, person, partner if couple else None, label)
+        return result, coh, ""
+    except Exception as e:
+        conn.rollback()
+        print(f"Reservation failed for request {req_id}: {e}", flush=True)
+        return "Error", None, "Sorry, something went wrong on our end. Please try again in a moment."
+    finally:
+        conn.close()
+
+
+def _tell_waitlist(conn, req, person, partner, label):
+    if not alerts_live():
+        return
+    who = f"{person['first']} {person['last']}".strip() + (f" and {partner['first']} {partner['last']}".rstrip() if partner else "")
+    subject = f"Full date \u2013 {who} need another date"
+    html = (f"<p><strong>{who}</strong> tried to reserve <strong>{label}</strong>, but that date is full.</p>"
+            f"<p>Cell: {pretty_phone(person['phone'])} &middot; {person['email']}</p>"
+            f"<p>Please reach out to find them another date. They were told a team member would.</p>")
+    text = (f"{who} tried to reserve {label}, but that date is full.\nCell: {pretty_phone(person['phone'])}  {person['email']}\n"
+            f"Please reach out to find them another date. They were told a team member would.")
+    to = [_leadership_email()]
+    if req["claimed_by"]:
+        v = conn.execute("SELECT email FROM call_volunteers WHERE id = ?", (req["claimed_by"],)).fetchone()
+        if v and v["email"]:
+            to.append(v["email"])
+    for addr in to:
+        try:
+            _send(addr, subject, html, text)
+        except Exception as e:
+            print(f"Couldn't send waitlist note to {addr}: {e}", flush=True)
 
 # ---------------------------------------------------------------- creating a request
 def create_interest(get_db, form, source):
@@ -494,7 +675,13 @@ def register(app, crm, leadership_required, get_db):
                     req = conn.execute("SELECT r.*, c.first_name, c.last_name, c.email FROM call_requests r "
                                        "JOIN contacts c ON c.id = r.contact_id WHERE r.id = ?", (req["id"],)).fetchone()
                     claimer = conn.execute("SELECT name FROM call_volunteers WHERE id = ?", (req["claimed_by"],)).fetchone()
+            link = sms_body = None
+            if mine and req["outcome"] and not req["outcome"].startswith(("Not interested", "Wrong number")):
+                link = reserve_link(conn, req, _base_url())
+                sms_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link "
+                            f"to reserve your spot in {_program_label(req['program_code'])}: {link}")
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
+                                   link=link, sms_body=sms_body,
                                    label=_program_label(req["program_code"]), token=token,
                                    phone=pretty_phone(req["cell_phone"]), outcomes=OUTCOMES,
                                    pref=(req["contact_pref"] or "either"), pref_short=PREF_SHORT.get(req["contact_pref"] or "either"),
@@ -527,6 +714,122 @@ def register(app, crm, leadership_required, get_db):
             return redirect(url_for("public_call_claim", token=token))
         finally:
             conn.close()
+
+    @app.route("/call/<token>/link-sent", methods=["POST"])
+    def public_call_link_sent(token):
+        """The volunteer tapped 'Text it from my phone' -- we note that the link went out."""
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"]:
+                abort(403)
+            conn.execute("UPDATE call_requests SET link_sent_at = COALESCE(link_sent_at, ?), link_sent_via = COALESCE(link_sent_via, 'text') "
+                         "WHERE id = ?", (_ts(_utc_now()), req["id"]))
+            conn.commit()
+            return ("", 204)
+        finally:
+            conn.close()
+
+    @app.route("/call/<token>/email-link", methods=["POST"])
+    def public_call_email_link(token):
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"]:
+                abort(403)
+            if not alerts_live():
+                flash("Email sending is switched off right now, so nothing was sent. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            if not req["email"]:
+                flash("We don't have an email address for them. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            link = reserve_link(conn, req, _base_url())
+            label = _program_label(req["program_code"])
+            subject = f"Your personal link to reserve your spot \u2013 {label}"
+            html = (f"<p>Hi {req['first_name']},</p><p>It was good to connect. As promised, here is your personal link to reserve your spot in "
+                    f"<strong>{label}</strong>:</p><p><a href=\"{link}\">{link}</a></p>"
+                    f"<p>It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.</p>"
+                    f"<p>If you have any questions, reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.</p>"
+                    f"<p>Warmly,<br>{vol['name']} and the Discovery Team</p>")
+            text = (f"Hi {req['first_name']},\n\nIt was good to connect. Here is your personal link to reserve your spot in {label}:\n{link}\n\n"
+                    f"It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.\n\n"
+                    f"Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.\n\nWarmly,\n{vol['name']} and the Discovery Team")
+            try:
+                _send(req["email"], subject, html, text, to_name=req["first_name"])
+            except Exception as e:
+                print(f"Couldn't email the reserve link for request {req['id']}: {e}", flush=True)
+                flash("The email didn't go through. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            conn.execute("UPDATE call_requests SET link_sent_at = COALESCE(link_sent_at, ?), link_sent_via = COALESCE(link_sent_via, 'email') "
+                         "WHERE id = ?", (_ts(_utc_now()), req["id"]))
+            conn.commit()
+            flash(f"Sent to {req['email']}.")
+            return redirect(url_for("public_call_claim", token=token))
+        finally:
+            conn.close()
+
+    # ----- the person's own Reserve page (opened from the volunteer's link)
+    @app.route("/reserve/<token>", methods=["GET", "POST"])
+    def public_reserve(token):
+        ensure_tables(get_db)
+        conn = get_db()
+        req = conn.execute("SELECT r.*, c.first_name, c.last_name, c.email, c.cell_phone AS cphone FROM call_requests r "
+                           "JOIN contacts c ON c.id = r.contact_id WHERE r.reserve_token = ?", (token,)).fetchone()
+        if not req:
+            conn.close()
+            abort(404)
+        code = req["program_code"] or ""
+        prog = conn.execute("SELECT name FROM programs WHERE code = ?", (code,)).fetchone()
+        sessions = []
+        if prog:
+            for c in conn.execute("""SELECT c.*, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id
+                                     WHERE p.code = ? AND COALESCE(c.end_date, c.session_date) >= date('now')
+                                       AND c.status != 'Cancelled' ORDER BY c.session_date""", (code,)).fetchall():
+                cap = capacity_of(c, code)
+                full = cap is not None and seats_used(conn, c["id"], code) >= cap
+                sessions.append(dict(id=c["id"], text=span_text(c) + (f" \u2013 {_loc(c)}" if _loc(c) else ""), full=full))
+        def render(**kw):
+            base = dict(req=req, token=token, label=_program_label(code) if code else "Discovery", couple=(code in COUPLE_PROGRAMS),
+                        sessions=sessions, result=None, vals={}, done_session=None)
+            base.update(kw)
+            return render_template("public_reserve.html", **base)
+        try:
+            if req["reserve_result"]:
+                c = next((x for x in sessions if x["id"] == req["reserve_cohort_id"]), None)
+                row = conn.execute("SELECT c.*, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?",
+                                   (req["reserve_cohort_id"],)).fetchone() if req["reserve_cohort_id"] else None
+                return render(result=req["reserve_result"], done_session=span_text(row) if row else "")
+            if request.method == "POST":
+                f = request.form
+                person = dict(first=(f.get("first_name") or "").strip(), last=(f.get("last_name") or "").strip(),
+                              email=(f.get("email") or "").strip(), phone=(f.get("phone") or "").strip())
+                partner = dict(first=(f.get("partner_first") or "").strip(), last=(f.get("partner_last") or "").strip(),
+                               email=(f.get("partner_email") or "").strip())
+                cohort_id = f.get("cohort_id", type=int)
+                err = None
+                if not person["first"] or not person["last"] or not person["email"]:
+                    err = "Please fill in your first name, last name and email."
+                elif len(_digits(person["phone"])) < 10:
+                    err = "Please enter your cell phone number."
+                elif not cohort_id or cohort_id not in [x["id"] for x in sessions]:
+                    err = "Please choose a date."
+                elif code in COUPLE_PROGRAMS and (not partner["first"] or not partner["email"]):
+                    err = "Please tell us your partner's name and email, since this training is for couples."
+                if err:
+                    flash(err)
+                    return render(vals=dict(person, **{"partner_first": partner["first"], "partner_last": partner["last"],
+                                                       "partner_email": partner["email"], "cohort_id": cohort_id}))
+                conn.close()
+                result, coh, msg = reserve_seat(get_db, req["id"], cohort_id, person, partner)
+                if result in ("Error", "Already"):
+                    flash(msg or "You are already registered for that date. Thank you!")
+                    return redirect(url_for("public_reserve", token=token))
+                return redirect(url_for("public_reserve", token=token))
+            return render(vals=dict(first=req["first_name"], last=req["last_name"] or "", email=req["email"] or "",
+                                    phone=pretty_phone(req["cphone"] or req["cell_phone"])))
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     # ----- CRM: the queue and the volunteer lists (Leadership)
     @crm.route("/call-requests")
@@ -590,6 +893,15 @@ def register(app, crm, leadership_required, get_db):
         rows = conn.execute("SELECT * FROM interest_log WHERE created_at >= ? ORDER BY id", (since,)).fetchall()
         reached = {r["contact_id"]: r for r in conn.execute(
             "SELECT contact_id, status FROM call_requests WHERE status = 'Called'").fetchall()}
+        sent_to, reserved_to, wait_to = set(), set(), set()
+        for r in conn.execute("SELECT contact_id, program_code, link_sent_at, reserve_result FROM call_requests").fetchall():
+            key = (r["contact_id"], r["program_code"])
+            if r["link_sent_at"] or r["reserve_result"]:
+                sent_to.add(key)
+            if r["reserve_result"] == "Enrolled":
+                reserved_to.add(key)
+            if r["reserve_result"] == "Waitlist":
+                wait_to.add(key)
         enrolled = set()
         for e in conn.execute("""SELECT en.contact_id, p.code FROM enrollments en JOIN cohorts c ON c.id = en.cohort_id
                                   JOIN programs p ON p.id = c.program_id""").fetchall():
@@ -598,7 +910,7 @@ def register(app, crm, leadership_required, get_db):
         conn.close()
 
         def blank():
-            return dict(total=0, yes=0, no=0, reached=0, enrolled=0)
+            return dict(total=0, yes=0, no=0, reached=0, sent=0, reserved=0, wait=0, enrolled=0)
 
         def add(d, r):
             d["total"] += 1
@@ -608,7 +920,11 @@ def register(app, crm, leadership_required, get_db):
             if pref in PREF_SHORT:
                 d.setdefault("prefs", {})[pref] = d.setdefault("prefs", {}).get(pref, 0) + 1
             d["reached"] += r["contact_id"] in reached
-            d["enrolled"] += (r["contact_id"], r["program_code"]) in enrolled
+            k = (r["contact_id"], r["program_code"])
+            d["sent"] += k in sent_to
+            d["reserved"] += k in reserved_to
+            d["wait"] += k in wait_to
+            d["enrolled"] += k in enrolled
 
         by_prog, by_page, by_day, total = {}, {}, {}, blank()
         for r in rows:
