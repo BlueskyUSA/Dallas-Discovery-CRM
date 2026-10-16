@@ -598,6 +598,57 @@ def register(app, crm, leadership_required, get_db):
                                page_rows=sorted(by_page.items(), key=lambda x: -x[1]["total"]),
                                day_rows=list(by_day.items())[-14:][::-1], days=days)
 
+    @crm.route("/call-volunteers/people")
+    @leadership_required
+    def call_volunteer_people():
+        """Type-ahead / browse list for choosing a volunteer: team members first, then anyone in Contacts."""
+        from flask import jsonify
+        q = (request.args.get("q") or "").strip().lower()
+        mode = request.args.get("mode", "team")          # team | all
+        prog = (request.args.get("prog") or "").upper()  # limit team to people who served on this program
+        conn = get_db()
+        served = {}   # contact_id -> list of (session_date, code, role)
+        for r in conn.execute("""SELECT cs.contact_id, cs.role, c.session_date, p.code FROM cohort_staffing cs
+                                  JOIN cohorts c ON c.id = cs.cohort_id JOIN programs p ON p.id = c.program_id
+                                  WHERE cs.role <> 'Trainee'""").fetchall():
+            served.setdefault(r["contact_id"], []).append((str(r["session_date"] or ""), r["code"], r["role"]))
+        for r in conn.execute("""SELECT sg.contact_id, sg.role, c.session_date, p.code FROM small_group_staffing sg
+                                  JOIN small_groups g ON g.id = sg.small_group_id JOIN cohorts c ON c.id = g.cohort_id
+                                  JOIN programs p ON p.id = c.program_id""").fetchall():
+            served.setdefault(r["contact_id"], []).append((str(r["session_date"] or ""), r["code"], r["role"]))
+        for r in conn.execute("SELECT contact_id FROM staff WHERE contact_id IS NOT NULL AND active = 1").fetchall():
+            served.setdefault(r["contact_id"], [])
+        used = {r["contact_id"] if False else r["email"].lower() for r in conn.execute(
+            "SELECT email FROM call_volunteers WHERE active = 1").fetchall()}
+        cols = "id, first_name, last_name, email, cell_phone"
+        if mode == "team":
+            ids = [i for i, v in served.items() if not prog or any(x[1] == prog for x in v)]
+            rows = []
+            for i in ids:
+                r = conn.execute(f"SELECT {cols} FROM contacts WHERE id = ?", (i,)).fetchone()
+                if r:
+                    rows.append(r)
+        else:
+            if len(q) < 2:
+                conn.close()
+                return jsonify([])
+            rows = conn.execute(f"SELECT {cols} FROM contacts ORDER BY last_name, first_name LIMIT 5000").fetchall()
+        conn.close()
+        toks = q.split()
+        out = []
+        for r in rows:
+            name = f"{r['first_name'] or ''} {r['last_name'] or ''}".strip()
+            hay = " ".join([name.lower(), (r["email"] or "").lower(), _digits(r["cell_phone"])])
+            if toks and not all(t in hay or (_digits(t) and _digits(t) in hay) for t in toks):
+                continue
+            hist = sorted(served.get(r["id"], []), reverse=True)
+            last = f"{hist[0][2]}, {hist[0][1]} {hist[0][0][:7]}" if hist else ""
+            out.append(dict(id=r["id"], name=name, cell=pretty_phone(r["cell_phone"]) if r["cell_phone"] else "",
+                            email=r["email"] or "", team=r["id"] in served, last=last, sessions=len(hist),
+                            sort=(hist[0][0] if hist else ""), already=(r["email"] or "").lower() in used))
+        out.sort(key=lambda x: (not x["team"], "".join(chr(255 - ord(c)) for c in x["sort"]), x["name"].lower()))
+        return jsonify(out[:60])
+
     @crm.route("/call-volunteers", methods=["GET", "POST"])
     @leadership_required
     def call_volunteers_page():
@@ -620,6 +671,29 @@ def register(app, crm, leadership_required, get_db):
                 else:
                     conn.execute("INSERT INTO call_volunteers (program_code, name, cell_phone, email) VALUES (?, ?, ?, ?)",
                                  (code, name, phone, email))
+                    conn.commit()
+                    flash(f"Added {name}.")
+            elif action == "add_contact":
+                code = request.form.get("program_code", "")
+                ct = conn.execute("SELECT id, first_name, last_name, email, cell_phone FROM contacts WHERE id = ?",
+                                  (request.form.get("contact_id", type=int),)).fetchone()
+                phone = (request.form.get("cell_phone") or (ct["cell_phone"] if ct else "") or "").strip()
+                email = (request.form.get("email") or (ct["email"] if ct else "") or "").strip()
+                have = conn.execute("SELECT COUNT(*) c FROM call_volunteers WHERE active = 1 AND program_code = ?", (code,)).fetchone()["c"]
+                if not ct or code not in dict(POOLS):
+                    flash("Choose a person and a program.")
+                elif len(_digits(phone)) < 10 or not email:
+                    flash("That contact needs a cell phone and an email. Enter them below the name and try again.")
+                elif have >= MAX_PER_POOL:
+                    flash(f"That group already has {MAX_PER_POOL} volunteers. Remove one first.")
+                else:
+                    name = f"{ct['first_name']} {ct['last_name'] or ''}".strip()
+                    conn.execute("INSERT INTO call_volunteers (program_code, name, cell_phone, email) VALUES (?, ?, ?, ?)",
+                                 (code, name, phone, email))
+                    if not ct["cell_phone"]:
+                        conn.execute("UPDATE contacts SET cell_phone = ? WHERE id = ?", (phone, ct["id"]))
+                    if not ct["email"]:
+                        conn.execute("UPDATE contacts SET email = ? WHERE id = ?", (email, ct["id"]))
                     conn.commit()
                     flash(f"Added {name}.")
             elif action == "remove":
