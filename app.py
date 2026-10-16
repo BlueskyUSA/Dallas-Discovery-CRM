@@ -757,7 +757,12 @@ def staff_reset_password(staff_id):
     conn = get_db()
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
     if staff:
-        temp_password = secrets.token_urlsafe(9)
+        typed = (request.form.get("new_password") or "").strip()
+        if typed and len(typed) < 8:
+            flash("A password you type needs at least 8 characters. Nothing was changed.")
+            conn.close()
+            return redirect(url_for(".staff_list"))
+        temp_password = typed or secrets.token_urlsafe(9)
         conn.execute(
             "UPDATE staff SET password_hash = ? WHERE id = ?",
             (generate_password_hash(temp_password), staff_id),
