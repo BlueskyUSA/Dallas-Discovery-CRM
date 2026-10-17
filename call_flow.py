@@ -259,9 +259,8 @@ def letter_questionnaire(first, label, link, vol_name, vphone):
 CLIENT_LETTERS = [
     ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a CEP volunteer takes the request."),
     ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
-    ("questionnaire", "Email: questionnaire link", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own link."),
+    ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
-    ("q-rt", "The questionnaire form", "What each partner sees when they open their private questionnaire link (read-only preview). Relationship Training and D1 use this same form for now."),
     ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,200 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
     ("payment", "Payment reminder", "Sent automatically to the person who reserved: 3 days after they enroll, and again within 2 weeks of the session. Stops as soon as payment is made."),
 ]
@@ -883,7 +882,7 @@ def register(app, crm, leadership_required, get_db):
             fake = {"first_name": "[First name]", "program_name": ("D1 – The Beginning" if key == "q-d1" else "Relationship Training"), "session_date": None,
                     "questionnaire_completed_at": None, "code": ("D1" if key == "q-d1" else "D4"), "first_name": "[First name]"}
             return render_template("public_questionnaire.html", enr=fake, profile=None, is_couples=True, done=False,
-                                   saved=False, preview=True, letters=CLIENT_LETTERS, key=key)
+                                   saved=False, preview=True, letters=CLIENT_LETTERS, key="questionnaire")
         got = sample_letter(key)
         if not got:
             abort(404)
