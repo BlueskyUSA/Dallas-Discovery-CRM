@@ -6,6 +6,11 @@
 <h1>Link not found</h1>
 <p>This link isn't valid or has expired. Please reach out to us directly and we'll send you a fresh one.</p>
 {% else %}
+{% if preview %}
+<p class="muted" style="margin:0 0 8px">CEP Team &middot; <a href="{{ url_for('public_cep_letters') }}">The letters we send to clients</a></p>
+<p style="margin:0 0 12px">{% for k, t, w in letters %}<a class="pub-btn {{ 'dark' if k == key else 'secondary' }}" href="{{ url_for('public_cep_letter', key=k) }}" style="margin:0 6px 8px 0">{{ loop.index }}. {{ t }}</a>{% endfor %}</p>
+<div class="card" style="border-left:6px solid #c9a227"><p style="margin:0"><strong>Read-only preview.</strong> This is exactly what each partner sees. Nothing can be typed or sent from here.</p></div>
+{% endif %}
 <h1>Your questionnaire</h1>
 <p class="muted">{{ enr.program_name }} &middot; {{ enr.session_date|fdate }}</p>
 {% if done %}
@@ -55,4 +60,5 @@ your answers are seen only by our training team, never by your partner.</p>
 </div>
 {% endif %}
 </div>
+{% if preview %}<script>document.querySelectorAll('form input, form textarea, form select, form button').forEach(function (e) { e.disabled = true; });</script>{% endif %}
 {% endblock %}

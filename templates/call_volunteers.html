@@ -4,10 +4,22 @@
 <h1>CEP Team <span class="muted" style="font-size:.6em">Client Engagement Protocol Team</span></h1>
 <p class="muted">Up to {{ max_per }} CEP Team members for each program (D1 and the Relationship Training), plus one CEP Team Captain who oversees the team and is also emailed when a request goes unclaimed for 2 hours. When someone asks for a call, all of that program's volunteers are alerted and the first to tap &ldquo;I&rsquo;ll call&rdquo; gets it. If a program has no volunteers, the &ldquo;Everything else&rdquo; group is used. Volunteers don&rsquo;t need a login; they use a personal link. Their cell number is shared with the person they call.</p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+{% if welcome_video %}
+<div class="card" style="max-width:760px">
+  <h2 style="margin:0 0 2px">Welcome to the CEP Team</h2>
+  <p class="muted" style="margin:0 0 10px">A message from Coach Kent</p>
+  {% if welcome_video.kind == 'frame' %}<div style="position:relative;padding-top:56.25%"><iframe src="{{ welcome_video.src }}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="fullscreen; picture-in-picture" allowfullscreen title="Welcome to the CEP Team"></iframe></div>
+  {% else %}<video controls playsinline preload="metadata" style="width:100%;border-radius:8px"><source src="{{ welcome_video.src }}"></video>{% endif %}
+</div>
+{% endif %}
 {% for g in groups %}
 <div class="card" style="margin-bottom:16px">
   <h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ g.max }})</span></h3>
-  {% if g.code == 'CAPTAIN' %}<p style="margin:0 0 10px"><a class="btn secondary" href="{{ url_for('public_cep_training') }}">Training Modules</a></p>{% endif %}
+  {% if g.code == 'CAPTAIN' %}
+  <p style="margin:0 0 6px"><a class="btn secondary" href="{{ url_for('public_cep_training') }}">Training Modules</a></p>
+  <p style="margin:0 0 4px" class="muted">Letters we send to clients (the CEP Team can read each one):</p>
+  <p style="margin:0 0 10px">{% for k, t, w in client_letters %}<a class="btn secondary" href="{{ url_for('public_cep_letter', key=k) }}" style="margin:0 6px 6px 0">{{ t }}</a>{% endfor %}</p>
+  {% endif %}
   <table>
     {% for v in g.vols %}
     <tr><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
