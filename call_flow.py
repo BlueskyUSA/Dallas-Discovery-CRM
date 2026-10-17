@@ -320,14 +320,16 @@ def welcome_video():
 def sample_letter(key):
     """(title, when, subject, html) for the CEP Team to read, with placeholders in [brackets]."""
     title, when = next(((t, w) for k, t, w in CLIENT_LETTERS if k == key), (None, None))
+    if key == "questionnaire-d1":
+        title, when = "Questionnaire \u2013 D1", next(w for k, t, w in CLIENT_LETTERS if k == "questionnaire")
     if not title:
         return None
     if key == "curious":
         subject, html, _t = letter_curious("[First name]", "[the training]", "[Volunteer name]", "[volunteer phone]", "call or text")
     elif key == "register":
         subject, html, _t = letter_reserve_link("[First name]", "[the training]", "[their personal link]", "[Volunteer name]", "[volunteer phone]")
-    elif key == "questionnaire":
-        subject, html, _t = letter_questionnaire("[First name]", "[the training]", "[their private questionnaire link]", "[Volunteer name]", "[volunteer phone]")
+    elif key in ("questionnaire", "questionnaire-d1"):
+        subject, html, _t = letter_questionnaire("[First name]", ("D1 \u2013 The Beginning" if key == "questionnaire-d1" else "Relationship Training"), "[their private questionnaire link]", "[Volunteer name]", "[volunteer phone]")
     elif key == "venue":
         subject, html = letter_venue("[First name]", "[partner's name]", "[Volunteer name]", "[volunteer phone]", photo_url=_base_url() + "/static/hotel-exterior.png", room_url=_base_url() + "/static/hotel-room.png")
     else:
@@ -882,7 +884,7 @@ def register(app, crm, leadership_required, get_db):
             fake = {"first_name": "[First name]", "program_name": ("D1 – The Beginning" if key == "q-d1" else "Relationship Training"), "session_date": None,
                     "questionnaire_completed_at": None, "code": ("D1" if key == "q-d1" else "D4"), "first_name": "[First name]"}
             return render_template("public_questionnaire.html", enr=fake, profile=None, is_couples=True, done=False,
-                                   saved=False, preview=True, letters=CLIENT_LETTERS, key="questionnaire")
+                                   saved=False, preview=True, letters=CLIENT_LETTERS, key=key)
         got = sample_letter(key)
         if not got:
             abort(404)
