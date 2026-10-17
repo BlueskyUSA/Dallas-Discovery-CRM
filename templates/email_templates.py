@@ -5,19 +5,14 @@ from app.py so the wording can be revised without touching route logic, and
 reused identically by the one-off test send and the eventual full blast.
 """
 
-EXCITEMENT_BLAST_SUBJECT = "Dallas Discovery Excitement is Growing"
+from config import PROGRAM_NAME, DISCOVERY_URL
 
-DISCOVERY_URL = "https://dallas-discovery-crm.onrender.com/discovery"
+EXCITEMENT_BLAST_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
 
 
-def excitement_blast_content(first_name, connect_url=None):
-    """Returns (html_content, text_content) for the initial blast email,
-    personalized with the contact's first name. connect_url, if given, is
-    that contact's personal link to the "reach out to me" page -- lets
-    someone ask Kent to personally follow up (by email or phone) without
-    emailing him directly, so replies don't just pile up in his inbox."""
-    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
-
+def _connect_blocks(connect_url):
+    """The optional personal "reach out to me" paragraph used by the
+    blast emails. Returns (html, text); both empty when there is no link."""
     connect_html = ""
     connect_text = ""
     if connect_url:
@@ -33,9 +28,21 @@ def excitement_blast_content(first_name, connect_url=None):
             f"many of you have already reached out, and every single one of you matters to me, "
             f"even though I'm just one guy trying to keep up!\n{connect_url}\n\n"
         )
+    return connect_html, connect_text
+
+
+def excitement_blast_content(first_name, connect_url=None):
+    """Returns (html_content, text_content) for the initial blast email,
+    personalized with the contact's first name. connect_url, if given, is
+    that contact's personal link to the "reach out to me" page -- lets
+    someone ask Kent to personally follow up (by email or phone) without
+    emailing him directly, so replies don't just pile up in his inbox."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    connect_html, connect_text = _connect_blocks(connect_url)
 
     html_content = f"""
-        <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">Dallas Discovery Excitement is Growing!!!</p>
+        <p style="font-size:1.6em; font-weight:bold; margin-bottom:20px;">{PROGRAM_NAME} Excitement is Growing!!!</p>
         <p>Dear {greeting},</p>
         <p>Please forgive the intrusion &mdash; this is Kent Hafemann, and you're receiving this
         email because you're someone I've known or worked with over the years, whether through
@@ -75,6 +82,60 @@ Please open the link below and complete a brief contact form so that you will be
 {DISCOVERY_URL}
 
 {connect_text}Please share this link and help us get the word out.
+
+Thanks so much. Indeed, the excitement is building!!!
+
+Your support and giving hearts are much appreciated.
+
+We look forward to seeing you soon.
+
+Blessings on you,
+Kent Hafemann
+"""
+
+    return html_content, text_content
+
+
+BLAST2_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
+
+
+def blast2_cover_content(first_name):
+    """Returns (html_content, text_content) for Email Blast #2 -- the cover
+    letter for the Dallas Discovery contact database (people who already know
+    the program, so no introduction of who Kent is). Deliberately has no
+    personal "reach out to me" paragraph. NOT sent automatically by anything."""
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    html_content = f"""
+        <p>Dear {greeting},</p>
+        <p>As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet
+        many have expressed a strong desire to reopen the program. Nothing is official yet, but
+        we're working hard to make that happen.</p>
+        <p>Our hope is in the next few months we will be meeting with those who attended or
+        volunteered in the training. If you were a Discovery volunteer, or if you are interested
+        to know more about this program, we would love to hear from you.</p>
+        <p><span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
+        below and complete a brief contact form so that you will be among the first to know when
+        a meeting date is set, or additional information is available.</span></p>
+        <p><a href="{DISCOVERY_URL}">{DISCOVERY_URL}</a></p>
+        <p>Please share this link and help us get the word out.</p>
+        <p>Thanks so much. Indeed, the excitement is building!!!</p>
+        <p>Your support and giving hearts are much appreciated.</p>
+        <p>We look forward to seeing you soon.</p>
+        <p>Blessings on you,<br>Kent Hafemann</p>
+    """
+
+    text_content = f"""Dear {greeting},
+
+As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
+
+Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
+
+Please open the link below and complete a brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
+
+{DISCOVERY_URL}
+
+Please share this link and help us get the word out.
 
 Thanks so much. Indeed, the excitement is building!!!
 
@@ -129,7 +190,7 @@ def connect_request_confirmation_content(first_name, method):
     return html_content, text_content
 
 
-INTERESTED_PARTY_WELCOME_SUBJECT = "Thank you for your interest in Dallas Discovery"
+INTERESTED_PARTY_WELCOME_SUBJECT = f"Thank you for your interest in {PROGRAM_NAME}"
 
 
 def interested_party_welcome_content(first_name, connect_url=None):
@@ -150,7 +211,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about
+        <p>Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about
         our journey and the profound impact Discovery has had on our lives.</p>
         <p>In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us
         to attend Pathways (now Discovery) &mdash; our marriage was struggling. With three
@@ -183,7 +244,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
 
     text_content = f"""Dear {greeting},
 
-Thank you so much for your interest in Dallas Discovery. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
+Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
 
 In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us to attend Pathways (now Discovery) -- our marriage was struggling. With three children and eighteen years of marriage behind us, we were lost and confused. We tried counselors, church advisors, mentors, healing prayer, anything we could think of. But we simply couldn't figure it out -- it was like trying to hold water in our hands, our life falling apart, leaking right through our fingers.
 
@@ -296,126 +357,132 @@ PRELIMINARY_PLAN_SUBJECT = "Preliminary business plan for Discovery"
 
 def preliminary_plan_content(first_name):
     """Returns (html_content, text_content) for the Preliminary Discovery
-    Plan email -- only sent when someone clicks the "Send me the
-    Preliminary Discovery Plan" button in the long-form thank-you email
-    (see longform_thankyou_content above), never automatically. Lays out
-    Kent's mission/goals for relaunching Discovery and the concrete help
-    still needed, so interested volunteers know where they might fit."""
+    Plan email -- sent only when staff click "Send business plan" on a contact,
+    or someone clicks the "Send me the Preliminary Discovery Plan" button in the
+    long-form thank-you email, never automatically. Lays out Kent's mission and
+    goals for relaunching Discovery and the volunteer help still needed."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>Thanks for your continued interest in the Dallas Discovery launch.</p>
-        <p>So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on
-        this question &mdash; but here's a start:</p>
+        <p>Thanks for your continued interest in the {PROGRAM_NAME} launch.</p>
+        <p>So, what are the goals and mission for {PROGRAM_NAME}? Perhaps you may want to weigh in
+        on this question&hellip; but here is a start:</p>
         <ol>
-            <li>To reflect the love of God by creating an effective, powerful, and emotionally
+            <li>To reflect the Love of God by creating an effective, powerful and emotionally
             safe environment for trainees to evaluate and overcome the broken parts of their
-            lives, so that freedom, joy, peace, and love become the cornerstones of their
+            lives so that freedom, joy, peace, and love become the cornerstones of their
             lives.</li>
-            <li>Create an enduring training that outlasts any one key leader by:
+            <li>Create an enduring ministry that outlasts any one key leader by:
                 <ol type="a">
-                    <li>Finding young leadership capable and willing to lead the training as
-                    older leaders relinquish their roles;</li>
-                    <li>Operating Dallas Discovery with margin, so the program endures
-                    financially and can be passed on to the next operating team without needing
-                    additional capital to keep it running;</li>
-                    <li>Passing on, in perpetuity and free of charge, the intellectual property,
-                    licenses, software, and equipment used to operate the program.</li>
+                    <li>Operating {PROGRAM_NAME} so that revenue exceeds expenses;</li>
+                    <li>When the time is right, transfer Discovery intellectual property,
+                    licenses, software, and equipment to the next operating team at no cost.</li>
                 </ol>
             </li>
         </ol>
-        <p>So how will we accomplish this mission and these goals?</p>
+        <p>We all believe that Discovery is a much-needed ministry in our broken world. Do you
+        remember the cleansing of your heart, the amazing and powerful freedom, love, and
+        forgiveness we each experienced in this training? Our lives were changed forever!!! I
+        thank God for Discovery, and I know you do too, otherwise you would not be reading this.
+        So, let&rsquo;s think big, and do something for Discovery that has never been done
+        before&hellip; GIVE IT AWAY&hellip; so that for generations, by God&rsquo;s grace,
+        millions of people will experience the love of God and love for themselves&hellip; and
+        with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest
+        commandment.</p>
+        <p>This is a monumental vision. To give Discovery away, as volunteers, it needs your
+        prayers and your support. We need to find folks who believe in our mission and can give
+        financially to the non-profit. If that might be you, or someone you know, please reach
+        out to me to discuss the financial needs of the program. The program cannot open without
+        financial support.</p>
+        <p><strong>How will we accomplish this Mission?</strong></p>
         <ol type="a">
-            <li>First, we'll begin hosting Discovery social gatherings to build excitement and
-            renew friendships. We need someone to help organize and pull these events
-            together.</li>
-            <li>Start a marketing campaign to host our first Relationship Training within the
-            next six months, and to kick off D1. Our goal is forty couples in the training room
-            for that first Relationship Training. The need for relationship coaching is
-            significant &mdash; with the right marketing campaign, we believe we can fill the
-            room and use the energy (and proceeds) from that training to help launch D1.</li>
-            <li>Reach out to supporters for donations, apply for grants, and appeal to
-            GoFundMe-type organizations to raise capital. Based on early budget conversations,
-            we estimate needing roughly $100,000 in cash reserves to responsibly host Dallas
-            Discovery training.</li>
+            <li>First, we will begin hosting Discovery social gatherings to build vision and
+            excitement, and renew old friendships (volunteers will be needed to organize and pull
+            these events together).</li>
+            <li>Hold fund-raisers to capture the financial support needed to open the program.
+            All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient
+            funding to pay for the acquisition cost of the program, plus we have been advised
+            that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow
+            reserves to ensure the program survives.</li>
+            <li>Begin the selection process for leadership teams. Previous leaders will have
+            priority due to their experience, but the minimum expectation of all leadership is to
+            have enrolled at least one trainee in D1, or one couple in the Relationship training.
+            We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela
+            Hafemann and I will be the lead facilitators in D1 and the Relationship training. But
+            it is our desire to share this role with others who are qualified in the very near
+            future. The Board of Directors will make final leadership selections.</li>
+            <li>Begin a marketing campaign with the goal of hosting a Relationship training within
+            the next four to six months, and to kick off D1 soon thereafter. Our goal is to have
+            forty couples in the training room for the first Relationship training. We believe
+            the need for relationship coaching is so significant that with the right marketing
+            campaign, we can easily fill the seats and use the energy from that training to kick
+            off D1.</li>
         </ol>
-        <p>In addition to cash, what are the strategic short-term needs of Discovery?</p>
+        <p><strong>VOLUNTEERS NEEDED AS FOLLOWS:</strong></p>
         <ol type="a">
-            <li>We need help compiling a Discovery budget, including the cost of a hotel and
-            food for the first Relationship Training. I'd like to find a hotel close to Coppell
-            and DFW.</li>
             <li>We need video and photography experts willing to work for free to help us put
-            together an effective marketing campaign &mdash; testimonials of enthusiastic
-            trainees whose lives have been changed by the training. Relationship Training videos
-            and photography are needed first, then D1, D2, and D3 content.</li>
-            <li>We need a professional to rebuild the Discovery website, connecting it to our
-            CRM.</li>
-            <li>We'll refresh the color scheme, the Discovery logo, and the website content.</li>
-            <li>We need admin volunteers to field phone calls, help speak with others about the
-            training, and guide trainees through registration.</li>
-            <li>We need Facilitators for D1, D2, D3, and Refocus. Initially, Max and I will be
-            the lead facilitators in D1, but we'd like to share that role with others who are
-            qualified in the near future. We hope to run a Relationship Training three times a
-            year &mdash; Pamela, Max, and I will lead these, though again, we want to share the
-            facilitator role as qualified people step forward. Facilitation of the Spiritual
-            program is yet to be defined.</li>
-            <li>The Discovery program is a 501(c)(3) entity and will operate its finances under
-            fund accounting rules. We need a bookkeeper and accountant, at low cost, to maintain
-            the accounts and issue quarterly reports for the Board of Directors.</li>
-            <li>We need someone to help organize our volunteer teams.</li>
-            <li>We'll be updating the Relationship and D1 syllabus with Max and Pamela, but could
-            use help with music selection.</li>
-            <li>We need help updating the D2, D3, and Refocus syllabi.</li>
-            <li>We need someone to evaluate our existing audio equipment and acquire more if
-            needed.</li>
-            <li>We need someone to gather, organize, and assemble the supplies needed for each
-            training.</li>
-            <li>We need a place to store audio and video equipment, and a way to transport it if
-            we can't keep it at the hotel.</li>
+            together an effective marketing campaign. Videography will include testimonials of
+            enthusiastic trainees whose lives have been changed by the training. Relationship
+            training videos and photography will be needed first.</li>
+            <li>We need admin volunteers for the following:
+                <ol>
+                    <li>Skilled coaches to help trainees with registration and payment
+                    confirmation;</li>
+                    <li>Two volunteers to man the event sign-in table;</li>
+                    <li>Greet and mingle with trainees at the clap-in;</li>
+                    <li>Qualified security personnel to oversee the safety of the program.</li>
+                </ol>
+            </li>
+            <li>We need someone to evaluate existing audio equipment and/or acquire additional
+            equipment if needed.</li>
+            <li>We need a place to store audio/video equipment and training supplies, and a means
+            to transport this equipment if we cannot keep it at the hotel.</li>
+            <li>We need someone to gather, organize, maintain and assemble the supplies needed
+            for each training.</li>
         </ol>
-        <p>Please let me know what role you might want to play in opening Discovery back up.
-        Feel free to reach out to me with your thoughts at
+        <p>Please let me know what role you may wish to play to open Discovery. Feel free to
+        reach out to me with your thoughts at
         <a href="mailto:Kent@blueskyusa.net">Kent@blueskyusa.net</a>.</p>
         <p>Thank you again for your energy, your time, your heart, and your support.</p>
-        <p>Blessings on you. I look forward to meeting you at our first Discovery
-        get-together, if not sooner.</p>
+        <p>Blessings on you. I look forward to meeting you at our first Discovery get-together,
+        if not sooner.</p>
         <p>Take care,<br>Kent Hafemann</p>
     """
 
-    text_content = """Dear {greeting},
+    text_content = f"""Dear {greeting},
 
-Thanks for your continued interest in the Dallas Discovery launch.
+Thanks for your continued interest in the {PROGRAM_NAME} launch.
 
-So, what are my goals and mission for Discovery? Perhaps you may want to weigh in on this question -- but here's a start:
+So, what are the goals and mission for {PROGRAM_NAME}? Perhaps you may want to weigh in on this question... but here is a start:
 
-1. To reflect the love of God by creating an effective, powerful, and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives, so that freedom, joy, peace, and love become the cornerstones of their lives.
-2. Create an enduring training that outlasts any one key leader by:
-   a. Finding young leadership capable and willing to lead the training as older leaders relinquish their roles;
-   b. Operating Dallas Discovery with margin, so the program endures financially and can be passed on to the next operating team without needing additional capital to keep it running;
-   c. Passing on, in perpetuity and free of charge, the intellectual property, licenses, software, and equipment used to operate the program.
+1. To reflect the Love of God by creating an effective, powerful and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives so that freedom, joy, peace, and love become the cornerstones of their lives.
+2. Create an enduring ministry that outlasts any one key leader by:
+   a. Operating {PROGRAM_NAME} so that revenue exceeds expenses;
+   b. When the time is right, transfer Discovery intellectual property, licenses, software, and equipment to the next operating team at no cost.
 
-So how will we accomplish this mission and these goals?
-a. First, we'll begin hosting Discovery social gatherings to build excitement and renew friendships. We need someone to help organize and pull these events together.
-b. Start a marketing campaign to host our first Relationship Training within the next six months, and to kick off D1. Our goal is forty couples in the training room for that first Relationship Training. The need for relationship coaching is significant -- with the right marketing campaign, we believe we can fill the room and use the energy (and proceeds) from that training to help launch D1.
-c. Reach out to supporters for donations, apply for grants, and appeal to GoFundMe-type organizations to raise capital. Based on early budget conversations, we estimate needing roughly $100,000 in cash reserves to responsibly host Dallas Discovery training.
+We all believe that Discovery is a much-needed ministry in our broken world. Do you remember the cleansing of your heart, the amazing and powerful freedom, love, and forgiveness we each experienced in this training? Our lives were changed forever!!! I thank God for Discovery, and I know you do too, otherwise you would not be reading this. So, let's think big, and do something for Discovery that has never been done before... GIVE IT AWAY... so that for generations, by God's grace, millions of people will experience the love of God and love for themselves... and with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest commandment.
 
-In addition to cash, what are the strategic short-term needs of Discovery?
-a. We need help compiling a Discovery budget, including the cost of a hotel and food for the first Relationship Training. I'd like to find a hotel close to Coppell and DFW.
-b. We need video and photography experts willing to work for free to help us put together an effective marketing campaign -- testimonials of enthusiastic trainees whose lives have been changed by the training. Relationship Training videos and photography are needed first, then D1, D2, and D3 content.
-c. We need a professional to rebuild the Discovery website, connecting it to our CRM.
-d. We'll refresh the color scheme, the Discovery logo, and the website content.
-e. We need admin volunteers to field phone calls, help speak with others about the training, and guide trainees through registration.
-f. We need Facilitators for D1, D2, D3, and Refocus. Initially, Max and I will be the lead facilitators in D1, but we'd like to share that role with others who are qualified in the near future. We hope to run a Relationship Training three times a year -- Pamela, Max, and I will lead these, though again, we want to share the facilitator role as qualified people step forward. Facilitation of the Spiritual program is yet to be defined.
-g. The Discovery program is a 501(c)(3) entity and will operate its finances under fund accounting rules. We need a bookkeeper and accountant, at low cost, to maintain the accounts and issue quarterly reports for the Board of Directors.
-h. We need someone to help organize our volunteer teams.
-i. We'll be updating the Relationship and D1 syllabus with Max and Pamela, but could use help with music selection.
-j. We need help updating the D2, D3, and Refocus syllabi.
-k. We need someone to evaluate our existing audio equipment and acquire more if needed.
-l. We need someone to gather, organize, and assemble the supplies needed for each training.
-m. We need a place to store audio and video equipment, and a way to transport it if we can't keep it at the hotel.
+This is a monumental vision. To give Discovery away, as volunteers, it needs your prayers and your support. We need to find folks who believe in our mission and can give financially to the non-profit. If that might be you, or someone you know, please reach out to me to discuss the financial needs of the program. The program cannot open without financial support.
 
-Please let me know what role you might want to play in opening Discovery back up. Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
+HOW WILL WE ACCOMPLISH THIS MISSION?
+a. First, we will begin hosting Discovery social gatherings to build vision and excitement, and renew old friendships (volunteers will be needed to organize and pull these events together).
+b. Hold fund-raisers to capture the financial support needed to open the program. All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient funding to pay for the acquisition cost of the program, plus we have been advised that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow reserves to ensure the program survives.
+c. Begin the selection process for leadership teams. Previous leaders will have priority due to their experience, but the minimum expectation of all leadership is to have enrolled at least one trainee in D1, or one couple in the Relationship training. We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela Hafemann and I will be the lead facilitators in D1 and the Relationship training. But it is our desire to share this role with others who are qualified in the very near future. The Board of Directors will make final leadership selections.
+d. Begin a marketing campaign with the goal of hosting a Relationship training within the next four to six months, and to kick off D1 soon thereafter. Our goal is to have forty couples in the training room for the first Relationship training. We believe the need for relationship coaching is so significant that with the right marketing campaign, we can easily fill the seats and use the energy from that training to kick off D1.
+
+VOLUNTEERS NEEDED AS FOLLOWS:
+a. We need video and photography experts willing to work for free to help us put together an effective marketing campaign. Videography will include testimonials of enthusiastic trainees whose lives have been changed by the training. Relationship training videos and photography will be needed first.
+b. We need admin volunteers for the following:
+   1. Skilled coaches to help trainees with registration and payment confirmation;
+   2. Two volunteers to man the event sign-in table;
+   3. Greet and mingle with trainees at the clap-in;
+   4. Qualified security personnel to oversee the safety of the program.
+c. We need someone to evaluate existing audio equipment and/or acquire additional equipment if needed.
+d. We need a place to store audio/video equipment and training supplies, and a means to transport this equipment if we cannot keep it at the hotel.
+e. We need someone to gather, organize, maintain and assemble the supplies needed for each training.
+
+Please let me know what role you may wish to play to open Discovery. Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
 
 Thank you again for your energy, your time, your heart, and your support.
 
@@ -423,6 +490,236 @@ Blessings on you. I look forward to meeting you at our first Discovery get-toget
 
 Take care,
 Kent Hafemann
-""".format(greeting=greeting)
+"""
 
     return html_content, text_content
+
+
+CONTRACT_REQUEST_SUBJECT = "Congratulations on completing your training!"
+
+_LETTER_PARAS = (
+    "Congratulations on completing your training... Woohoo!!! Let's keep going!!! "
+    "From D1 through D3, what you learned in each training is the foundation for the next. "
+    "All these programs are fabulous and we look forward to seeing you there. "
+    "Meanwhile, would you please help the Discovery staff by taking a few minutes to update your "
+    "D1 Pseudo name, Contract and as needed, other information from these programs. "
+    "Our volunteers would otherwise have to type all of this into our records by hand, which "
+    "takes many hours. We would be so grateful."
+)
+_LETTER_BULLETS = [
+    "No password is needed, this link is just for you.",
+    "Your words save automatically as you type, so you can stop and come back anytime using the same link.",
+    "Fill in what you have so far and leave the rest blank. You can add to it after your later trainings.",
+    "What you write is kept confidential and is used only for your training.",
+]
+
+
+def contract_request_content(first_name, contracts_url):
+    """Returns (html_content, text_content) for the Contract Information Request -- the one letter
+    used for every training. Sent automatically after a session ends (see app.py) and by the
+    manual button on a contact's page (which also has a Preview)."""
+    import html as _html
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    g = _html.escape(greeting)
+    body = _html.escape(_LETTER_PARAS).replace("...", "&hellip;")
+    html_content = (
+        f"<p>Dear {g},</p><p>{body}</p>"
+        f'<p style="margin:18px 0"><a href="{contracts_url}" style="background:#3f5643; color:#ffffff; '
+        'padding:12px 22px; border-radius:6px; text-decoration:none; font-weight:bold">Open your contact page</a></p>'
+        "<ul>" + "".join(f"<li>{_html.escape(b)}</li>" for b in _LETTER_BULLETS) + "</ul>"
+        "<p>Thank you for helping us, and for the courage you are showing in this work.</p>"
+        "<p>Have a great day,<br>Kent Hafemann</p>"
+    )
+    text_content = (
+        f"Dear {greeting},\n\n{_LETTER_PARAS}\n\nOpen your contact page:\n{contracts_url}\n\n"
+        + "".join(f"- {b}\n" for b in _LETTER_BULLETS)
+        + "\nThank you for helping us, and for the courage you are showing in this work.\n\n"
+        "Have a great day,\nKent Hafemann"
+    )
+    return html_content, text_content
+
+
+# D5 (Refocus) has no contract, so it sends no letter.
+COMPLETION_LETTER_CODES = ("D1", "D2", "D3", "D4", "D6")
+
+
+def completion_letter_content(first_name, contracts_url, program_code, program_name=None):
+    """(subject, html, text) for the automatic letter after a training, or None if that program sends none."""
+    if (program_code or "").strip().upper() not in COMPLETION_LETTER_CODES:
+        return None
+    html_content, text_content = contract_request_content(first_name, contracts_url)
+    return CONTRACT_REQUEST_SUBJECT, html_content, text_content
+
+
+# ---------------------------------------------------------------------------
+# Session letters: the confirmation letters sent per training session (see app.py, "Letters").
+# DRAFTS for Kent to revise. Placeholders: {first} {training} {dates} {where} {role} {duties}
+# ({where} is " at <location>" or empty; {duties} is a ready-made sentence or empty).
+# ---------------------------------------------------------------------------
+SESSION_LETTERS = {
+    "trainee_confirm": {
+        "title": "Trainee Registration Confirmation",
+        "audience": "Trainees",
+        "subject": "You're confirmed for {training}",
+        "paras": [
+            "We are delighted to confirm your registration for the Discovery Relationship Training, {dates}{where}.",
+            "This will be a powerful experience for you and your partner, and we are honored that you have chosen to be part of it.",
+            "Soon you will receive a separate email with your personal link to a questionnaire we ask you to seriously ponder. Take your time to complete each question. "
+            "Let your experience, heart, and mind flow into your words. Be sure not to share your answers with your partner. "
+            "Your thoughts are yours alone\u2026we want just your voice. The form is designed so you can close your work and "
+            "pick up right where you left off by opening that same link again. For privacy, if you wish to create a password, please do so. "
+            "Your password will be saved, so if you forget it, reply to this email and we will call to help.",
+            "When we receive your completed questionnaire, we will email the program schedule, what to bring, and directions "
+            "as the training gets closer.",
+            "In the meantime, please hold these dates open. If anything changes for you, or if you have any questions at all, "
+            "just reply to this email and let us know.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "The Discovery Team",
+    },
+    "seminar_registration": {
+        "title": "Seminar registration",
+        "audience": "Trainees",
+        "subject": "Your registration for {training}",
+        "paras": [
+            "Thank you for registering for {training}, {dates}{where}.",
+            "To complete your registration, please fill out your personal registration form at the link below. "
+            "It covers your contact details, emergency contact and health information, and your answers save as you go.",
+            "{link}",
+            "Each of you will fill out your own form. A separate letter will follow with your questionnaire.",
+            "If anything needs to change, or you have any questions, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "payment_reminder": {
+        "title": "Payment reminder",
+        "audience": "Trainees who have not paid",
+        "subject": "A friendly reminder: payment for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to send a friendly reminder that "
+            "we have not yet received your payment.",
+            "{amount_sentence}",
+            "Please complete your payment before the training so your place is fully secured. If you have already "
+            "paid, thank you, and please disregard this note.",
+            "If you have any questions, or would like to talk about payment options, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "payment_received": {
+        "title": "Payment received",
+        "audience": "Trainees who have paid",
+        "subject": "Payment received for {training}",
+        "paras": [
+            "Thank you! We have received the payment for {training}, {dates}{where}.",
+            "{partner_sentence}",
+            "Your place is secured. If you have any questions, just reply to this email.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "questionnaire_reminder": {
+        "title": "Questionnaire reminder",
+        "audience": "Trainees who have not completed the questionnaire",
+        "subject": "A friendly reminder: your questionnaire for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to remind you that we have not yet "
+            "received your questionnaire (see link below).",
+            "Your answers help us prepare for you, so please complete it before the training. It is for you alone, "
+            "so please answer in your own words. If you have already done so, thank you, and please disregard this note.",
+            "{link}",
+            "If you have any questions, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "what_to_bring": {
+        "title": "What to bring",
+        "audience": "Trainees",
+        "subject": "What to bring to {training}",
+        "paras": [
+            "{training} begins soon, {dates}{where}. Here is what to bring so you are comfortable and ready:",
+            "[Kent: list the items to bring here, for example: comfortable clothing, a notebook and pen, "
+            "a water bottle, any medications you need.]",
+            "Please arrive a little early so we can begin on time. If you have any questions, reply to this email.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "facilitator_confirm": {
+        "title": "Facilitator confirmation",
+        "audience": "Facilitators",
+        "subject": "Thank you for facilitating {training}",
+        "paras": [
+            "Thank you for saying yes to serving as {role} for {training}, {dates}{where}.",
+            "Your experience and your presence make all the difference to the people who will be in the room.",
+            "Please hold these dates open. We will send the full schedule and team assignments before the training. "
+            "If you have a conflict or a question, reply to this email so we can plan around it.",
+            "Thank you for your commitment to this work.",
+        ],
+        "signoff": "With gratitude,",
+    },
+    "ta_confirm": {
+        "title": "TA confirmation",
+        "audience": "TAs",
+        "subject": "You're confirmed as a TA for {training}",
+        "paras": [
+            "Thank you for serving as a TA for {training}, {dates}{where}.",
+            "{duties}",
+            "TAs are the heart of how participants feel supported. We will send arrival times, the schedule and "
+            "what to bring before the training.",
+            "Please hold these dates open. If you have a conflict or a question, reply to this email and let us know.",
+        ],
+        "signoff": "With gratitude,",
+    },
+    "backup_confirm": {
+        "title": "Back-up TA confirmation",
+        "audience": "Back-up TAs",
+        "subject": "Thank you for being a back-up TA for {training}",
+        "paras": [
+            "Thank you for being willing to serve as a back-up TA for {training}, {dates}{where}.",
+            "As a back-up, you will step in if one of our TAs is unable to attend, so please try to keep these dates "
+            "open. We will let you know as soon as we need you.",
+            "If your plans change, or you have a question, just reply to this email.",
+            "We are grateful for your willingness to serve.",
+        ],
+        "signoff": "With gratitude,",
+    },
+}
+SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
+SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
+
+
+def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
+                           partner=None, amount=None):
+    """(subject, html, text) for one session letter, or None for an unknown key."""
+    import html as _html
+    spec = SESSION_LETTERS.get(key)
+    if not spec:
+        return None
+    greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+    duty_list = [d for d in (duties or []) if d and d != "Not confirmed"]
+    if duty_list:
+        duties_sentence = ("Your assignment is " if len(duty_list) == 1 else "Your assignments are ") + ", ".join(duty_list) + "."
+    else:
+        duties_sentence = "Your specific assignment will be confirmed before the training."
+    fill = {
+        "first": greeting, "training": training, "dates": dates,
+        "where": f" at {location}" if location else "",
+        "role": role or "a facilitator", "duties": duties_sentence,
+        "link": link or "[their personal link]",
+        "amount_sentence": (f"The training fee is {amount}, and one payment covers both partners."
+                            if amount else ""),
+        "partner_sentence": (f"This payment covers you and {partner}, so you are both all set."
+                             if partner else ""),
+    }
+    subject = spec["subject"].format(**fill)
+    paras = [p for p in (p.format(**fill) for p in spec["paras"]) if p.strip()]
+    html_content = (
+        f"<p>Dear {_html.escape(greeting)},</p>"
+        + "".join(
+            (f'<p><a href="{_html.escape(link)}">{_html.escape(link)}</a></p>' if (link and p == link)
+             else f"<p>{_html.escape(p)}</p>") for p in paras)
+        + f"<p>{_html.escape(spec['signoff'])}<br>{_html.escape(spec.get('signer', 'Kent Hafemann'))}</p>"
+    )
+    text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\n{spec.get('signer', 'Kent Hafemann')}"
+    return subject, html_content, text_content
