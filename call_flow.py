@@ -880,7 +880,7 @@ def register(app, crm, leadership_required, get_db):
     def public_cep_letter(key):
         if key in ("q-rt", "q-d1"):
             fake = {"first_name": "[First name]", "program_name": ("D1 – The Beginning" if key == "q-d1" else "Relationship Training"), "session_date": None,
-                    "questionnaire_completed_at": None, "code": "D4"}
+                    "questionnaire_completed_at": None, "code": ("D1" if key == "q-d1" else "D4"), "first_name": "[First name]"}
             return render_template("public_questionnaire.html", enr=fake, profile=None, is_couples=True, done=False,
                                    saved=False, preview=True, letters=CLIENT_LETTERS, key=key)
         got = sample_letter(key)
