@@ -268,7 +268,7 @@ CLIENT_LETTERS = [
 ]
 
 
-def letter_venue(first, partner, vol_name, vphone):
+def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None):
     subject = "Your weekend at the Four Points by Sheraton \u2013 everything you need to know"
     html = f"""<p>Hi {first},</p>
 <p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
@@ -276,11 +276,13 @@ def letter_venue(first, partner, vol_name, vphone):
 <p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. Please plan to arrive and check in on Friday afternoon so you are settled before we begin. (Hotel check-in opens at 3:00 pm.)</p>
 <p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 3:00 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
 <h3>Where</h3>
+{('<p><img src="' + photo_url + '" alt="Four Points by Sheraton Dallas Fort Worth Airport North" width="393" style="max-width:100%;height:auto;border-radius:8px"></p>') if photo_url else ''}
 <p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>1580 Point West Boulevard, Coppell, Texas 75019<br>Hotel phone: 469-702-6311</p>
-<p><a href="https://www.google.com/maps/search/?api=1&query=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North+1580+Point+West+Blvd+Coppell+TX+75019" style="display:inline-block;background:#1f3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold">View the map</a>
-&nbsp;<a href="https://www.google.com/maps/dir/?api=1&destination=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North+1580+Point+West+Blvd+Coppell+TX+75019" style="display:inline-block;border:2px solid #1f3a5f;color:#1f3a5f;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Get directions</a></p>
+<p><a href="https://www.google.com/maps/search/?api=1&query=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North" style="display:inline-block;background:#1f3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold">View the map</a>
+&nbsp;<a href="https://www.google.com/maps/dir/?api=1&destination=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North" style="display:inline-block;border:2px solid #1f3a5f;color:#1f3a5f;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Get directions</a></p>
 <p>The hotel is a comfortable, modern property just north of DFW Airport, about six miles from the terminals. Rooms have free Wi-Fi, plush bedding and a workspace, and the hotel offers a complimentary outdoor pool and a 24-hour fitness center if you\u2019d like to unwind between sessions. Free coffee and tea are always available in the lobby, and the hotel\u2019s Point West Restaurant and Bar serves American favorites and local craft beers if you want something extra. Parking at the hotel is free while you are staying with us.</p>
 <h3>What\u2019s included in your $1,200 per couple</h3>
+{('<p><img src="' + room_url + '" alt="A guest room at the hotel" width="389" style="max-width:100%;height:auto;border-radius:8px"></p>') if room_url else ''}
 <ul><li><strong>Two nights in the hotel</strong> (Friday and Saturday) in a room for the two of you</li>
 <li><strong>Friday night hors d\u2019oeuvres</strong> before the training begins at 7:00 pm</li>
 <li><strong>Saturday night hors d\u2019oeuvres, dinner and dance</strong>, a celebration you will remember</li>
@@ -329,7 +331,7 @@ def sample_letter(key):
     elif key == "questionnaire":
         subject, html, _t = letter_questionnaire("[First name]", "[the training]", "[their private questionnaire link]", "[Volunteer name]", "[volunteer phone]")
     elif key == "venue":
-        subject, html = letter_venue("[First name]", "[partner's name]", "[Volunteer name]", "[volunteer phone]")
+        subject, html = letter_venue("[First name]", "[partner's name]", "[Volunteer name]", "[volunteer phone]", photo_url=_base_url() + "/static/hotel-exterior.png", room_url=_base_url() + "/static/hotel-room.png")
     else:
         from email_templates import session_letter_content
         sl_key = "trainee_confirm" if key == "confirm" else "payment_reminder"
