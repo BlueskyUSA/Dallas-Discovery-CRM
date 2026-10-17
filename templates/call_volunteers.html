@@ -26,12 +26,18 @@
     <tr><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
       <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form></td></tr>
     <tr><td colspan="4" style="border-top:0; padding-top:0">
-      <details><summary class="muted" style="cursor:pointer; font-size:.88rem">Phone alerts for {{ v.name.split()[0] }}</summary>
+      <details{% if not v.push_user_key %} open{% endif %}><summary class="muted" style="cursor:pointer; font-size:.88rem">Phone alerts for {{ v.name.split()[0] }}: {% if v.push_user_key %}<strong style="color:#2e7d32">on</strong>{% else %}<strong style="color:#a15c00">not set up</strong>{% endif %}</summary>
         <div style="margin:8px 0 6px; line-height:1.55; font-size:.92rem">
-          <p style="margin:0 0 6px">In the free <strong>ntfy</strong> app, tap <strong>+</strong> and subscribe to this topic name{% if ntfy_server != 'https://ntfy.sh' %} on <strong>{{ ntfy_server }}</strong>{% endif %}:</p>
-          <p style="margin:0 0 8px"><code style="font-size:1rem; background:#f1f4f8; padding:4px 8px; border-radius:6px; user-select:all">{{ v.push_topic }}</code></p>
-          <p class="muted" style="margin:0 0 8px">Treat the name like a password: anyone who knows it can read {{ v.name.split()[0] }}&rsquo;s alerts.</p>
-          <form method="post" class="inline"><input type="hidden" name="action" value="test_push"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit">Send a test alert</button></form>
+          {% if not pushover_ready %}<p style="margin:0 0 8px; color:#a15c00"><strong>Not connected yet.</strong> Add <code>PUSHOVER_APP_TOKEN</code> in Render&rsquo;s Environment (see the instructions Claude gave you), then alerts can go out.</p>{% endif %}
+          <p style="margin:0 0 6px">{{ v.name.split()[0] }} installs the <strong>Pushover</strong> app, creates a free account, and sends you the <strong>User Key</strong> shown at the top of the app (30 letters and numbers). Paste it here:</p>
+          <form method="post" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+            <input type="hidden" name="action" value="set_push_key"><input type="hidden" name="id" value="{{ v.id }}">
+            <input name="push_key" placeholder="Pushover User Key" value="{{ v.push_user_key or '' }}" maxlength="40" autocomplete="off" style="min-width:300px">
+            <button class="btn" type="submit">Save</button>
+          </form>
+          {% if v.push_user_key %}
+          <form method="post" class="inline" style="margin-top:8px"><input type="hidden" name="action" value="test_push"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit">Send a test alert</button></form>
+          {% endif %}
         </div>
       </details></td></tr>
     {% else %}<tr><td class="muted">No one yet.</td></tr>{% endfor %}
