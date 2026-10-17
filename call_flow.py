@@ -259,8 +259,8 @@ def letter_questionnaire(first, label, link, vol_name, vphone):
 CLIENT_LETTERS = [
     ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a CEP volunteer takes the request."),
     ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
-    ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
+    ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
     ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,200 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
     ("payment", "Payment reminder", "Sent automatically to the person who reserved: 3 days after they enroll, and again within 2 weeks of the session. Stops as soon as payment is made."),
 ]
