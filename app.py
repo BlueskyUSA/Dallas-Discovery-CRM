@@ -4387,7 +4387,7 @@ def relationship_profile(enrollment_id):
         flash("Enrollment not found.")
         return redirect(url_for(".contacts_list"))
 
-    is_couples = enr["code"] == "D4"
+    is_couples = enr["code"] in ("D4", "D1")
     active_fields = RELATIONSHIP_PROFILE_FIELDS if is_couples else COMMON_PROFILE_FIELDS
 
     if request.method == "POST":
@@ -5923,7 +5923,7 @@ def public_questionnaire(token):
     if not enr:
         conn.close()
         return render_template("public_questionnaire.html", enr=None), 404
-    is_couples = enr["code"] == "D4"
+    is_couples = enr["code"] in ("D4", "D1")
     fields = RELATIONSHIP_PROFILE_FIELDS if is_couples else COMMON_PROFILE_FIELDS
     done = False
     if request.method == "POST":

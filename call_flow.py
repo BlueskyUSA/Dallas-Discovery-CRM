@@ -197,6 +197,147 @@ def ensure_tables(get_db):
 
 
 
+# ---------------------------------------------------------------- the letters people receive (one place, so the CEP Team reads exactly what is sent)
+def letter_curious(first, label, vol_name, vphone, pw):
+    vfirst = vol_name.split()[0]
+    subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
+    html = (f"<p>Hi {first},</p>"
+            f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
+            f"<p><strong>{vol_name}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong> "
+            f"within about two hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
+            f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
+            f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
+            f"excited to share how it changed their life. Ask anything you like.</p>"
+            f"<p>If it isn&rsquo;t a good time, just reply to this email and we&rsquo;ll find a better one.</p>"
+            f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
+            f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
+            f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
+            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>")
+    text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
+            f"{vol_name}, an experienced Discovery volunteer, will {pw} you from {vphone} within about two hours. "
+            f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
+            f"For your security, here is their name and number, so you will know it is us.\n\n"
+            f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
+            f"share how it changed their life. Ask anything you like.\n\n"
+            f"If it isn't a good time, just reply to this email and we'll find a better one.\n\n"
+            f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
+            f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
+            f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
+            f"We're looking forward to meeting you!\n\nWarmly,\nCoach Kent and the Discovery Team")
+    return subject, html, text
+
+
+def letter_reserve_link(first, label, link, vol_name, vphone):
+    vfirst = vol_name.split()[0]
+    subject = f"Your personal link to reserve your spot \u2013 {label}"
+    html = (f"<p>Hi {first},</p><p>It was good to connect. As promised, here is your personal link to reserve your spot in "
+            f"<strong>{label}</strong>:</p><p><a href=\"{link}\">{link}</a></p>"
+            f"<p>It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.</p>"
+            f"<p>If you have any questions, reply to this email or call {vfirst} at {vphone}.</p>"
+            f"<p>Warmly,<br>{vol_name} and the Discovery Team</p>")
+    text = (f"Hi {first},\n\nIt was good to connect. Here is your personal link to reserve your spot in {label}:\n{link}\n\n"
+            f"It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.\n\n"
+            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery Team")
+    return subject, html, text
+
+
+def letter_questionnaire(first, label, link, vol_name, vphone):
+    vfirst = vol_name.split()[0]
+    subject = f"Your personal questionnaire link \u2013 {label}"
+    html = (f"<p>Hi {first},</p><p>Here is your personal link to the questionnaire for <strong>{label}</strong>. "
+            f"Please take your time and answer it thoughtfully.</p><p><a href=\"{link}\">{link}</a></p>"
+            f"<p>You can close it and pick up right where you left off by opening the same link again. "
+            f"This link is just for you, so please don&rsquo;t share it.</p>"
+            f"<p>Questions? Reply to this email or call {vfirst} at {vphone}.</p>"
+            f"<p>Warmly,<br>{vol_name} and the Discovery Team</p>")
+    text = (f"Hi {first},\n\nHere is your personal link to the questionnaire for {label}. Please take your time and answer it thoughtfully.\n{link}\n\n"
+            f"You can close it and pick up right where you left off by opening the same link again. This link is just for you, so please don't share it.\n\n"
+            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery Team")
+    return subject, html, text
+
+
+CLIENT_LETTERS = [
+    ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a CEP volunteer takes the request."),
+    ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
+    ("questionnaire", "Questionnaire link", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own link."),
+    ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
+    ("q-rt", "Questionnaire: Relationship Training", "What each partner sees when they open their private questionnaire link. (Shown here as a read-only preview.)"),
+    ("q-d1", "Questionnaire: D1", "For now D1 uses the same questionnaire as Relationship Training."),
+    ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,200 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
+    ("payment", "Payment reminder", "Sent automatically to the person who reserved: 3 days after they enroll, and again within 2 weeks of the session. Stops as soon as payment is made."),
+]
+
+
+def letter_venue(first, partner, vol_name, vphone):
+    subject = "Your weekend at the Four Points by Sheraton \u2013 everything you need to know"
+    html = f"""<p>Hi {first},</p>
+<p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
+<h3>When</h3>
+<p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. Please plan to arrive and check in on Friday afternoon so you are settled before we begin. (Hotel check-in opens at 3:00 pm.)</p>
+<p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 3:00 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
+<h3>Where</h3>
+<p><strong>Four Points by Sheraton Dallas Fort Worth Airport North</strong><br>1580 Point West Boulevard, Coppell, Texas 75019<br>Hotel phone: 469-702-6311</p>
+<p><a href="https://www.google.com/maps/search/?api=1&query=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North+1580+Point+West+Blvd+Coppell+TX+75019" style="display:inline-block;background:#1f3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold">View the map</a>
+&nbsp;<a href="https://www.google.com/maps/dir/?api=1&destination=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North+1580+Point+West+Blvd+Coppell+TX+75019" style="display:inline-block;border:2px solid #1f3a5f;color:#1f3a5f;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Get directions</a></p>
+<p>The hotel is a comfortable, modern property just north of DFW Airport, about six miles from the terminals. Rooms have free Wi-Fi, plush bedding and a workspace, and the hotel offers a complimentary outdoor pool and a 24-hour fitness center if you\u2019d like to unwind between sessions. Free coffee and tea are always available in the lobby, and the hotel\u2019s Point West Restaurant and Bar serves American favorites and local craft beers if you want something extra. Parking at the hotel is free while you are staying with us.</p>
+<h3>What\u2019s included in your $1,200 per couple</h3>
+<ul><li><strong>Two nights in the hotel</strong> (Friday and Saturday) in a room for the two of you</li>
+<li><strong>Friday night hors d\u2019oeuvres</strong> before the training begins at 7:00 pm</li>
+<li><strong>Saturday night hors d\u2019oeuvres, dinner and dance</strong>, a celebration you will remember</li>
+<li><strong>Snacks, coffee, tea and water</strong> available throughout the weekend</li>
+<li><strong>All training sessions and materials</strong></li></ul>
+<h3>Getting there</h3>
+<ul><li><strong>From DFW Airport:</strong> the hotel\u2019s complimentary shuttle runs 24 hours a day, every hour on the hour. Ask at the hotel\u2019s front desk or call 469-702-6311 to arrange your ride.</li>
+<li><strong>From Love Field:</strong> the hotel shuttle does not serve Love Field, so you will need an Uber or taxi.</li>
+<li><strong>Driving:</strong> follow the address above; parking is free.</li></ul>
+<h3>A few reminders</h3>
+<ul><li>Please wear something comfortable during the day. Saturday evening is a dance, so bring something you feel great in.</li>
+<li>Meals other than those listed above are on your own. The hotel restaurant is on site, and there is a convenience store in the lobby.</li>
+<li>Questions? Reply to this email or contact {vol_name} at {vphone}.</li></ul>
+<p>We can\u2019t wait to see you both.</p>
+<p>Warmly,<br>Coach Kent</p>"""
+    return subject, html
+
+
+def welcome_video():
+    """Optional 'Welcome to the CEP Team' video. Set CEP_WELCOME_VIDEO to a YouTube/Vimeo/.mp4 link,
+    or upload static/cep-welcome.mp4. Returns {kind, src} or None."""
+    import os, re as _re
+    u = (os.environ.get("CEP_WELCOME_VIDEO") or "").strip()
+    if not u:
+        if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "cep-welcome.mp4")):
+            return {"kind": "file", "src": "/static/cep-welcome.mp4"}
+        return None
+    m = _re.search(r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([\w-]{6,})", u)
+    if m:
+        return {"kind": "frame", "src": "https://www.youtube.com/embed/" + m.group(1)}
+    m = _re.search(r"vimeo\.com/(?:video/)?(\d+)", u)
+    if m:
+        return {"kind": "frame", "src": "https://player.vimeo.com/video/" + m.group(1)}
+    return {"kind": "file", "src": u}
+
+
+def sample_letter(key):
+    """(title, when, subject, html) for the CEP Team to read, with placeholders in [brackets]."""
+    title, when = next(((t, w) for k, t, w in CLIENT_LETTERS if k == key), (None, None))
+    if not title:
+        return None
+    if key == "curious":
+        subject, html, _t = letter_curious("[First name]", "[the training]", "[Volunteer name]", "[volunteer phone]", "call or text")
+    elif key == "register":
+        subject, html, _t = letter_reserve_link("[First name]", "[the training]", "[their personal link]", "[Volunteer name]", "[volunteer phone]")
+    elif key == "questionnaire":
+        subject, html, _t = letter_questionnaire("[First name]", "[the training]", "[their private questionnaire link]", "[Volunteer name]", "[volunteer phone]")
+    elif key == "venue":
+        subject, html = letter_venue("[First name]", "[partner's name]", "[Volunteer name]", "[volunteer phone]")
+    else:
+        from email_templates import session_letter_content
+        sl_key = "trainee_confirm" if key == "confirm" else "payment_reminder"
+        subject, html, _t = session_letter_content(sl_key, "[First name]", "Relationship Training", "[session dates]",
+                                                   partner="[partner's name]", amount="$1,200 per couple")
+    return title, when, subject, html
+
+
 # ---------------------------------------------------------------- seats, dates, the personal reservation link
 DEFAULT_CAPACITY = {"D4": 40}     # Relationship Training: 40 COUPLES unless the session says otherwise
 COUPLE_PROGRAMS = ("D4",)
@@ -597,32 +738,7 @@ def _tell_prospect(conn, req, vol, base_url):
     label = _program_label(req["program_code"])
     vphone = pretty_phone(vol["cell_phone"])
     pw = PREF_WORD.get(req["contact_pref"] or "either", "call or text")
-    vfirst = vol["name"].split()[0]
-    subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
-    first = contact["first_name"]
-    html = (f"<p>Hi {first},</p>"
-            f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
-            f"<p><strong>{vol['name']}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong> "
-            f"within about two hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
-            f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
-            f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
-            f"excited to share how it changed their life. Ask anything you like.</p>"
-            f"<p>If it isn&rsquo;t a good time, just reply to this email and we&rsquo;ll find a better one.</p>"
-            f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
-            f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
-            f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
-            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>")
-    text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
-            f"{vol['name']}, an experienced Discovery volunteer, will {pw} you from {vphone} within about two hours. "
-            f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
-            f"For your security, here is their name and number, so you will know it is us.\n\n"
-            f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
-            f"share how it changed their life. Ask anything you like.\n\n"
-            f"If it isn't a good time, just reply to this email and we'll find a better one.\n\n"
-            f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
-            f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
-            f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
-            f"We're looking forward to meeting you!\n\nWarmly,\nCoach Kent and the Discovery Team")
+    subject, html, text = letter_curious(contact["first_name"], label, vol["name"], vphone, pw)
     try:
         _send(contact["email"], subject, html, text, to_name=contact["first_name"])
         conn.execute("UPDATE call_requests SET prospect_notified_at = ? WHERE id = ?", (_ts(_utc_now()), req["id"]))
@@ -756,6 +872,24 @@ def register(app, crm, leadership_required, get_db):
         return render_template("public_talk_thanks.html", pref=c if c in PREF_SHORT else "either",
                                yes=(c in PREF_WORD), pw=PREF_WORD.get(c, "call or text"))
 
+    @app.route("/cep-letters")
+    def public_cep_letters():
+        return render_template("public_cep_letters.html", letters=CLIENT_LETTERS, current=None)
+
+    @app.route("/cep-letters/<key>")
+    def public_cep_letter(key):
+        if key in ("q-rt", "q-d1"):
+            fake = {"first_name": "[First name]", "program_name": ("D1 – The Beginning" if key == "q-d1" else "Relationship Training"), "session_date": None,
+                    "questionnaire_completed_at": None, "code": "D4"}
+            return render_template("public_questionnaire.html", enr=fake, profile=None, is_couples=True, done=False,
+                                   saved=False, preview=True, letters=CLIENT_LETTERS, key=key)
+        got = sample_letter(key)
+        if not got:
+            abort(404)
+        title, when, subject, html = got
+        return render_template("public_cep_letters.html", letters=CLIENT_LETTERS, current=key, title=title, when=when,
+                               subject=subject, letter_html=html)
+
     @app.route("/cep-training")
     def public_cep_training():
         """The CEP Team's how-to guide. Not linked from the public site; the team reaches it from their call page."""
@@ -869,15 +1003,7 @@ def register(app, crm, leadership_required, get_db):
                 return redirect(url_for("public_call_claim", token=token))
             link = reserve_link(conn, req, _base_url())
             label = _program_label(req["program_code"])
-            subject = f"Your personal link to reserve your spot \u2013 {label}"
-            html = (f"<p>Hi {req['first_name']},</p><p>It was good to connect. As promised, here is your personal link to reserve your spot in "
-                    f"<strong>{label}</strong>:</p><p><a href=\"{link}\">{link}</a></p>"
-                    f"<p>It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.</p>"
-                    f"<p>If you have any questions, reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.</p>"
-                    f"<p>Warmly,<br>{vol['name']} and the Discovery Team</p>")
-            text = (f"Hi {req['first_name']},\n\nIt was good to connect. Here is your personal link to reserve your spot in {label}:\n{link}\n\n"
-                    f"It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.\n\n"
-                    f"Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.\n\nWarmly,\n{vol['name']} and the Discovery Team")
+            subject, html, text = letter_reserve_link(req["first_name"], label, link, vol["name"], pretty_phone(vol["cell_phone"]))
             try:
                 _send(req["email"], subject, html, text, to_name=req["first_name"])
             except Exception as e:
@@ -926,17 +1052,9 @@ def register(app, crm, leadership_required, get_db):
             for first, addr, link in targets:
                 if not addr or not link:
                     continue
-                html = (f"<p>Hi {first},</p><p>Here is your personal link to the questionnaire for <strong>{label}</strong>. "
-                        f"Please take your time and answer it thoughtfully.</p><p><a href=\"{link}\">{link}</a></p>"
-                        f"<p>You can close it and pick up right where you left off by opening the same link again. "
-                        f"This link is just for you, so please don&rsquo;t share it.</p>"
-                        f"<p>Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.</p>"
-                        f"<p>Warmly,<br>{vol['name']} and the Discovery Team</p>")
-                text = (f"Hi {first},\n\nHere is your personal link to the questionnaire for {label}. Please take your time and answer it thoughtfully.\n{link}\n\n"
-                        f"You can close it and pick up right where you left off by opening the same link again. This link is just for you, so please don't share it.\n\n"
-                        f"Questions? Reply to this email or call {vol['name'].split()[0]} at {pretty_phone(vol['cell_phone'])}.\n\nWarmly,\n{vol['name']} and the Discovery Team")
+                subject, html, text = letter_questionnaire(first, label, link, vol["name"], pretty_phone(vol["cell_phone"]))
                 try:
-                    _send(addr, f"Your personal questionnaire link \u2013 {label}", html, text, to_name=first)
+                    _send(addr, subject, html, text, to_name=first)
                     sent_to.append(addr)
                 except Exception as e:
                     print(f"Couldn't email questionnaire link for request {req['id']} to {addr}: {e}", flush=True)
@@ -1232,4 +1350,4 @@ def register(app, crm, leadership_required, get_db):
             vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
             groups.append(dict(code=code, label=label, max=max_for(code), vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
         conn.close()
-        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL)
+        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video())
