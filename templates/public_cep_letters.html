@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Letters we send — {{ program_name }}{% endblock %}
 {% block content %}
+{% from "_letter_buttons.html" import letter_buttons %}
 <section class="pub-section">
   <div class="pub-container" style="max-width:760px">
     <p class="muted" style="margin:0 0 6px">CEP Team &middot; <a href="{{ url_for('public_cep_training') }}">Training modules</a></p>
@@ -9,7 +10,7 @@
       <p class="lead">Here is every letter a person may receive, so you know exactly what they have read. Names and links are shown in [brackets]; the real ones are filled in automatically.</p>
     {% endif %}
     <p style="margin:0 0 16px">
-      {% for k, t, w in letters %}<a class="pub-btn {{ 'dark' if k == current else 'secondary' }}" href="{{ url_for('public_cep_letter', key=k) }}" style="margin:0 6px 8px 0">{{ loop.index }}. {{ t }}</a>{% endfor %}
+      {{ letter_buttons(letters, current, 'pub-btn secondary', 'pub-btn dark') }}
     </p>
     {% if current %}
       <p class="muted"><strong>When it is sent:</strong> {{ when }}</p>
@@ -18,8 +19,8 @@
         <hr style="border:0; border-top:1px solid #e3e8ee; margin:0 0 14px">
         {{ letter_html|safe }}
       </div>
-      {% if current == 'questionnaire' %}
-      <p style="margin:18px 0 0"><a class="pub-btn dark" href="{{ url_for('public_cep_letter', key='q-rt') }}">See the questionnaire form they fill out &rarr;</a></p>
+      {% if current in ('questionnaire', 'questionnaire-d1') %}
+      <p style="margin:18px 0 0"><a class="pub-btn dark" href="{{ url_for('public_cep_letter', key=('q-d1' if current == 'questionnaire-d1' else 'q-rt')) }}">See the questionnaire form they fill out &rarr;</a></p>
       {% endif %}
     {% else %}
       {% for k, t, w in letters %}

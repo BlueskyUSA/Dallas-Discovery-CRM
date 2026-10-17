@@ -1,6 +1,7 @@
 {% extends "crm_base.html" %}
 {% block title %}CEP Team — {{ program_name }}{% endblock %}
 {% block content %}
+{% from "_letter_buttons.html" import letter_buttons %}
 <h1>CEP Team <span class="muted" style="font-size:.6em">Client Engagement Protocol Team</span></h1>
 <p class="muted">Up to {{ max_per }} CEP Team members for each program (D1 and the Relationship Training), plus one CEP Team Captain who oversees the team and is also emailed when a request goes unclaimed for 2 hours. When someone asks for a call, all of that program's volunteers are alerted and the first to tap &ldquo;I&rsquo;ll call&rdquo; gets it. If a program has no volunteers, the &ldquo;Everything else&rdquo; group is used. Volunteers don&rsquo;t need a login; they use a personal link. Their cell number is shared with the person they call.</p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
@@ -18,7 +19,7 @@
   {% if g.code == 'CAPTAIN' %}
   <p style="margin:0 0 6px"><a class="btn secondary" href="{{ url_for('public_cep_training') }}">Training Modules</a></p>
   <p style="margin:0 0 4px" class="muted">Letters we send to clients (the CEP Team can read each one):</p>
-  <p style="margin:0 0 10px">{% for k, t, w in client_letters %}<a class="btn secondary" href="{{ url_for('public_cep_letter', key=k) }}" style="margin:0 6px 6px 0">{{ t }}</a>{% endfor %}</p>
+  <p style="margin:0 0 10px">{{ letter_buttons(client_letters, None, 'btn secondary', 'btn', False) }}</p>
   {% endif %}
   <table>
     {% for v in g.vols %}
