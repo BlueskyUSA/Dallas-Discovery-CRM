@@ -327,9 +327,9 @@ def sample_letter(key):
     if key == "curious":
         subject, html, _t = letter_curious("[First name]", "[the training]", "[Volunteer name]", "[volunteer phone]", "call or text")
     elif key == "register":
-        subject, html, _t = letter_reserve_link("[First name]", "[the training]", "[their personal link]", "[Volunteer name]", "[volunteer phone]")
+        subject, html, _t = letter_reserve_link("[First name]", "[the training]", "#", "[Volunteer name]", "[volunteer phone]")
     elif key in ("questionnaire", "questionnaire-d1"):
-        subject, html, _t = letter_questionnaire("[First name]", ("D1 \u2013 The Beginning" if key == "questionnaire-d1" else "Relationship Training"), "[their private questionnaire link]", "[Volunteer name]", "[volunteer phone]")
+        subject, html, _t = letter_questionnaire("[First name]", ("D1 \u2013 The Beginning" if key == "questionnaire-d1" else "Relationship Training"), _base_url() + "/cep-letters/" + ("q-d1" if key == "questionnaire-d1" else "q-rt"), "[Volunteer name]", "[volunteer phone]")
     elif key == "venue":
         subject, html = letter_venue("[First name]", "[partner's name]", "[Volunteer name]", "[volunteer phone]", photo_url=_base_url() + "/static/hotel-exterior.png", room_url=_base_url() + "/static/hotel-room.png")
     else:
