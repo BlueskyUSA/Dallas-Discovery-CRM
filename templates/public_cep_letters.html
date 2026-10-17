@@ -18,6 +18,9 @@
         <hr style="border:0; border-top:1px solid #e3e8ee; margin:0 0 14px">
         {{ letter_html|safe }}
       </div>
+      {% if current == 'questionnaire' %}
+      <p style="margin:18px 0 0"><a class="pub-btn dark" href="{{ url_for('public_cep_letter', key='q-rt') }}">See the questionnaire form they fill out &rarr;</a></p>
+      {% endif %}
     {% else %}
       {% for k, t, w in letters %}
       <p><a href="{{ url_for('public_cep_letter', key=k) }}"><strong>{{ loop.index }}. {{ t }}</strong></a><br><span class="muted">{{ w }}</span></p>

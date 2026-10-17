@@ -9,6 +9,7 @@
 {% if preview %}
 <p class="muted" style="margin:0 0 8px">CEP Team &middot; <a href="{{ url_for('public_cep_letters') }}">The letters we send to clients</a></p>
 <p style="margin:0 0 12px">{% for k, t, w in letters %}<a class="pub-btn {{ 'dark' if k == key else 'secondary' }}" href="{{ url_for('public_cep_letter', key=k) }}" style="margin:0 6px 8px 0">{{ loop.index }}. {{ t }}</a>{% endfor %}</p>
+<p style="margin:0 0 12px"><a href="{{ url_for('public_cep_letter', key='questionnaire') }}">&larr; Back to the questionnaire email</a></p>
 <div class="card" style="border-left:6px solid #c9a227"><p style="margin:0"><strong>Read-only preview.</strong> This is exactly what each partner sees. Nothing can be typed or sent from here.</p></div>
 {% endif %}
 <style>
