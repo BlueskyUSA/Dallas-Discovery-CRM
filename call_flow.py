@@ -170,6 +170,7 @@ def ensure_tables(get_db):
                     "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT",
                     "reserved_notified_at TEXT", "paid_notified_at TEXT"):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
+        conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_topic TEXT")
         conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS questionnaire_token TEXT")
@@ -624,6 +625,40 @@ def create_interest(get_db, form, source):
     return True, consent, None
 
 
+# ---------------------------------------------------------------- phone alerts (ntfy)
+def ntfy_server():
+    return (os.environ.get("NTFY_SERVER") or "https://ntfy.sh").rstrip("/")
+
+
+def topic_for(conn, vol_id, current=None):
+    """Each volunteer gets their own long random topic name (it works like a private channel name)."""
+    if current:
+        return current
+    topic = "dd-" + secrets.token_urlsafe(14).replace("=", "")
+    conn.execute("UPDATE call_volunteers SET push_topic = ? WHERE id = ? AND push_topic IS NULL", (topic, vol_id))
+    conn.commit()
+    row = conn.execute("SELECT push_topic FROM call_volunteers WHERE id = ?", (vol_id,)).fetchone()
+    return row["push_topic"] if row else topic
+
+
+def push(topic, title, message, click=None, high=True):
+    """Send a phone notification through ntfy. Never raises: the email is the back-up."""
+    if not topic:
+        return False
+    try:
+        import urllib.request
+        headers = {"Title": title.encode("ascii", "ignore").decode() or "Dallas Discovery",
+                   "Priority": "high" if high else "default", "Tags": "bell"}
+        if click:
+            headers["Click"] = click
+        req = urllib.request.Request(f"{ntfy_server()}/{topic}", data=message.encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=8) as r:
+            return 200 <= r.status < 300
+    except Exception as e:
+        print(f"Phone alert failed: {e}", flush=True)
+        return False
+
+
 # ---------------------------------------------------------------- alerts
 def _pool(conn, program_code):
     rows = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id",
@@ -701,6 +736,11 @@ def dispatch(get_db, request_id, base_url, force=False):
                     f"They prefer: {PREF_SHORT.get(req['contact_pref'] or 'either')}.\n\n"
                     f"Can you {pw} them within two hours? Tap here to say yes:\n{url}\n\n"
                     f"If another volunteer already took it, the page will tell you. Thank you for helping!")
+            try:
+                push(topic_for(conn, v["id"], v["push_topic"]), f"{who} wants to hear from us",
+                     f"Can you {pw} {who} within 2 hours? Tap to say yes. ({label})", click=url)
+            except Exception as e:
+                print(f"Phone alert skipped: {e}", flush=True)
             try:
                 _send(v["email"], subject, html, text, to_name=v["name"])
                 conn.execute("UPDATE call_notices SET sent_at = ?, send_error = NULL WHERE request_id = ? AND volunteer_id = ?",
@@ -804,7 +844,7 @@ def _notify_milestones(get_db):
                WHERE r.reserve_result = 'Enrolled' AND r.claimed_by IS NOT NULL AND r.reserve_cohort_id IS NOT NULL
                  AND (r.reserved_notified_at IS NULL OR r.paid_notified_at IS NULL)""").fetchall()
         for r in rows:
-            vol = conn.execute("SELECT name, email FROM call_volunteers WHERE id = ?", (r["claimed_by"],)).fetchone()
+            vol = conn.execute("SELECT id, name, email, push_topic FROM call_volunteers WHERE id = ?", (r["claimed_by"],)).fetchone()
             coh = conn.execute("SELECT c.*, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?",
                                (r["reserve_cohort_id"],)).fetchone()
             enr = conn.execute("SELECT payment_completed_at AS p FROM enrollments WHERE contact_id = ? AND cohort_id = ?",
@@ -836,6 +876,10 @@ def _notify_milestones(get_db):
 
 def _milestone_mail(vol, subject, hello, body_html):
     plain = body_html.replace("<strong>", "").replace("</strong>", "")
+    try:
+        push(vol["push_topic"], subject, plain, high=False)
+    except Exception:
+        pass
     try:
         _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>",
               f"{hello}\n\n{plain}\n\nWarmly,\nCoach Kent and the Discovery Team", to_name=vol["name"])
@@ -1345,11 +1389,22 @@ def register(app, crm, leadership_required, get_db):
             elif action == "remove":
                 conn.execute("UPDATE call_volunteers SET active = 0 WHERE id = ?", (request.form.get("id"),))
                 conn.commit()
+            elif action == "test_push":
+                v = conn.execute("SELECT id, name, push_topic FROM call_volunteers WHERE id = ? AND active = 1",
+                                 (request.form.get("id", type=int),)).fetchone()
+                if v:
+                    ok = push(topic_for(conn, v["id"], v["push_topic"]), "Test alert from Dallas Discovery",
+                              f"Hi {v['name'].split()[0]}, this is a test. If you can read this, your phone alerts are working!",
+                              click=_base_url() + "/cep-training#m2")
+                    flash(f"Test alert sent to {v['name']}." if ok else
+                          f"The test alert could not be sent to {v['name']}. Check the internet connection and try again.")
             conn.close()
             return redirect(url_for(".call_volunteers_page"))
         groups = []
         for code, label in POOLS:
             vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
-            groups.append(dict(code=code, label=label, max=max_for(code), vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
+            groups.append(dict(code=code, label=label, max=max_for(code),
+                               vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"]),
+                                          push_topic=topic_for(conn, v["id"], v["push_topic"])) for v in vols]))
         conn.close()
-        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video())
+        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), ntfy_server=ntfy_server())
