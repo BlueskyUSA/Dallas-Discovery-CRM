@@ -1389,33 +1389,48 @@ def register(app, crm, leadership_required, get_db):
                 conn.execute("UPDATE call_volunteers SET active = 0 WHERE id = ?", (request.form.get("id"),))
                 conn.commit()
             elif action == "set_push_key":
+                pid = request.form.get("id", type=int)
                 key = (request.form.get("push_key") or "").strip()
                 if key and not valid_user_key(key):
-                    flash("A Pushover User Key is 30 letters and numbers. Please copy it again from the top of the volunteer's Pushover app.")
+                    pm = "badkey"
                 else:
-                    conn.execute("UPDATE call_volunteers SET push_user_key = ? WHERE id = ?",
-                                 (key or None, request.form.get("id", type=int)))
+                    conn.execute("UPDATE call_volunteers SET push_user_key = ? WHERE id = ?", (key or None, pid))
                     conn.commit()
-                    flash("Phone alerts saved." if key else "Phone alerts removed.")
+                    pm = "saved" if key else "removed"
+                conn.close()
+                return redirect(url_for(".call_volunteers_page", pid=pid, pm=pm) + f"#v{pid}")
             elif action == "test_push":
-                v = conn.execute("SELECT id, name, push_user_key FROM call_volunteers WHERE id = ? AND active = 1",
-                                 (request.form.get("id", type=int),)).fetchone()
+                pid = request.form.get("id", type=int)
+                v = conn.execute("SELECT id, name, push_user_key FROM call_volunteers WHERE id = ? AND active = 1", (pid,)).fetchone()
+                pm = "failed"
                 if v and not pushover_ready():
-                    flash("Pushover is not connected yet: add PUSHOVER_APP_TOKEN in Render's Environment first.")
+                    pm = "noapp"
                 elif v and not v["push_user_key"]:
-                    flash(f"{v['name']} has no Pushover User Key saved yet.")
+                    pm = "nokey"
                 elif v:
                     ok = push(v["push_user_key"], "Test alert from Dallas Discovery",
                               f"Hi {v['name'].split()[0]}, this is a test. If you can read this, your phone alerts are working!",
                               click=_base_url() + "/cep-training#m2")
-                    flash(f"Test alert sent to {v['name']}." if ok else
-                          f"The test alert could not be sent to {v['name']}. Check that the User Key is right and try again.")
+                    pm = "sent" if ok else "failed"
+                conn.close()
+                return redirect(url_for(".call_volunteers_page", pid=pid, pm=pm) + f"#v{pid}")
             conn.close()
             return redirect(url_for(".call_volunteers_page"))
+        push_msgs = {
+            "saved": ("ok", "Phone alerts saved. Now tap \u201cSend a test alert.\u201d"),
+            "removed": ("ok", "Phone alerts removed."),
+            "badkey": ("bad", "A Pushover User Key is 30 letters and numbers. Please copy it again from the top of the volunteer's Pushover app."),
+            "noapp": ("bad", "Pushover is not connected yet: add PUSHOVER_APP_TOKEN in Render's Environment first."),
+            "nokey": ("bad", "No Pushover User Key is saved yet. Paste it above and tap Save."),
+            "sent": ("ok", "Test alert sent. Check the phone."),
+            "failed": ("bad", "The test alert could not be sent. Check that the User Key is right and try again."),
+        }
+        push_pid = request.args.get("pid", type=int)
+        push_note = push_msgs.get(request.args.get("pm", ""))
         groups = []
         for code, label in POOLS:
             vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
             groups.append(dict(code=code, label=label, max=max_for(code),
                                vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
         conn.close()
-        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), pushover_ready=pushover_ready())
+        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), pushover_ready=pushover_ready(), push_pid=push_pid, push_note=push_note)
