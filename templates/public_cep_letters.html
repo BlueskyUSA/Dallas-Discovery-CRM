@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Letters we send — {{ program_name }}{% endblock %}
+{% block site_header %}{% include "_cep_header.html" %}{% endblock %}
+{% block site_footer %}{% endblock %}
 {% block content %}
 {% from "_letter_buttons.html" import letter_buttons %}
 <section class="pub-section">
