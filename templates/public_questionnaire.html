@@ -35,6 +35,7 @@
 .qn-done { border-left:6px solid #2e7d32; background:#eef7ef; border-radius: 10px; padding: 14px 18px; margin: 0 0 20px; }
 @media (max-width: 600px) { .qn-hero { padding: 24px 20px; } .qn-card { padding: 20px 18px 24px; } .q { padding-left: 0; } .q::before { position: static; margin-bottom: 6px; } }
 </style>
+{% set personal = (enr is not none and enr.code == 'D1') %}
 <div class="qn-wrap">
 <div class="qn-hero">
   <p class="kicker">Discovery</p>
@@ -45,11 +46,11 @@
 {% if done %}
 <div class="qn-done"><p style="margin:0; font-size:1.05rem"><strong>Thank you, {{ enr.first_name }}.</strong> We have your questionnaire. You can come back to this same link and change your answers any time before the training.</p></div>
 {% endif %}
-<p class="qn-intro">Hello and welcome to Discovery {{ enr.program_name }}. We are excited you have chosen to participate in this wonderful program, and we are confident you will experience extremely positive growth and outcomes in your relationship.</p>
-<div class="qn-private"><strong>Just for you.</strong> These questions are for you alone. Please answer in your own words &mdash; there are no right or wrong answers. Your answers are seen only by our training team, never by your partner.</div>
+<p class="qn-intro">Hello and welcome to Discovery {{ enr.program_name }}. We are excited you have chosen to participate in this wonderful program, and we are confident you will experience extremely positive growth {% if personal %}and outcomes in your life.</p>{% else %}and outcomes in your relationship.</p>{% endif %}
+<div class="qn-private"><strong>Just for you.</strong> These questions are for you alone. Please answer in your own words &mdash; there are no right or wrong answers. {% if personal %}Your answers are seen only by our training team.{% else %}Your answers are seen only by our training team, never by your partner.{% endif %}</div>
 {% if saved %}<p><em>Saved. You can finish later using this same link.</em></p>{% endif %}
   <form method="post" class="qn-form">
-    <div class="q"><label for="first_time_attending">Is this your first time attending Discovery {{ enr.program_name }}?</label>
+    <div class="q"><label for="first_time_attending">{% if personal %}Is this your first time attending a Discovery training?{% else %}Is this your first time attending Discovery {{ enr.program_name }}?{% endif %}</label>
       <select id="first_time_attending" name="first_time_attending">
         <option value="">Choose&hellip;</option>
         <option {{ 'selected' if profile and profile.first_time_attending == 'Yes' else '' }}>Yes</option>
@@ -59,26 +60,26 @@
     <div class="q"><label for="training_goals">What do you want to get out of Discovery {{ enr.program_name }}?</label>
       <textarea id="training_goals" name="training_goals" rows="3">{{ profile.training_goals if profile and profile.training_goals else '' }}</textarea></div>
     {% if is_couples %}
-    <div class="q"><label for="relationship_length">How long have you been in your relationship?</label>
+    <div class="q"><label for="relationship_length">{% if personal %}How long have you been dealing with what brought you to this training?{% else %}How long have you been in your relationship?{% endif %}</label>
       <input id="relationship_length" name="relationship_length" value="{{ profile.relationship_length if profile and profile.relationship_length else '' }}"></div>
-    <div class="q"><label for="how_met">How did you meet your partner and what attracted you to them?</label>
+    <div class="q"><label for="how_met">{% if personal %}How did you hear about Discovery, and what drew you to it?{% else %}How did you meet your partner and what attracted you to them?{% endif %}</label>
       <textarea id="how_met" name="how_met" rows="3">{{ profile.how_met if profile and profile.how_met else '' }}</textarea></div>
-    <div class="q"><label for="childhood_patterns">Does this relationship have patterns that are similar to what you experienced with your parents in your childhood?</label>
+    <div class="q"><label for="childhood_patterns">{% if personal %}Do you notice patterns in your life today that are similar to what you experienced with your parents in your childhood?{% else %}Does this relationship have patterns that are similar to what you experienced with your parents in your childhood?{% endif %}</label>
       <textarea id="childhood_patterns" name="childhood_patterns" rows="3">{{ profile.childhood_patterns if profile and profile.childhood_patterns else '' }}</textarea></div>
-    <div class="q"><label for="emotional_milestone">Describe a significant emotional milestone within your relationship.</label>
+    <div class="q"><label for="emotional_milestone">{% if personal %}Describe a significant emotional milestone in your life.{% else %}Describe a significant emotional milestone within your relationship.{% endif %}</label>
       <textarea id="emotional_milestone" name="emotional_milestone" rows="3">{{ profile.emotional_milestone if profile and profile.emotional_milestone else '' }}</textarea></div>
-    <div class="q"><label for="relationship_strengths">What are the strengths within the relationship?</label>
+    <div class="q"><label for="relationship_strengths">{% if personal %}What are the greatest strengths in your life right now?{% else %}What are the strengths within the relationship?{% endif %}</label>
       <textarea id="relationship_strengths" name="relationship_strengths" rows="3">{{ profile.relationship_strengths if profile and profile.relationship_strengths else '' }}</textarea></div>
-    <div class="q"><label for="relationship_weaknesses">What are the weaknesses within the relationship?</label>
+    <div class="q"><label for="relationship_weaknesses">{% if personal %}What areas of your life feel weakest, or most in need of change?{% else %}What are the weaknesses within the relationship?{% endif %}</label>
       <textarea id="relationship_weaknesses" name="relationship_weaknesses" rows="3">{{ profile.relationship_weaknesses if profile and profile.relationship_weaknesses else '' }}</textarea></div>
-    <div class="q"><label for="stress_points">Are there any stress points within the relationship? Please explain.</label>
+    <div class="q"><label for="stress_points">{% if personal %}What are the biggest stress points in your life right now? Please explain.{% else %}Are there any stress points within the relationship? Please explain.{% endif %}</label>
       <textarea id="stress_points" name="stress_points" rows="3">{{ profile.stress_points if profile and profile.stress_points else '' }}</textarea></div>
-    <div class="q"><label for="song_artist">List one song and artist that describes the way you feel about your partner.</label>
+    <div class="q"><label for="song_artist">{% if personal %}List one song and artist that describes the way you feel about your life right now.{% else %}List one song and artist that describes the way you feel about your partner.{% endif %}</label>
       <input id="song_artist" name="song_artist" value="{{ profile.song_artist if profile and profile.song_artist else '' }}"></div>
-    <div class="q"><label for="song_feelings">Briefly describe how the song above makes you feel toward your partner.</label>
+    <div class="q"><label for="song_feelings">{% if personal %}Briefly describe how the song above makes you feel.{% else %}Briefly describe how the song above makes you feel toward your partner.{% endif %}</label>
       <textarea id="song_feelings" name="song_feelings" rows="3">{{ profile.song_feelings if profile and profile.song_feelings else '' }}</textarea></div>
     {% endif %}
-    <div class="q"><label for="other_info">Please provide other information you believe is important to this relationship.</label>
+    <div class="q"><label for="other_info">{% if personal %}Please provide any other information you believe is important for us to know about you.{% else %}Please provide other information you believe is important to this relationship.{% endif %}</label>
       <textarea id="other_info" name="other_info" rows="3">{{ profile.other_info if profile and profile.other_info else '' }}</textarea></div>
     <div class="qn-actions">
       <button class="pub-btn dark" type="submit" name="submit_done" value="1">Submit my questionnaire</button>
@@ -86,7 +87,7 @@
     </div>
   </form>
   <div class="qn-thanks">
-    <p style="margin:0 0 10px"><strong>Thank you for your responses.</strong> We look forward to meeting you{% if is_couples %} and your partner{% endif %}.</p>
+    <p style="margin:0 0 10px"><strong>Thank you for your responses.</strong> We look forward to meeting you{% if not personal %} and your partner{% endif %}.</p>
     {% if enr.code == 'D4' %}<div class="qn-note">If possible, please come rested. It is best to arrive around <strong>5:30 pm</strong> to register at the hotel, find your room, get settled, relax, grab a bite to eat, and register at the Discovery Relationship table in front of the training room. The training begins promptly at <strong>7:00 pm</strong>.</div>{% endif %}
   </div>
 </div>
