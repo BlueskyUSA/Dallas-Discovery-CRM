@@ -40,6 +40,12 @@
 .rt-card div { padding: 20px 22px 24px; }
 .rt-card h3 { margin: 0 0 8px; font-size: 1.25rem; }
 .rt-card p { margin:0; color:#45566b; line-height:1.55; }
+.rt-weekend { display:grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 30px; }
+.rt-wk-card { background:#fff; border-radius:16px; padding: 24px 26px; box-shadow: 0 8px 26px rgba(20,40,80,.12); }
+.rt-wk-card h3 { margin:0 0 10px; font-size:1.25rem; }
+.rt-wk-card ul { margin: 8px 0 14px; padding-left: 20px; line-height: 1.6; color:#2c3c50; }
+.rt-wk-card li { margin-bottom: 6px; }
+@media (max-width: 760px) { .rt-weekend { grid-template-columns: 1fr; } }
 .rt-center { text-align:center; max-width: 760px; margin: 0 auto; }
 .rt-center h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin-top:0; }
 .rt-center p.lead { font-size:1.12rem; line-height:1.6; color:#2c3c50; }
@@ -153,7 +159,39 @@
   </div>
 </section>
 
-<section class="rt-sec">
+<section class="rt-sec" id="weekend">
+  <div class="rt-wrap">
+    <div class="rt-center">
+      <h2>The weekend</h2>
+      <p class="lead">Friday evening through Sunday afternoon, in a comfortable hotel just north of DFW Airport. Everything is taken care of, so you can focus on each other.</p>
+    </div>
+    <div class="rt-weekend">
+      <div class="rt-wk-card">
+        <h3>What&rsquo;s included</h3>
+        <ul>
+          <li><strong>Two nights in the hotel</strong> (Friday and Saturday), a room for the two of you</li>
+          <li><strong>Friday night hors d&rsquo;oeuvres</strong> before we begin at 7:00 pm</li>
+          <li><strong>Saturday night hors d&rsquo;oeuvres, dinner and dance</strong></li>
+          <li><strong>Snacks, coffee, tea and water</strong> throughout the weekend</li>
+          <li><strong>All training sessions and materials</strong></li>
+        </ul>
+      </div>
+      <div class="rt-wk-card">
+        <h3>Where we&rsquo;ll be</h3>
+        <p><strong>Four Points by Sheraton Dallas Fort Worth Airport North</strong><br>Coppell, Texas, about six miles from DFW Airport</p>
+        <ul>
+          <li><strong>Begins</strong> Friday at 7:00 pm; <strong>ends</strong> Sunday at 3:00 pm</li>
+          <li>Modern rooms with free Wi-Fi, an outdoor pool, a 24-hour fitness center, and an on-site restaurant and bar</li>
+          <li><strong>Free parking</strong> for guests</li>
+          <li><strong>Flying into DFW?</strong> The hotel&rsquo;s free shuttle runs every hour, around the clock. <strong>Love Field?</strong> You&rsquo;ll need an Uber or taxi.</li>
+        </ul>
+        <p style="margin-bottom:0"><a class="pub-btn secondary" href="https://www.google.com/maps/search/?api=1&query=Four+Points+by+Sheraton+Dallas+Fort+Worth+Airport+North+Coppell+TX" target="_blank" rel="noopener">View the map</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rt-sec alt">
   <div class="rt-wrap">
     <div class="rt-center">
       <h2>The details</h2>
