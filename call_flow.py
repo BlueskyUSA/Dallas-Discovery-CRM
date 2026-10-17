@@ -215,7 +215,7 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
             f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
             f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
-            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>")
+            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>The Discovery Team</p>")
     text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
             f"{vol_name}, an experienced Discovery volunteer, will {pw} you from {vphone} within about two hours. "
             f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
@@ -226,7 +226,7 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
             f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
             f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
-            f"We're looking forward to meeting you!\n\nWarmly,\nCoach Kent and the Discovery Team")
+            f"We're looking forward to meeting you!\n\nWarmly,\nThe Discovery Team")
     return subject, html, text
 
 
@@ -298,7 +298,7 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 <li>Meals other than those listed above are on your own. The hotel restaurant is on site, and there is a convenience store in the lobby.</li>
 <li>Questions? Reply to this email or contact {vol_name} at {vphone}.</li></ul>
 <p>We can\u2019t wait to see you both.</p>
-<p>Warmly,<br>Coach Kent</p>"""
+<p>Warmly,<br>The Discovery Team</p>"""
     return subject, html
 
 
@@ -880,8 +880,8 @@ def _milestone_mail(vol, subject, hello, body_html):
     except Exception:
         pass
     try:
-        _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>Coach Kent and the Discovery Team</p>",
-              f"{hello}\n\n{plain}\n\nWarmly,\nCoach Kent and the Discovery Team", to_name=vol["name"])
+        _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>The Discovery Team</p>",
+              f"{hello}\n\n{plain}\n\nWarmly,\nThe Discovery Team", to_name=vol["name"])
     except Exception as e:
         print(f"Couldn't send a milestone note to {vol['email']}: {e}", flush=True)
 
