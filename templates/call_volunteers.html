@@ -25,6 +25,15 @@
     {% for v in g.vols %}
     <tr><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
       <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form></td></tr>
+    <tr><td colspan="4" style="border-top:0; padding-top:0">
+      <details><summary class="muted" style="cursor:pointer; font-size:.88rem">Phone alerts for {{ v.name.split()[0] }}</summary>
+        <div style="margin:8px 0 6px; line-height:1.55; font-size:.92rem">
+          <p style="margin:0 0 6px">In the free <strong>ntfy</strong> app, tap <strong>+</strong> and subscribe to this topic name{% if ntfy_server != 'https://ntfy.sh' %} on <strong>{{ ntfy_server }}</strong>{% endif %}:</p>
+          <p style="margin:0 0 8px"><code style="font-size:1rem; background:#f1f4f8; padding:4px 8px; border-radius:6px; user-select:all">{{ v.push_topic }}</code></p>
+          <p class="muted" style="margin:0 0 8px">Treat the name like a password: anyone who knows it can read {{ v.name.split()[0] }}&rsquo;s alerts.</p>
+          <form method="post" class="inline"><input type="hidden" name="action" value="test_push"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit">Send a test alert</button></form>
+        </div>
+      </details></td></tr>
     {% else %}<tr><td class="muted">No one yet.</td></tr>{% endfor %}
   </table>
   {% if g.vols|length < g.max %}
