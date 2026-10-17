@@ -273,7 +273,8 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
     html = f"""<p>Hi {first},</p>
 <p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
 <h3>When</h3>
-<p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. Please plan to arrive and check in on Friday afternoon so you are settled before we begin. (Hotel check-in opens at 3:00 pm.)</p>
+<p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. (Hotel check-in opens at 3:00 pm.)</p>
+<p><strong>Arrival:</strong> If possible, please come rested. It is best to arrive around <strong>5:30 pm</strong> to register at the hotel, find your room, get settled, relax, grab a bite to eat, and register at the Discovery Relationship table situated in front of the training room. The training begins promptly at <strong>7:00 pm</strong>.</p>
 <p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 3:00 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
 <h3>Where</h3>
 {('<p><img src="' + photo_url + '" alt="Four Points by Sheraton Dallas Fort Worth Airport North" width="393" style="max-width:100%;height:auto;border-radius:8px"></p>') if photo_url else ''}
