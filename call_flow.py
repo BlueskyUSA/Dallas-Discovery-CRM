@@ -259,18 +259,18 @@ def letter_questionnaire(first, label, link, vol_name, vphone):
 CLIENT_LETTERS = [
     ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a CEP volunteer takes the request."),
     ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
-    ("questionnaire", "Questionnaire link", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own link."),
+    ("questionnaire", "Email: questionnaire link", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own link."),
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
-    ("q-rt", "Questionnaire: Relationship Training", "What each partner sees when they open their private questionnaire link. (Shown here as a read-only preview.)"),
-    ("q-d1", "Questionnaire: D1", "For now D1 uses the same questionnaire as Relationship Training."),
+    ("q-rt", "The questionnaire form", "What each partner sees when they open their private questionnaire link (read-only preview). Relationship Training and D1 use this same form for now."),
     ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,200 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
     ("payment", "Payment reminder", "Sent automatically to the person who reserved: 3 days after they enroll, and again within 2 weeks of the session. Stops as soon as payment is made."),
 ]
 
 
-def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None):
+def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None, dates="[session dates]"):
     subject = "Your weekend at the Four Points by Sheraton \u2013 everything you need to know"
     html = f"""<p>Hi {first},</p>
+<p><strong>Welcome to a Fantastic and Adventure Filled Weekend!</strong> We are delighted to confirm your registration for the Discovery Relationship Training, {dates}.</p>
 <p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
 <h3>When</h3>
 <p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. (Hotel check-in opens at 3:00 pm.)</p>
