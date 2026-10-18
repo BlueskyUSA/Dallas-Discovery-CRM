@@ -19,13 +19,14 @@
     <div class="cep-mod cep-toc" id="top">
       <h3>The modules</h3>
       <a href="#m1">Module 1 &ndash; Your role and our promise</a>
-      <a href="#m2">Module 2 &ndash; Getting and claiming a request</a>
+      <a href="#m2">Module 2 &ndash; Getting Ready to Handle Curious Form Inquiries</a>
       <a href="#m3">Module 3 &ndash; Your Personal Web Page</a>
-      <a href="#m4">Module 4 &ndash; Making the connection</a>
-      <a href="#m5">Module 5 &ndash; Answering questions</a>
-      <a href="#m6">Module 6 &ndash; Helping them register and sending the questionnaire</a>
-      <a href="#m7">Module 7 &ndash; Logging the outcome and following up</a>
-      <a href="#m8">Module 8 &ndash; Respect and privacy</a>
+      <a href="#m4">Module 4 &ndash; Using Your Personal Web Page</a>
+      <a href="#m5">Module 5 &ndash; Making the connection</a>
+      <a href="#m6">Module 6 &ndash; Answering questions</a>
+      <a href="#m7">Module 7 &ndash; Helping them register and sending the questionnaire</a>
+      <a href="#m8">Module 8 &ndash; Logging the outcome and following up</a>
+      <a href="#m9">Module 9 &ndash; Respect and privacy</a>
       <a href="{{ url_for('public_cep_letters') }}">The letters we send to clients &rarr;</a>
     </div>
 
@@ -57,73 +58,65 @@
     </div>
 
     <div class="cep-mod" id="m2">
-      <h3>Module 2 &ndash; Getting and claiming a request</h3>
-      <p class="goal">You will know what the alert looks like and how to take a request.</p>
-      <h4 style="margin:6px 0 6px">First, give your permission (one time, about a minute)</h4>
-      <p>When you take a request, the person is told your name and cell phone number, so they know it is really us. Before you take your first request, your CEP Team Captain sends you a link. Open it, read the short statement, tick the box, type your full name, and tap <strong>I agree</strong>. It gives Dallas Discovery permission to share your name, cell phone number and email with the people you speak with and with the team. You can withdraw it at any time by telling your Captain.</p>
-      <h4 style="margin:16px 0 6px">Next, set up phone alerts (one time, about 5 minutes)</h4>
-      <p>Besides the email, you will get a <strong>notification on your phone</strong>, with a sound, the moment someone asks to hear from us, so you can be first to say yes. It uses an app called <strong>Pushover</strong>. Nothing is texted, so there are no text-message charges. Pushover is free for the first 30 days, then it is a one-time purchase of $4.99 plus tax (not a subscription).</p>
+      <h3>Module 2 &ndash; Getting Ready to Handle Curious Form Inquiries</h3>
       <ol>
-        <li><strong>Download Pushover.</strong>
-          <ul>
-            <li>On an iPhone, open the App Store and search for <strong>Pushover Notifications</strong>.</li>
-            <li>On an Android phone, open the Google Play Store and search for <strong>Pushover</strong>.</li>
-            <li>The app icon looks like this:<br><img src="{{ url_for('static', filename='pushover-icon.png') }}" alt="The Pushover app icon" onerror="this.style.display='none'" style="width:72px; height:72px; margin-top:6px"></li>
-            <li>Install the app.</li>
-          </ul>
+        <li><strong>Give your permission.</strong> When you decide to respond to a Curious form request, the applicant is told your name and cell phone number (so that they know it is really us). So, the first step is to give Dallas Discovery permission to send your name, cell phone number and email address to Curious Form applicants. Your CEP Team Captain will send you a personal link. Open it one time. It takes about a minute. You can withdraw your permission at any time by telling your team Captain or Kent Hafemann.</li>
+        <li><strong>Set up your phone notifications.</strong> You will receive an email and a cell phone notification that a Curious Form applicant wants to be contacted. Dallas Discovery uses an app called &ldquo;Pushover&rdquo; for these phone notifications. See the instructions below. Pushover is free for the first 30 days, then it is a one-time purchase of $4.99 plus tax (not a subscription).
+          <ol type="a">
+            <li><strong>Download Pushover.</strong>
+              <ul>
+                <li>On an iPhone, open the App Store and search for <strong>Pushover Notifications</strong>.</li>
+                <li>On an Android phone, open the Google Play Store and search for <strong>Pushover</strong>.</li>
+                <li>The app icon looks like this:<br><img src="{{ url_for('static', filename='pushover-icon.png') }}" alt="The Pushover app icon" onerror="this.style.display='none'" style="width:72px; height:72px; margin-top:6px"></li>
+                <li>Install the app.</li>
+              </ul>
+            </li>
+            <li><strong>Create your free account.</strong> Open the app, tap <strong>Sign Up</strong>, and enter your email and a password.</li>
+            <li><strong>Verify your email address.</strong> Pushover sends you an email. Open it and tap the link inside to verify your address. Alerts will not arrive until this is done.</li>
+            <li><strong>Allow notifications</strong> when the app asks. Without this you will not hear the alert. (If you tapped &ldquo;Don&rsquo;t Allow&rdquo; by mistake, see the steps below.)</li>
+            <li><strong>Find your User Key.</strong> It is shown at the top of the app: a code of 30 letters and numbers. Send it to your CEP Team Captain (a text or email is fine). Your Captain enters it for you.</li>
+            <li><strong>Try it.</strong> Ask your Captain to send you a test alert. You should hear it and see it within a few seconds. Tap it. It opens this training page.</li>
+            <li><strong>If you ever stop getting alerts</strong>, check that your phone is allowed to show them:
+              <ul>
+                <li><strong>iPhone:</strong> open the <strong>Settings</strong> app (the gray gear). Tap <strong>Notifications</strong>, then scroll down the list and tap <strong>Pushover</strong>. Turn on <strong>Allow Notifications</strong>. Under &ldquo;Alerts,&rdquo; check <strong>Lock Screen</strong>, <strong>Notification Center</strong> and <strong>Banners</strong>, and turn on <strong>Sounds</strong>.</li>
+                <li><strong>Android:</strong> open <strong>Settings</strong>, tap <strong>Apps</strong>, tap <strong>Pushover</strong>, tap <strong>Notifications</strong>, and turn them on.</li>
+                <li><strong>Focus or Do Not Disturb:</strong> if your phone is in a Focus mode (the moon icon on an iPhone), alerts may be silenced. Either turn it off during the hours you are on call, or add <strong>Pushover</strong> to the apps allowed to notify you in that Focus.</li>
+                <li>Check the <strong>ring/silent switch</strong> on the side of your phone.</li>
+              </ul>
+            </li>
+          </ol>
         </li>
-        <li><strong>Create your free account.</strong> Open the app, tap <strong>Sign Up</strong>, and enter your email and a password.</li>
-        <li><strong>Verify your email address.</strong> Pushover sends you an email. Open it and tap the link inside to verify your address. Alerts will not arrive until this is done.</li>
-        <li><strong>Allow notifications</strong> when the app asks. Without this you will not hear the alert. (If you tapped &ldquo;Don&rsquo;t Allow&rdquo; by mistake, see the steps below.)</li>
-        <li><strong>Find your User Key.</strong> It is shown at the top of the app: a code of 30 letters and numbers. Send it to your CEP Team Captain (a text or email is fine). Your Captain enters it for you.</li>
-        <li><strong>Try it.</strong> Ask your Captain to send you a test alert. You should hear it and see it within a few seconds. Tap it: it opens the page where you take a request.</li>
-        <li><strong>If you ever stop getting alerts</strong>, check that your phone is allowed to show them:
-          <ul>
-            <li><strong>iPhone:</strong> open the <strong>Settings</strong> app (the gray gear). Tap <strong>Notifications</strong>, then scroll down the list and tap <strong>Pushover</strong>. Turn on <strong>Allow Notifications</strong>. Under &ldquo;Alerts,&rdquo; check <strong>Lock Screen</strong>, <strong>Notification Center</strong> and <strong>Banners</strong>, and turn on <strong>Sounds</strong>.</li>
-            <li><strong>Android:</strong> open <strong>Settings</strong>, tap <strong>Apps</strong>, tap <strong>Pushover</strong>, tap <strong>Notifications</strong>, and turn them on.</li>
-            <li><strong>Focus or Do Not Disturb:</strong> if your phone is in a Focus mode (the moon icon on an iPhone), alerts may be silenced. Either turn it off during the hours you are on call, or add <strong>Pushover</strong> to the apps allowed to notify you in that Focus.</li>
-            <li>Check the <strong>ring/silent switch</strong> on the side of your phone.</li>
-          </ul>
-          <strong>The email still goes out every time</strong>, so you will not miss a request.</li>
-      </ol>
-      <h4 style="margin:16px 0 6px">When a request comes in</h4>
-      <ol>
-        <li><strong>You get a phone alert and an email</strong> saying someone wants to hear from us. Tap the alert, or the button in the email.</li>
-        <li><strong>Tap &ldquo;Yes, I&rsquo;ll reach out within 2 hours.&rdquo;</strong> The first person to tap gets the request, and everyone else is told it is taken. You then see their name and cell number on <strong>your personal web page</strong> (Module 3 explains it).</li>
-        <li>If you cannot make the two-hour window, do not tap. Let your CEP Team Captain know if no one else has taken it.</li>
       </ol>
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
     <div class="cep-mod" id="m3">
       <h3>Module 3 &ndash; Your Personal Web Page</h3>
-      <p>Every request comes with its own private web page, made just for you. You use it for everything: taking the request, reaching the person, sending their registration link, and recording how it went. There is nothing to log in to and no password.</p>
-
-      <h4 style="margin:16px 0 6px">How you get to it</h4>
+      <p>Every Curious Form request comes with its own private web page, made just for you. You use it for everything: taking the request, reaching the person, sending their registration link, and recording how it went. There is nothing to log in to and no password.</p>
+      <h4 style="margin:16px 0 6px">1. Connecting with the Web Page:</h4>
       <ul>
-        <li>Tap the <strong>phone alert</strong>, or the button in the <strong>email</strong>. Each one opens the page for that request.</li>
+        <li>Tap the phone alert, or the button in the email. Each one opens the page for that request.</li>
         <li>You can come back at any time by tapping the same alert or email again. Everything you did is still there.</li>
         <li>The link is <strong>yours alone</strong>. Please do not share or forward it, because anyone who has it can act as you.</li>
         <li>It works on a phone or a computer. A phone is easiest, because the Call and Text buttons open your own phone.</li>
       </ul>
-
-      <h4 style="margin:16px 0 6px">1. Taking the request</h4>
+      <h4 style="margin:16px 0 6px">2. Taking the Curious Form request:</h4>
       <ul>
-        <li>The page first shows who asked, which training they are curious about, and how they asked to be reached: <strong>call or text</strong>, <strong>text only</strong>, or <strong>call only</strong>.</li>
-        <li>Tap <strong>&ldquo;Yes, I&rsquo;ll reach out within 2 hours.&rdquo;</strong> The first person to tap gets the request. If someone else already took it, the page tells you, and you will get the next one.</li>
-        <li>The very first time, the page may ask you to give your permission first (see Module 2). It takes about a minute, and then you come back and tap yes.</li>
+        <li>On the web page, tap &ldquo;Yes, I&rsquo;ll reach out within 2 hours.&rdquo; The first CEP member to tap gets the request. If someone else already took it, the page tells you, and you will get the next one.</li>
       </ul>
-
-      <h4 style="margin:16px 0 6px">2. What you see once it is yours</h4>
+      <h4 style="margin:16px 0 6px">3. What you see once it is yours:</h4>
       <ul>
-        <li>Their <strong>name</strong> and <strong>cell phone number</strong>, in large type.</li>
-        <li><strong>They prefer:</strong> how they want to hear from you. Only the buttons that match their choice appear: a <strong>Call</strong> button, a <strong>Text</strong> button, or both. Please honor their choice.</li>
-        <li><strong>Interested in:</strong> the training they asked about.</li>
-        <li><strong>They wrote:</strong> anything they typed in &ldquo;Anything you&rsquo;d like us to know?&rdquo; Read it before you reach out. It is often the best clue to what they need.</li>
-        <li>A reminder that they agreed to be contacted this way and were told to expect to hear from you at your number.</li>
+        <li>Their name and cell phone number.</li>
+        <li>How they prefer to be contacted. Only the Call and Text buttons that match their choice appear.</li>
+        <li>The training they asked about (D1 or Relationship).</li>
+        <li>What they wrote in the Comments box.</li>
       </ul>
+      <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
+    </div>
 
-      <h4 style="margin:16px 0 6px">3. After you reach out: tell us how it went</h4>
+    <div class="cep-mod" id="m4">
+      <h3>Module 4 &ndash; Using Your Personal Web Page</h3>
+      <h4 style="margin:16px 0 6px">1. After you reach out: tell us how it went</h4>
       <ul>
         <li>Near the bottom is the box <strong>&ldquo;After you reach out, tell us how it went.&rdquo;</strong> Choose one:
           <ul>
@@ -139,16 +132,16 @@
         <li>If you took a request and have not recorded how it went after two hours, you will get a friendly reminder.</li>
       </ul>
 
-      <h4 style="margin:16px 0 6px">4. The &ldquo;Ready to register?&rdquo; box</h4>
+      <h4 style="margin:16px 0 6px">2. The &ldquo;Ready to register?&rdquo; box</h4>
       <ul>
         <li>After you save an outcome (any except &ldquo;Not interested&rdquo; or &ldquo;Wrong number&rdquo;), a box titled <strong>&ldquo;Ready to register? Send [their name] their link&rdquo;</strong> appears near the top of your page, under their contact details.</li>
-        <li>Use it when they are ready to sign up. It has two buttons: <strong>Text it from my phone</strong> and <strong>Email it</strong>. Module 6 explains what happens next.</li>
+        <li>Use it when they are ready to sign up. It has two buttons: <strong>Text it from my phone</strong> and <strong>Email it</strong>. Module 7 explains what happens next.</li>
         <li>Once they use the link, the box shows the result: <strong>Enrolled (payment pending)</strong>, or <strong>date was full &ndash; waitlist</strong>.</li>
       </ul>
 
-      <h4 style="margin:16px 0 6px">5. The &ldquo;Send the questionnaire&rdquo; box</h4>
+      <h4 style="margin:16px 0 6px">3. The &ldquo;Send the questionnaire&rdquo; box</h4>
       <ul>
-        <li>After they have reserved a date, a <strong>&ldquo;Send the questionnaire&rdquo;</strong> box appears on your page. It lets you text or email their private questionnaire link. Module 6 has the details.</li>
+        <li>After they have reserved a date, a <strong>&ldquo;Send the questionnaire&rdquo;</strong> box appears on your page. It lets you text or email their private questionnaire link. Module 7 has the details.</li>
       </ul>
 
       <h4 style="margin:16px 0 6px">At the bottom of your page</h4>
@@ -165,8 +158,9 @@
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
-    <div class="cep-mod" id="m4">
-      <h3>Module 4 &ndash; Making the connection</h3>
+
+    <div class="cep-mod" id="m5">
+      <h3>Module 5 &ndash; Making the connection</h3>
       <p class="goal">You will start a warm, unhurried conversation.</p>
       <ol>
         <li><strong>Reach out the way they asked,</strong> using the Call or Text button on your personal page.</li>
@@ -178,8 +172,8 @@
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
-    <div class="cep-mod" id="m5">
-      <h3>Module 5 &ndash; Answering questions</h3>
+    <div class="cep-mod" id="m6">
+      <h3>Module 6 &ndash; Answering questions</h3>
       <p class="goal">You will answer honestly and know when to say &ldquo;I&rsquo;ll find out.&rdquo;</p>
       <ul>
         <li>Answer from your own experience of the training.</li>
@@ -189,11 +183,11 @@
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
-    <div class="cep-mod" id="m6">
-      <h3>Module 6 &ndash; Helping them register and sending the questionnaire</h3>
+    <div class="cep-mod" id="m7">
+      <h3>Module 7 &ndash; Helping them register and sending the questionnaire</h3>
       <p class="goal">You will send a personal registration link in under a minute.</p>
       <ol>
-        <li>When they are ready, find the &ldquo;Ready to register?&rdquo; box on your personal page (see Module 3).</li>
+        <li>When they are ready, find the &ldquo;Ready to register?&rdquo; box on your personal page (see Module 4).</li>
         <li><strong>&ldquo;Text it from my phone&rdquo;</strong> opens a text to them with their personal link already written. <strong>&ldquo;Email it&rdquo;</strong> sends the same link by email.</li>
         <li>The link already has their name, email and cell filled in. They choose a date. For the Relationship Training they also add their partner.</li>
         <li>They are enrolled right away, and payment comes later. We email them the details.</li>
@@ -203,8 +197,8 @@
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
-    <div class="cep-mod" id="m7">
-      <h3>Module 7 &ndash; Logging the outcome and following up</h3>
+    <div class="cep-mod" id="m8">
+      <h3>Module 8 &ndash; Logging the outcome and following up</h3>
       <p class="goal">You will leave the next person everything they need to know.</p>
       <ul>
         <li>On your personal page, choose how it went and add a short note: what they hope for and any next step.</li>
@@ -214,8 +208,8 @@
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
 
-    <div class="cep-mod" id="m8">
-      <h3>Module 8 &ndash; Respect and privacy</h3>
+    <div class="cep-mod" id="m9">
+      <h3>Module 9 &ndash; Respect and privacy</h3>
       <p class="goal">You will protect the trust people place in us.</p>
       <ul>
         <li>Only reach out to people who asked, and only the way they asked.</li>
