@@ -61,6 +61,14 @@ CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within two hours
                 "Message and data rates may apply. Reply STOP to stop texts.")
 CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
 
+VOLUNTEER_CONSENT = (
+    "I give Dallas Discovery permission to share my name, my cell phone number and my email address with the people "
+    "who ask to hear from the CEP Team, and with the Team Captain and other CEP Team members. This may happen in a "
+    "message, an email, a letter or on a web page. I am a volunteer, and I understand that the people I speak with will "
+    "be given my name and cell phone number so they can recognize and reach me. Dallas Discovery will not sell or rent "
+    "my information. I can withdraw this permission at any time by telling my Team Captain, and Dallas Discovery will "
+    "then stop sharing my information with new people.")
+
 _ready = False
 _programs_cache = {"at": 0, "rows": []}
 
@@ -173,6 +181,8 @@ def ensure_tables(get_db):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_topic TEXT")
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_user_key TEXT")
+        for col in ("consent_token TEXT", "consent_at TEXT", "consent_name TEXT", "consent_ip TEXT", "consent_text TEXT"):
+            conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE cohorts ADD COLUMN IF NOT EXISTS capacity INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS partner_enrollment_id INTEGER")
         conn.execute("ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS questionnaire_token TEXT")
@@ -940,6 +950,34 @@ def register(app, crm, leadership_required, get_db):
         """The CEP Team's how-to guide. Not linked from the public site; the team reaches it from their call page."""
         return render_template("public_cep_training.html")
 
+    @app.route("/cep-permission/<token>", methods=["GET", "POST"])
+    def public_cep_permission(token):
+        """A volunteer's one-time permission to share their name, cell phone and email."""
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            vol = conn.execute("SELECT * FROM call_volunteers WHERE consent_token = ? AND active = 1", (token or "",)).fetchone()
+            if not vol:
+                abort(404)
+            error = None
+            if request.method == "POST" and not vol["consent_at"]:
+                typed = (request.form.get("full_name") or "").strip()
+                if not request.form.get("agree"):
+                    error = "Please tick the box to give your permission."
+                elif len(typed) < 3:
+                    error = "Please type your full name to sign."
+                else:
+                    ip = (request.headers.get("X-Forwarded-For", "") or request.remote_addr or "").split(",")[0].strip()
+                    conn.execute("UPDATE call_volunteers SET consent_at = ?, consent_name = ?, consent_ip = ?, consent_text = ? WHERE id = ?",
+                                 (_ts(_utc_now()), typed[:120], ip, VOLUNTEER_CONSENT, vol["id"]))
+                    conn.commit()
+                    return redirect(url_for("public_cep_permission", token=token))
+            vol = conn.execute("SELECT * FROM call_volunteers WHERE id = ?", (vol["id"],)).fetchone()
+            return render_template("public_cep_permission.html", vol=vol, wording=VOLUNTEER_CONSENT, error=error,
+                                   phone=pretty_phone(vol["cell_phone"]), given_text=local_text(vol["consent_at"]))
+        finally:
+            conn.close()
+
     # ----- the volunteer's personal link
     def _load(token):
         ensure_tables(get_db)
@@ -961,7 +999,7 @@ def register(app, crm, leadership_required, get_db):
         conn, n, req, vol, claimer = _load(token)
         try:
             mine = bool(req and req["claimed_by"] == vol["id"])
-            if request.method == "POST" and req["status"] == "New":
+            if request.method == "POST" and req["status"] == "New" and vol["consent_at"]:
                 res = conn.execute("UPDATE call_requests SET status = 'Claimed', claimed_by = ?, claimed_at = ? "
                                    "WHERE id = ? AND status = 'New'", (vol["id"], _ts(_utc_now()), req["id"]))
                 conn.commit()
@@ -987,6 +1025,8 @@ def register(app, crm, leadership_required, get_db):
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
                                    captain=(dict(name=cap["name"], phone=pretty_phone(cap["cell_phone"])) if cap else None),
                                    link=link, sms_body=sms_body, q=q, q_body=q_body,
+                                   need_permission=(not vol["consent_at"]),
+                                   permission_url=(url_for("public_cep_permission", token=vol["consent_token"]) if vol["consent_token"] else None),
                                    label=_program_label(req["program_code"]), token=token,
                                    phone=pretty_phone(req["cell_phone"]), outcomes=OUTCOMES,
                                    pref=(req["contact_pref"] or "either"), pref_short=PREF_SHORT.get(req["contact_pref"] or "either"),
@@ -1385,6 +1425,12 @@ def register(app, crm, leadership_required, get_db):
                         conn.execute("UPDATE contacts SET email = ? WHERE id = ?", (email, ct["id"]))
                     conn.commit()
                     flash(f"Added {name}.")
+            elif action == "clear_consent":
+                pid = request.form.get("id", type=int)
+                conn.execute("UPDATE call_volunteers SET consent_at = NULL, consent_name = NULL, consent_ip = NULL, consent_text = NULL WHERE id = ?", (pid,))
+                conn.commit()
+                conn.close()
+                return redirect(url_for(".call_volunteers_page", pid=pid, pm="consent_cleared") + f"#v{pid}")
             elif action == "remove":
                 conn.execute("UPDATE call_volunteers SET active = 0 WHERE id = ?", (request.form.get("id"),))
                 conn.commit()
@@ -1423,6 +1469,7 @@ def register(app, crm, leadership_required, get_db):
             "noapp": ("bad", "Pushover is not connected yet: add PUSHOVER_APP_TOKEN in Render's Environment first."),
             "nokey": ("bad", "No Pushover User Key is saved yet. Paste it above and tap Save."),
             "sent": ("ok", "Test alert sent. Check the phone."),
+            "consent_cleared": ("ok", "Permission cleared. They will need to give it again before they can take a request."),
             "failed": ("bad", "The test alert could not be sent. Check that the User Key is right and try again."),
         }
         push_pid = request.args.get("pid", type=int)
@@ -1430,7 +1477,13 @@ def register(app, crm, leadership_required, get_db):
         groups = []
         for code, label in POOLS:
             vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
+            for v in vols:
+                if not v["consent_token"]:
+                    conn.execute("UPDATE call_volunteers SET consent_token = ? WHERE id = ?", (secrets.token_urlsafe(18), v["id"]))
+            conn.commit()
+            vols = conn.execute("SELECT * FROM call_volunteers WHERE active = 1 AND program_code = ? ORDER BY id", (code,)).fetchall()
             groups.append(dict(code=code, label=label, max=max_for(code),
-                               vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"])) for v in vols]))
+                               vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"]), consent_when=local_text(v["consent_at"]),
+                                          consent_url=_base_url() + "/cep-permission/" + v["consent_token"]) for v in vols]))
         conn.close()
         return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), pushover_ready=pushover_ready(), push_pid=push_pid, push_note=push_note)
