@@ -1046,7 +1046,7 @@ def register(app, crm, leadership_required, get_db):
             if outcome not in OUTCOMES:
                 flash("Please choose how the call went.")
                 return redirect(url_for("public_call_claim", token=token))
-            keep_open = outcome.startswith(("No answer", "Texted"))
+            keep_open = outcome.startswith(("No answer", "Texted", "Left a voicemail"))
             conn.execute("UPDATE call_requests SET outcome = ?, outcome_note = ?, status = ?, closed_at = ? WHERE id = ?",
                          (outcome, note or None, "Claimed" if keep_open else "Called",
                           None if keep_open else _ts(_utc_now()), req["id"]))
@@ -1456,7 +1456,7 @@ def register(app, crm, leadership_required, get_db):
                 elif v:
                     ok = push(v["push_user_key"], "Test alert from Dallas Discovery",
                               f"Hi {v['name'].split()[0]}, this is a test. If you can read this, your phone alerts are working!",
-                              click=_base_url() + "/cep-training#m2")
+                              click=_base_url() + "/cep-training#m3")
                     pm = "sent" if ok else "failed"
                 conn.close()
                 return redirect(url_for(".call_volunteers_page", pid=pid, pm=pm) + f"#v{pid}")
