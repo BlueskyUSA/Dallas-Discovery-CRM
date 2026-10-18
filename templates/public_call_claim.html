@@ -63,8 +63,16 @@
       {% if captain %}<p class="muted" style="margin-top:8px">Questions or stuck? Your CEP Team Captain is <strong>{{ captain.name }}</strong>, {{ captain.phone }}.</p>{% endif %}
     {% elif req.status == 'New' %}
       <p class="lead"><strong>{{ req.first_name }}</strong> asked for a call about <strong>{{ label }}</strong>. Can you reach out within two hours (between 8 am and 8 pm)? They prefer: <strong>{{ pref_short }}</strong>.</p>
+      {% if need_permission %}
+      <div class="card" style="padding:18px; background:#fff8e6; border:1px solid #f0d9a0; border-radius:12px">
+        <p style="margin:0 0 8px"><strong>One quick thing first.</strong> Before you take your first request, please give Dallas Discovery permission to share your name, cell phone number and email with the people you will be speaking with. It takes about a minute, and you only do it once.</p>
+        {% if permission_url %}<p style="margin:0"><a class="pub-btn dark" href="{{ permission_url }}">Give my permission</a></p>{% else %}<p style="margin:0">Please ask your CEP Team Captain for your permission link.</p>{% endif %}
+      </div>
+      <p class="muted">When you are done, come back to this page and tap &ldquo;Yes, I&rsquo;ll reach out.&rdquo; If someone else takes it first, we&rsquo;ll tell you.</p>
+      {% else %}
       <form method="post"><button class="pub-btn dark" type="submit">Yes, I&rsquo;ll reach out within 2 hours</button></form>
       <p class="muted">You&rsquo;ll see their number as soon as you tap. If someone else already took it, we&rsquo;ll tell you.</p>
+      {% endif %}
     {% else %}
       <p class="lead">Thank you! {{ claimer.name if claimer else 'Another volunteer' }} already has this one. We&rsquo;ll send you the next one.</p>
     {% endif %}

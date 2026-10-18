@@ -23,12 +23,29 @@
   {% endif %}
   <table>
     {% for v in g.vols %}
-    <tr id="v{{ v.id }}"><td>{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
+    <tr id="v{{ v.id }}"><td style="font-size:1.35rem; font-weight:700; line-height:1.2">{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
       <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form></td></tr>
+    <tr><td colspan="4" style="border-top:0; padding-top:0">
+      <details{% if not v.consent_at or (push_pid == v.id and push_note and push_note[1].startswith('Permission')) %} open{% endif %}><summary class="muted" style="cursor:pointer; font-size:.88rem">Permission to share {{ v.name.split()[0] }}&rsquo;s name, cell and email: {% if v.consent_at %}<strong style="color:#2e7d32">given {{ v.consent_when }}</strong>{% else %}<strong style="color:#a15c00">not given yet</strong>{% endif %}</summary>
+        <div style="margin:8px 0 6px; line-height:1.55; font-size:.92rem">
+          {% if push_pid == v.id and push_note and push_note[1].startswith('Permission') %}<p style="margin:0 0 8px; padding:8px 10px; border-radius:6px; font-weight:600; background:#e6f4ea; color:#1e6b34">{{ push_note[1] }}</p>{% endif %}
+          {% if v.consent_at %}
+            <p style="margin:0 0 6px">{{ v.name.split()[0] }} gave permission on {{ v.consent_when }}, signing as <strong>{{ v.consent_name }}</strong>. This is saved with the exact wording they agreed to.</p>
+            <form method="post" class="inline"><input type="hidden" name="action" value="clear_consent"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Clear {{ v.name }}\'s permission? They will not be able to take requests until they give it again.')">Clear permission</button></form>
+          {% else %}
+            <p style="margin:0 0 6px">Before {{ v.name.split()[0] }} can take a request, they give permission for Dallas Discovery to share their name, cell phone number and email address. Send them this link. It takes about a minute:</p>
+            <input readonly value="{{ v.consent_url }}" onclick="this.select()" style="width:100%; max-width:520px">
+            <p style="margin:8px 0 0">
+              <a class="btn secondary" href="sms:{{ v.cell_phone|replace('-','')|replace(' ','') }}?&amp;body={{ ('Hi ' ~ v.name.split()[0] ~ ', here is the one-minute permission form for the Discovery CEP Team: ' ~ v.consent_url)|urlencode }}">Text it from my phone</a>
+              <a class="btn secondary" href="mailto:{{ v.email }}?subject={{ 'Dallas Discovery CEP Team: your permission'|urlencode }}&amp;body={{ ('Hi ' ~ v.name.split()[0] ~ ',\n\nPlease open this link and give your permission for Dallas Discovery to share your name, cell phone number and email with the people you will be speaking with. It takes about a minute.\n\n' ~ v.consent_url ~ '\n\nThank you!\nThe Discovery Team')|urlencode }}">Email it</a>
+            </p>
+          {% endif %}
+        </div>
+      </details></td></tr>
     <tr><td colspan="4" style="border-top:0; padding-top:0">
       <details{% if not v.push_user_key or push_pid == v.id %} open{% endif %}><summary class="muted" style="cursor:pointer; font-size:.88rem">Phone alerts for {{ v.name.split()[0] }}: {% if v.push_user_key %}<strong style="color:#2e7d32">on</strong>{% else %}<strong style="color:#a15c00">not set up</strong>{% endif %}</summary>
         <div style="margin:8px 0 6px; line-height:1.55; font-size:.92rem">
-          {% if push_pid == v.id and push_note %}<p style="margin:0 0 8px; padding:8px 10px; border-radius:6px; font-weight:600; {% if push_note[0] == 'ok' %}background:#e6f4ea; color:#1e6b34{% else %}background:#fdecea; color:#a12a1f{% endif %}">{{ push_note[1] }}</p>{% endif %}
+          {% if push_pid == v.id and push_note and not push_note[1].startswith('Permission') %}<p style="margin:0 0 8px; padding:8px 10px; border-radius:6px; font-weight:600; {% if push_note[0] == 'ok' %}background:#e6f4ea; color:#1e6b34{% else %}background:#fdecea; color:#a12a1f{% endif %}">{{ push_note[1] }}</p>{% endif %}
           {% if not pushover_ready %}<p style="margin:0 0 8px; color:#a15c00"><strong>Not connected yet.</strong> Add <code>PUSHOVER_APP_TOKEN</code> in Render&rsquo;s Environment (see the instructions Claude gave you), then alerts can go out.</p>{% endif %}
           <p style="margin:0 0 6px">{{ v.name.split()[0] }} installs the <strong>Pushover</strong> app, creates a free account, and sends you the <strong>User Key</strong> shown at the top of the app (30 letters and numbers). Paste it here:</p>
           <form method="post" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
