@@ -6,7 +6,7 @@
 {% from "_letter_buttons.html" import letter_buttons %}
 <section class="pub-section">
   <div class="pub-container" style="max-width:760px">
-    <p class="muted" style="margin:0 0 6px">CEP Team &middot; <a href="{{ url_for('public_cep_training') }}">Training modules</a></p>
+    <p class="muted" style="margin:0 0 6px">Guides &middot; <a href="{{ url_for('public_cep_training') }}">Training modules</a></p>
     <h2>{{ title if current else 'The letters we send to clients' }}</h2>
     {% if not current %}
       <p class="lead">Here is every letter a person may receive, so you know exactly what they have read. Names and links are shown in [brackets]; the real ones are filled in automatically.</p>
