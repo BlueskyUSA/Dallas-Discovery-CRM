@@ -5,7 +5,7 @@ How it works
   1. Someone fills in the short form (front page, program pages, or the Reserve form) and answers Yes/No to
      "Do we have permission to call and text you on your cell phone?"
   2. On Yes, a call request is saved and the volunteers for that program (set up on the Call volunteers page,
-     up to six per program, plus a CEP Team Captain) are alerted. Each alert has a personal link.
+     up to six per program, plus a Lead Guide) are alerted. Each alert has a personal link.
   3. The first volunteer to open their link and tap "I'll call within 2 hours" gets the request. The others see
      "already claimed". The interested person is then told the volunteer's name and number.
   4. After calling, the volunteer logs the outcome on the same link.
@@ -35,7 +35,7 @@ except Exception:  # pragma: no cover
     CHI = None
 
 POOLS = [
-    ("CAPTAIN", "CEP Team Captain (oversees the team)"),
+    ("CAPTAIN", "Lead Guide (oversees the team)"),
     ("D1", "D1 – The Beginning"),
     ("D4", "Relationship Training"),
     ("ALL", "Everything else (also the back-up if a program has no volunteers)"),
@@ -63,10 +63,10 @@ CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
 
 VOLUNTEER_CONSENT = (
     "I give Dallas Discovery permission to share my name, my cell phone number and my email address with the people "
-    "who ask to hear from the CEP Team, and with the Team Captain and other CEP Team members. This may happen in a "
+    "who ask to hear from the Guides, and with the Lead Guide and other Guides. This may happen in a "
     "message, an email, a letter or on a web page. I am a volunteer, and I understand that the people I speak with will "
     "be given my name and cell phone number so they can recognize and reach me. Dallas Discovery will not sell or rent "
-    "my information. I can withdraw this permission at any time by telling my Team Captain, and Dallas Discovery will "
+    "my information. I can withdraw this permission at any time by telling my Lead Guide, and Dallas Discovery will "
     "then stop sharing my information with new people.")
 
 _ready = False
@@ -210,7 +210,7 @@ def ensure_tables(get_db):
 
 
 
-# ---------------------------------------------------------------- the letters people receive (one place, so the CEP Team reads exactly what is sent)
+# ---------------------------------------------------------------- the letters people receive (one place, so the Guides can read exactly what is sent)
 def letter_curious(first, label, vol_name, vphone, pw):
     vfirst = vol_name.split()[0]
     subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
@@ -270,7 +270,7 @@ def letter_questionnaire(first, label, link, vol_name, vphone):
 
 
 CLIENT_LETTERS = [
-    ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a CEP volunteer takes the request."),
+    ("curious", "Reply to \"I'm curious\"", "Sent automatically as soon as a Guide takes the request."),
     ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
     ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
@@ -313,7 +313,7 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 
 
 def welcome_video():
-    """Optional 'Welcome to the CEP Team' video. Set CEP_WELCOME_VIDEO to a YouTube/Vimeo/.mp4 link,
+    """Optional 'Welcome to the Guides' video. Set CEP_WELCOME_VIDEO to a YouTube/Vimeo/.mp4 link,
     or upload static/cep-welcome.mp4. Returns {kind, src} or None."""
     import os, re as _re
     u = (os.environ.get("CEP_WELCOME_VIDEO") or "").strip()
@@ -331,7 +331,7 @@ def welcome_video():
 
 
 def sample_letter(key):
-    """(title, when, subject, html) for the CEP Team to read, with placeholders in [brackets]."""
+    """(title, when, subject, html) for the Guides to read, with placeholders in [brackets]."""
     title, when = next(((t, w) for k, t, w in CLIENT_LETTERS if k == key), (None, None))
     if key == "questionnaire-d1":
         title, when = "Questionnaire \u2013 D1", next(w for k, t, w in CLIENT_LETTERS if k == "questionnaire")
@@ -843,7 +843,7 @@ def sweep(get_db, base_url):
 
 
 def _notify_milestones(get_db):
-    """Tell the CEP volunteer when the person they helped has registered, and again when they have paid."""
+    """Tell the Guide when the person they helped has registered, and again when they have paid."""
     conn = get_db()
     try:
         rows = conn.execute(
@@ -947,7 +947,7 @@ def register(app, crm, leadership_required, get_db):
 
     @app.route("/cep-training")
     def public_cep_training():
-        """The CEP Team's how-to guide. Not linked from the public site; the team reaches it from their call page."""
+        """The Guides' how-to guide. Not linked from the public site; the team reaches it from their call page."""
         return render_template("public_cep_training.html")
 
     @app.route("/cep-permission/<token>", methods=["GET", "POST"])
