@@ -14,8 +14,8 @@
       {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.who %}{{ c.who }}{% elif c.a.everyone %}Everyone in the Entire Database{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
     </p>
     <p class="muted" style="margin:0 0 10px">{{ c.n_sent }} sent &middot; {{ c.n_drafts }} draft{{ '' if c.n_drafts == 1 else 's' }}{% if c.last_sent %}<br>Last sent <strong>{{ c.last_sent.sent_date }}</strong> to {{ c.last_sent.sent_count }}{% endif %}</p>
-    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a>
-    {% if c.latest %}<a class="btn secondary" href="{{ url_for('.email_blast_letter', lid=c.latest.id) }}">{{ 'View letter' if c.latest.sent_at else 'Edit letter' }}</a>{% endif %}
+    {% if c.latest %}<a class="btn" href="{{ url_for('.email_blast_letter', lid=c.latest.id) }}">{{ 'View letter' if c.latest.sent_at else 'Open letter' }}</a>{% endif %}
+    <a class="btn secondary" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Letters &amp; settings</a>
   </div>
 {% endfor %}
 </div>

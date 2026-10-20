@@ -1,7 +1,7 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ l.shown_name }} — Email blasts, letters, and other communication{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; {{ a.name }}</a></p>
+<p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; All letters and settings for {{ a.name }} (add another letter, change who gets it)</a></p>
 <h1>{{ l.shown_name }}</h1>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
