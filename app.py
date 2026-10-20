@@ -4961,8 +4961,10 @@ def lists_manage():
            FROM contact_lists l LEFT JOIN contact_list_members m ON m.list_id = l.id
            GROUP BY l.id, l.name, l.created_at ORDER BY l.name"""
     ).fetchall()
+    total = conn.execute("SELECT COUNT(*) AS n FROM contacts").fetchone()["n"]
+    emailable = conn.execute("SELECT COUNT(*) AS n FROM contacts WHERE email IS NOT NULL AND email <> ''").fetchone()["n"]
     conn.close()
-    return render_template("lists_manage.html", lists=lists)
+    return render_template("lists_manage.html", lists=lists, total_contacts=total, emailable_contacts=emailable)
 
 
 @crm.route("/lists/new", methods=["POST"])
@@ -6333,6 +6335,8 @@ app.jinja_env.globals["role_label"] = role_label
 call_flow.register(app, crm, leadership_required, get_db)
 import blasts
 blasts.register(app, crm, owner_required, get_db)
+import dbmap
+dbmap.register(app, crm, owner_required, get_db)
 app.register_blueprint(crm)
 
 
