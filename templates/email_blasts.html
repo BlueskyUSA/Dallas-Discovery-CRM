@@ -11,7 +11,7 @@
     <h3 style="margin-top:0">{{ c.a.name }}</h3>
     <p style="margin:0 0 4px"><strong>{{ c.count }}</strong> {{ 'person' if c.count == 1 else 'people' }} would receive it</p>
     <p class="muted" style="margin:0 0 10px">
-      {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
+      {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.a.everyone %}Everyone in the Entire Database{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
     </p>
     {% if c.a.kind != 'excitement' and not (c.a.body or '').strip() %}<p class="muted" style="margin:0 0 10px">No message written yet.</p>{% endif %}
     {% if c.last %}<p class="muted" style="margin:0 0 10px">Last send: {{ c.last.when }} &mdash; {{ c.last.sent_count }} sent{% if c.last.failed_count %}, {{ c.last.failed_count }} failed{% endif %}</p>{% endif %}

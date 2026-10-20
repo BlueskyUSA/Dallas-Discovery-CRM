@@ -17,6 +17,14 @@
     <li>Keep each source on its own list, so it can be found and removed later.</li>
   </ul>
 </div>
+<div class="card" style="margin-bottom:14px; display:flex; gap:16px; align-items:center; flex-wrap:wrap">
+  <div style="flex:1 1 260px">
+    <h3 style="margin:0 0 2px">Entire Database</h3>
+    <div class="muted">Everyone, from every source: <strong>{{ total_contacts }}</strong> contacts, <strong>{{ emailable_contacts }}</strong> with an email address.</div>
+  </div>
+  <a class="btn" href="{{ url_for('.contacts_list') }}">View Entire Database</a>
+  {% if session.is_owner %}<a class="btn secondary" href="{{ url_for('.email_blasts') }}">Email blasts</a>{% endif %}
+</div>
 <div class="card">
   <table>
     <tr><th>List</th><th>Contacts</th><th>Created</th><th></th></tr>
