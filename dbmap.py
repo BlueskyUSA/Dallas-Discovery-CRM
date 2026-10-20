@@ -46,7 +46,7 @@ BLOCKS = [
     ]),
     ("team", "Team and Access", "#34495e", "Staff logins and what each can see.", [
         ("staff", "Staff and leadership accounts."),
-        ("access_grants", "Extra areas a staff member has been given."),
+        ("access_grants", "A list of who has access to which parts of the site and programs."),
     ]),
 ]
 
