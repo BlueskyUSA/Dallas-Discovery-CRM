@@ -90,6 +90,25 @@ def count_of(conn, table):
         return None
 
 
+def _first(row):
+    """First value of a result row, whether it is a tuple-like or a dict-like row."""
+    try:
+        return row[0]
+    except Exception:
+        return list(row.values())[0]
+
+
+# For these id columns the sample table also shows a readable name beside the number.
+NAME_LOOKUPS = {
+    "list_id": ("list_name", "SELECT name FROM contact_lists WHERE id = ?"),
+    "contact_id": ("contact_name", "SELECT TRIM(COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) FROM contacts WHERE id = ?"),
+    "program_id": ("program_name", "SELECT name FROM programs WHERE id = ?"),
+    "cohort_id": ("session", "SELECT p.code || ' #' || c.session_number FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?"),
+    "audience_id": ("group_name", "SELECT name FROM blast_audiences WHERE id = ?"),
+    "letter_id": ("letter_name", "SELECT title FROM blast_letters WHERE id = ?"),
+}
+
+
 def register(app, crm, owner_required, get_db):
     @crm.route("/database-map")
     @owner_required
@@ -141,6 +160,26 @@ def register(app, crm, owner_required, get_db):
                         s = str(v)
                         line.append(s if len(s) <= 60 else s[:57] + "...")
                 out.append(line)
+            # show the name next to each id so the numbers mean something (list 1 = which list, contact 20 = who)
+            for fk, (label, q) in list(NAME_LOOKUPS.items()):
+                if fk not in shown:
+                    continue
+                pos = shown.index(fk)
+                cache = {}
+                for line in out:
+                    key = line[pos]
+                    if key not in cache:
+                        try:
+                            row = conn.execute(q, (key,)).fetchone() if key != "" else None
+                            cache[key] = (_first(row) if row else "") or ""
+                        except Exception:
+                            try:
+                                conn.rollback()
+                            except Exception:
+                                pass
+                            cache[key] = ""
+                    line.insert(pos + 1, cache[key])
+                shown = shown[:pos + 1] + [label] + shown[pos + 1:]
             return jsonify(columns=shown, rows=out, hidden=[c for c in cols if HIDE_ALWAYS.search(c)])
         finally:
             conn.close()
