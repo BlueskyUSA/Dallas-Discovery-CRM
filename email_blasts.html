@@ -1,0 +1,41 @@
+{% extends "crm_base.html" %}
+{% block title %}Email blasts — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Email blasts</h1>
+<p class="muted">Owner only. Each card sends one email to one group. Open a card to edit the message, send yourself a test, and send it for real.</p>
+{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+{% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong>. You can still edit and send yourself tests. To allow real sends, add <code>BLASTS_LIVE</code> = <code>1</code> in Render&rsquo;s Environment.</p>{% endif %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-bottom:24px">
+{% for c in cards %}
+  <div class="card">
+    <h3 style="margin-top:0">{{ c.a.name }}</h3>
+    <p style="margin:0 0 4px"><strong>{{ c.count }}</strong> {{ 'person' if c.count == 1 else 'people' }} would receive it</p>
+    <p class="muted" style="margin:0 0 10px">
+      {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
+    </p>
+    {% if c.a.kind != 'excitement' and not (c.a.body or '').strip() %}<p class="muted" style="margin:0 0 10px">No message written yet.</p>{% endif %}
+    {% if c.last %}<p class="muted" style="margin:0 0 10px">Last send: {{ c.last.when }} &mdash; {{ c.last.sent_count }} sent{% if c.last.failed_count %}, {{ c.last.failed_count }} failed{% endif %}</p>{% endif %}
+    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a>
+  </div>
+{% endfor %}
+</div>
+<div class="card" style="max-width:760px; margin-bottom:16px; border-left:5px solid #c9a227; background:#fffbea">
+  <h3 style="margin-top:0">Caution: purchased or third-party databases</h3>
+  <p style="margin:0 0 6px"><strong>Do not buy a database, and do not email one, until we have researched every requirement through Claude.</strong></p>
+  <ul style="margin:0; padding-left:20px">
+    <li><strong>Brevo (our email service)</strong> generally does not allow sending to purchased or rented lists, and an account can be suspended for it. That would stop the portal&rsquo;s other emails too.</li>
+    <li>U.S. law (CAN-SPAM) also requires a working unsubscribe link and a physical mailing address in commercial email, and other laws may apply.</li>
+    <li>For a database someone lets us download, keep a record of their permission to email it.</li>
+    <li>Keep each source on its own list, so it can be found and removed later.</li>
+  </ul>
+</div>
+<div class="card" style="max-width:520px">
+  <h3 style="margin-top:0">Add another audience</h3>
+  <form method="post">
+    <div class="field"><label>Name</label><input name="name" required maxlength="120" placeholder="e.g. Past TAs"></div>
+    <div class="field"><label>Contact list</label>
+      <select name="list_id"><option value="">Choose later&hellip;</option>{% for l in lists %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+    <button class="btn" type="submit">Add</button>
+  </form>
+</div>
+{% endblock %}
