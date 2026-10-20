@@ -144,7 +144,8 @@ def ensure_tables(get_db):
                          "VALUES ('Excitement blast: Entire Database', 'excitement', NULL, ?, NULL, 25, 1, ?)",
                          (EXCITEMENT_BLAST_SUBJECT, cf._ts(cf._utc_now())))
         # every audience gets at least one letter (earlier versions kept the wording on the audience itself)
-        for au in conn.execute("SELECT * FROM blast_audiences ORDER BY id").fetchall():
+        first_time = not conn.execute("SELECT 1 FROM blast_letters LIMIT 1").fetchone()
+        for au in (conn.execute("SELECT * FROM blast_audiences ORDER BY id").fetchall() if first_time else []):
             if conn.execute("SELECT 1 FROM blast_letters WHERE audience_id = ?", (au["id"],)).fetchone():
                 continue
             lkind = "standard" if au["kind"] == "excitement" else "text"
@@ -484,11 +485,20 @@ def register(app, crm, owner_required, get_db):
                 subject, body = "", ""
                 f = request.files.get("file")
                 if f and f.filename:
+                    ext = (f.filename or "").lower().rsplit(".", 1)[-1]
+                    if ext not in ("docx", "txt", "html", "htm"):
+                        flash(f"I could not use \u201c{f.filename}\u201d. Only Word (.docx), text (.txt) or web page (.html) files work. "
+                              "In Word, use Save As > Word Document (.docx); older .doc, .pdf and .pages files are not supported. "
+                              "You can also leave the file empty and paste the wording in on the next page.")
+                        return redirect(url_for(".email_blast_edit", aid=aid))
                     try:
                         subject, body = parse_upload(f)
                         subject = subject or ""
                     except Exception as e:
-                        flash(f"That file could not be read ({e}). Word (.docx), text (.txt) and web page (.html) files work.")
+                        flash(f"That file could not be read ({e}). Please save it as a Word (.docx) file and try again.")
+                        return redirect(url_for(".email_blast_edit", aid=aid))
+                    if not body.strip():
+                        flash("That file had no text in it. Nothing was added.")
                         return redirect(url_for(".email_blast_edit", aid=aid))
                 lid = _new_letter(conn, aid, title, "text", subject, body, None)
                 conn.commit()
