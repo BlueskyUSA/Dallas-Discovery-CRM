@@ -60,23 +60,23 @@
     <div class="q"><label for="training_goals">What do you want to get out of Discovery {{ enr.program_name }}?</label>
       <textarea id="training_goals" name="training_goals" rows="3">{{ profile.training_goals if profile and profile.training_goals else '' }}</textarea></div>
     {% if is_couples %}
-    <div class="q"><label for="relationship_length">{% if personal %}How long have you been dealing with what brought you to this training?{% else %}How long have you been in your relationship?{% endif %}</label>
+    <div class="q"><label for="relationship_length">{% if personal %}TBD (to be determined){% else %}How long have you been in your relationship?{% endif %}</label>
       <input id="relationship_length" name="relationship_length" value="{{ profile.relationship_length if profile and profile.relationship_length else '' }}"></div>
-    <div class="q"><label for="how_met">{% if personal %}How did you hear about Discovery, and what drew you to it?{% else %}How did you meet your partner and what attracted you to them?{% endif %}</label>
+    <div class="q"><label for="how_met">{% if personal %}TBD (to be determined){% else %}How did you meet your partner and what attracted you to them?{% endif %}</label>
       <textarea id="how_met" name="how_met" rows="3">{{ profile.how_met if profile and profile.how_met else '' }}</textarea></div>
-    <div class="q"><label for="childhood_patterns">{% if personal %}Do you notice patterns in your life today that are similar to what you experienced with your parents in your childhood?{% else %}Does this relationship have patterns that are similar to what you experienced with your parents in your childhood?{% endif %}</label>
+    <div class="q"><label for="childhood_patterns">{% if personal %}TBD (to be determined){% else %}Does this relationship have patterns that are similar to what you experienced with your parents in your childhood?{% endif %}</label>
       <textarea id="childhood_patterns" name="childhood_patterns" rows="3">{{ profile.childhood_patterns if profile and profile.childhood_patterns else '' }}</textarea></div>
-    <div class="q"><label for="emotional_milestone">{% if personal %}Describe a significant emotional milestone in your life.{% else %}Describe a significant emotional milestone within your relationship.{% endif %}</label>
+    <div class="q"><label for="emotional_milestone">{% if personal %}TBD (to be determined){% else %}Describe a significant emotional milestone within your relationship.{% endif %}</label>
       <textarea id="emotional_milestone" name="emotional_milestone" rows="3">{{ profile.emotional_milestone if profile and profile.emotional_milestone else '' }}</textarea></div>
-    <div class="q"><label for="relationship_strengths">{% if personal %}What are the greatest strengths in your life right now?{% else %}What are the strengths within the relationship?{% endif %}</label>
+    <div class="q"><label for="relationship_strengths">{% if personal %}TBD (to be determined){% else %}What are the strengths within the relationship?{% endif %}</label>
       <textarea id="relationship_strengths" name="relationship_strengths" rows="3">{{ profile.relationship_strengths if profile and profile.relationship_strengths else '' }}</textarea></div>
-    <div class="q"><label for="relationship_weaknesses">{% if personal %}What areas of your life feel weakest, or most in need of change?{% else %}What are the weaknesses within the relationship?{% endif %}</label>
+    <div class="q"><label for="relationship_weaknesses">{% if personal %}TBD (to be determined){% else %}What are the weaknesses within the relationship?{% endif %}</label>
       <textarea id="relationship_weaknesses" name="relationship_weaknesses" rows="3">{{ profile.relationship_weaknesses if profile and profile.relationship_weaknesses else '' }}</textarea></div>
-    <div class="q"><label for="stress_points">{% if personal %}What are the biggest stress points in your life right now? Please explain.{% else %}Are there any stress points within the relationship? Please explain.{% endif %}</label>
+    <div class="q"><label for="stress_points">{% if personal %}TBD (to be determined){% else %}Are there any stress points within the relationship? Please explain.{% endif %}</label>
       <textarea id="stress_points" name="stress_points" rows="3">{{ profile.stress_points if profile and profile.stress_points else '' }}</textarea></div>
-    <div class="q"><label for="song_artist">{% if personal %}List one song and artist that describes the way you feel about your life right now.{% else %}List one song and artist that describes the way you feel about your partner.{% endif %}</label>
+    <div class="q"><label for="song_artist">{% if personal %}TBD (to be determined){% else %}List one song and artist that describes the way you feel about your partner.{% endif %}</label>
       <input id="song_artist" name="song_artist" value="{{ profile.song_artist if profile and profile.song_artist else '' }}"></div>
-    <div class="q"><label for="song_feelings">{% if personal %}Briefly describe how the song above makes you feel.{% else %}Briefly describe how the song above makes you feel toward your partner.{% endif %}</label>
+    <div class="q"><label for="song_feelings">{% if personal %}TBD (to be determined){% else %}Briefly describe how the song above makes you feel toward your partner.{% endif %}</label>
       <textarea id="song_feelings" name="song_feelings" rows="3">{{ profile.song_feelings if profile and profile.song_feelings else '' }}</textarea></div>
     {% endif %}
     <div class="q"><label for="other_info">{% if personal %}Please provide any other information you believe is important for us to know about you.{% else %}Please provide other information you believe is important to this relationship.{% endif %}</label>
