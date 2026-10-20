@@ -54,6 +54,7 @@ def ensure_tables(get_db):
             tested_hash TEXT,
             tested_at TEXT,
             sort_order INTEGER NOT NULL DEFAULT 100,
+            everyone INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL)""")
         conn.execute("""CREATE TABLE IF NOT EXISTS blast_sends (
             id SERIAL PRIMARY KEY,
@@ -77,6 +78,7 @@ def ensure_tables(get_db):
             status TEXT NOT NULL DEFAULT 'queued',
             error TEXT,
             sent_at TEXT)""")
+        conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS everyone INTEGER NOT NULL DEFAULT 0")
         conn.execute("ALTER TABLE blast_sends ADD COLUMN IF NOT EXISTS snapshot_html TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS do_not_email INTEGER NOT NULL DEFAULT 0")
         conn.commit()
@@ -86,18 +88,34 @@ def ensure_tables(get_db):
             now = cf._ts(cf._utc_now())
             seeds = [
                 ("Excitement blast: my contacts", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 10),
-                ("Excitement blast: Discovery contacts", "excitement", list_id(cf.ENTIRE_LIST), EXCITEMENT_BLAST_SUBJECT, None, None, 20),
+                ("Excitement blast: Discovery Contact list", "excitement", list_id(cf.DISCOVERY_LIST), EXCITEMENT_BLAST_SUBJECT, None, None, 20),
+                ("Excitement blast: Entire Database", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 25),
                 ("Discovery Guides", "guides", None, "", GUIDES_BODY, None, 30),
                 ("Discovery volunteers", "text", list_id(cf.RESPONDED_LIST), "Exciting Changes to the Dallas Discovery Program",
                  VOLUNTEERS_BODY, "/volunteer-helper/join", 40),
                 ("Volunteer staff", "text", list_id("Volunteer staff"), "", "", None, 50),
             ]
             for name, kind, lid, subj, body, link, order in seeds:
-                conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, link_path, sort_order, created_at) "
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (name, kind, lid, subj, body, link, order, now))
+                conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, link_path, sort_order, everyone, created_at) "
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (name, kind, lid, subj, body, link, order, 1 if "Entire Database" in name else 0, now))
             conn.commit()
         # make sure the two data-set lists exist, and point the volunteer email at the people who responded
-        cf.list_id_for(conn, cf.ENTIRE_LIST)
+        # The Discovery download keeps its own list, separate from all other data (earlier names are renamed).
+        if not conn.execute("SELECT 1 FROM contact_lists WHERE LOWER(name) = LOWER(?)", (cf.DISCOVERY_LIST,)).fetchone():
+            for old_name in cf.OLD_DISCOVERY_LISTS:
+                old = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = LOWER(?)", (old_name,)).fetchone()
+                if old:
+                    conn.execute("UPDATE contact_lists SET name = ? WHERE id = ?", (cf.DISCOVERY_LIST, old["id"]))
+                    break
+        disc_id = cf.list_id_for(conn, cf.DISCOVERY_LIST)
+        conn.execute("UPDATE blast_audiences SET name = 'Excitement blast: Discovery Contact list', list_id = ?, everyone = 0 "
+                     "WHERE name IN ('Excitement blast: Discovery contacts', 'Excitement blast: Discovery database') OR (name IN ('Excitement blast: entire database', 'Excitement blast: Entire Database') AND list_id = ?)",
+                     (disc_id, disc_id))
+        conn.execute("UPDATE blast_audiences SET name = 'Excitement blast: Entire Database' WHERE everyone = 1 AND name = 'Excitement blast: entire database'")
+        if not conn.execute("SELECT 1 FROM blast_audiences WHERE everyone = 1").fetchone():
+            conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, everyone, created_at) "
+                         "VALUES ('Excitement blast: Entire Database', 'excitement', NULL, ?, NULL, 25, 1, ?)",
+                         (EXCITEMENT_BLAST_SUBJECT, cf._ts(cf._utc_now())))
         resp_id = cf.list_id_for(conn, cf.RESPONDED_LIST)
         old = conn.execute("SELECT l.id FROM contact_lists l WHERE LOWER(l.name) = 'discovery volunteers'").fetchone()
         if old:
@@ -143,6 +161,9 @@ def recipients(conn, aud):
     if aud["kind"] == "guides":
         for r in conn.execute("SELECT name, email FROM call_volunteers WHERE active = 1 ORDER BY id").fetchall():
             rows.append((None, (r["name"] or "").split()[0] if r["name"] else "", r["email"]))
+    elif aud["everyone"]:
+        for r in conn.execute("""SELECT id, first_name, email FROM contacts WHERE email IS NOT NULL AND email <> '' AND COALESCE(do_not_email, 0) = 0 ORDER BY id""").fetchall():
+            rows.append((r["id"], r["first_name"] or "", r["email"]))
     elif aud["list_id"]:
         q = conn.execute("""SELECT c.id, c.first_name, c.email FROM contact_list_members m JOIN contacts c ON c.id = m.contact_id
                             WHERE m.list_id = ? AND c.email IS NOT NULL AND c.email <> '' AND COALESCE(c.do_not_email, 0) = 0
@@ -278,7 +299,7 @@ def register(app, crm, owner_required, get_db):
                 lid = request.form.get("list_id") or None
                 conn.execute("UPDATE blast_audiences SET name = ?, list_id = ?, subject = ?, body = ?, link_path = ? WHERE id = ?",
                              ((request.form.get("name") or a["name"]).strip()[:120],
-                              int(lid) if (lid and a["kind"] != "guides") else a["list_id"],
+                              int(lid) if (lid and a["kind"] != "guides" and not a["everyone"]) else a["list_id"],
                               (request.form.get("subject") or "").strip()[:200],
                               request.form.get("body") if a["kind"] == "text" or a["kind"] == "guides" else a["body"],
                               ((request.form.get("link_path") or "").strip() or None) if a["kind"] != "excitement" else a["link_path"], aid))

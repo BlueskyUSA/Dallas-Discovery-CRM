@@ -119,7 +119,8 @@ def _digits(s):
 
 
 RESPONDED_LIST = "Responded to the Excitement blast"
-ENTIRE_LIST = "Entire Discovery database"
+DISCOVERY_LIST = "Discovery Contact list"
+OLD_DISCOVERY_LISTS = ("Entire Discovery database", "Discovery database")
 
 
 def list_id_for(conn, name):
