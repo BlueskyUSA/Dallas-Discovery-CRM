@@ -596,7 +596,19 @@ def register(app, crm, owner_required, get_db):
                                   who=(attendee_label(conn, a) if a["scope"] == "attendees" else None),
                                   n_drafts=len(drafts), n_sent=len(sent), last_sent=(sent[0] if sent else None),
                                   latest=(letters[0] if letters else None)))
-            return render_template("email_blasts.html", cards=cards, lists=_lists(conn), live=blasts_live())
+            history, drafts = [], []
+            for c in cards:
+                for l in conn.execute("SELECT * FROM blast_letters WHERE audience_id = ? ORDER BY id DESC", (c["a"]["id"],)).fetchall():
+                    row = _letter_row(conn, l)
+                    item = dict(lid=l["id"], aid=c["a"]["id"], group=c["a"]["name"], title=row["shown_name"], subject=l["subject"] or "",
+                                sent_at=l["sent_at"] or "", sent_date=row["sent_date"], year=(l["sent_at"] or "")[:4], sent_count=row["sent_count"], empty=row["empty"])
+                    if l["sent_at"]:
+                        history.append(item)
+                    elif not row["empty"]:
+                        drafts.append(item)
+            history.sort(key=lambda x: x["sent_at"], reverse=True)
+            return render_template("email_blasts.html", cards=cards, lists=_lists(conn), live=blasts_live(),
+                                   history=history, drafts=drafts, years=sorted({h["year"] for h in history}, reverse=True))
         finally:
             conn.close()
 
