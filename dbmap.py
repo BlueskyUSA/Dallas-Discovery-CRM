@@ -76,6 +76,7 @@ def _reorder(table, names, rows=None):
 
 # Plain-English names shown on the map (the technical table name stays visible underneath).
 TITLES = {
+    "access_grants": "Site Access",
     "cohorts": "Sessions (Cohorts)",
     "call_volunteers": "Guides",
     "blast_audiences": "Correspondence Groups",
