@@ -284,7 +284,7 @@ def build(letter, aud, first, contact_id, base_url):
         html, text = excitement_blast_content(greet)
         return letter["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
     link = (base_url + letter["link_path"]) if letter["link_path"] else ""
-    body = (letter["body"] or "").replace("{first}", greet)
+    body = re.sub(r"(?i)\[\s*first\s*name\s*\]|\{\s*first\s*name\s*\}", greet, letter["body"] or "").replace("{first}", greet)
     paras = [p for p in body.replace("\r\n", "\n").split("\n\n") if p.strip()]
     html_parts = []
     for p in paras:
@@ -310,11 +310,20 @@ def parse_upload(f):
         W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
         with zipfile.ZipFile(io.BytesIO(raw)) as z:
             root = ET.fromstring(z.read("word/document.xml"))
-        lines = []
+        paras = []
         for para in root.iter(W + "p"):
-            txt = "".join((t.text or "") for t in para.iter() if t.tag in (W + "t",) or t.tag == W + "tab")
-            lines.append(txt)
-        text = "\n".join(lines)
+            buf = []
+            for t in para.iter():
+                if t.tag == W + "t":
+                    buf.append(t.text or "")
+                elif t.tag == W + "br":
+                    buf.append("\n")
+                elif t.tag == W + "tab":
+                    buf.append("    ")
+            line = "".join(buf).strip()
+            if line:
+                paras.append(line)
+        text = "\n\n".join(paras)
     else:
         text = raw.decode("utf-8", errors="replace")
         if name.endswith((".html", ".htm")):
