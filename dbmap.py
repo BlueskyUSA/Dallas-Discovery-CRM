@@ -63,6 +63,17 @@ HIDE_ALWAYS = re.compile(r"password|token|consent_ip|push_user_key|secret", re.I
 MASK = re.compile(r"email|phone|cell|street|address|city|zip|birth|dob|notes|note|emergency|partner|sponsor_|consent_name|message|answer|response|body", re.I)
 
 
+# Preferred column order for tables where the default order is less readable.
+COLUMN_ORDER = {"contact_list_members": ["id", "list_id", "list_name", "contact_id", "contact_name", "added_at"]}
+
+
+def _reorder(table, names, rows=None):
+    pref = [c for c in COLUMN_ORDER.get(table, []) if c in names]
+    order = pref + [c for c in names if c not in pref]
+    idx = [names.index(c) for c in order]
+    return order, ([[r[i] for i in idx] for r in rows] if rows is not None else None)
+
+
 PROFILE_CODES = {"profile_relationship": "D4", "profile_d1": "D1"}
 D1_TBD = ["relationship_length", "how_met", "childhood_patterns", "emotional_milestone", "relationship_strengths",
           "relationship_weaknesses", "stress_points", "song_artist", "song_feelings"]
@@ -77,6 +88,13 @@ def profile_label(table, col):
 
 
 def columns_of(conn, table):
+    if table in COLUMN_ORDER:
+        names = columns_of_raw(conn, table)
+        return _reorder(table, names)[0]
+    return columns_of_raw(conn, table)
+
+
+def columns_of_raw(conn, table):
     if table in PROFILE_CODES:
         return [profile_label(table, c) for c in columns_of(conn, "training_profiles")]
     try:
@@ -206,6 +224,8 @@ def register(app, crm, owner_required, get_db):
                             cache[key] = ""
                     line.insert(pos + 1, cache[key])
                 shown = shown[:pos + 1] + [label] + shown[pos + 1:]
+            if table in COLUMN_ORDER:
+                shown, out = _reorder(table, shown, out)
             return jsonify(columns=shown, rows=out, hidden=[c for c in cols if HIDE_ALWAYS.search(c)])
         finally:
             conn.close()
