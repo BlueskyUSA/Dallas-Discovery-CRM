@@ -52,7 +52,7 @@
       <p class="muted">This is the standard &ldquo;Excitement is Growing&rdquo; letter. You can send it as is, or turn it into text you can edit.</p>
       <button class="btn" type="submit">Save subject</button>
     {% else %}
-      <div class="field"><label>Message</label><textarea name="body" rows="16">{{ l.body or '' }}</textarea>
+      <div class="field"><label>Message</label><textarea name="body" rows="28" style="min-height:420px; resize:vertical">{{ l.body or '' }}</textarea>
         <div class="muted">Blank line = new paragraph. <code>{first}</code> becomes the person&rsquo;s first name. A line that says only <code>{link}</code> becomes a button.</div></div>
       <div class="field"><label>Page the {link} button opens (optional)</label><input name="link_path" value="{{ l.link_path or '' }}" placeholder="/volunteer-helper/join">
         <div class="muted">Part after the web address, starting with a slash.</div></div>
