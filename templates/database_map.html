@@ -1,0 +1,111 @@
+{% extends "crm_base.html" %}
+{% block title %}Database map — {{ program_name }}{% endblock %}
+{% block content %}
+<style>
+  .dm-top { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px }
+  .dm-crumb { font-size:1.05rem; margin:6px 0 14px }
+  .dm-crumb a { cursor:pointer; color:#1f6f8b; text-decoration:underline }
+  .dm-stage { position:relative; width:100%; max-width:1000px; margin:0 auto }
+  .dm-stage svg { width:100%; height:auto; display:block }
+  .dm-box { cursor:pointer }
+  .dm-box rect { transition: transform .12s, filter .12s }
+  .dm-box:hover rect { filter:brightness(1.12) }
+  .dm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px }
+  .dm-card { border-radius:12px; padding:16px; background:#fff; border:1px solid #d9e2ec; border-top:6px solid var(--c,#1f6f8b); cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.06) }
+  .dm-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.14) }
+  .dm-card h3 { margin:0 0 4px }
+  .dm-n { font-size:1.8rem; font-weight:800; color:var(--c) }
+  table.dm-t { border-collapse:collapse; width:100%; font-size:.92rem; background:#fff }
+  table.dm-t th, table.dm-t td { border:1px solid #d9e2ec; padding:6px 8px; text-align:left; vertical-align:top }
+  table.dm-t th { background:#eef3f8 }
+  .dm-cols { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 }
+  .dm-cols span { background:#eef3f8; border-radius:6px; padding:3px 8px; font-size:.88rem }
+  .dm-hide-money .dm-money-n { visibility:hidden }
+  body.dm-present .navbar, body.dm-present header.topbar, body.dm-present nav { display:none }
+  body.dm-present .dm-wrap { font-size:1.35rem }
+  body.dm-present .dm-n { font-size:2.6rem }
+  body.dm-present table.dm-t { font-size:1.15rem }
+</style>
+<div class="dm-wrap">
+<div class="dm-top">
+  <h1 style="margin:0">Database map</h1>
+  <button class="btn" id="dmPresent" type="button">Present (full screen)</button>
+  <label style="display:flex; gap:6px; align-items:center"><input type="checkbox" id="dmMask" checked style="width:auto"> Hide emails, phones, addresses and notes in samples</label>
+</div>
+<p class="muted" style="margin:0">Owner only. Click a block to see what is inside it, then click a table to see its fields and a few sample rows. Numbers are live. Press Esc to leave full screen.</p>
+<div class="dm-crumb" id="dmCrumb"></div>
+<div id="dmView"></div>
+</div>
+
+<script>
+const DATA = {{ blocks|tojson }};
+const LINKS = {{ links|tojson }};
+const BYKEY = Object.fromEntries(DATA.map(b => [b.key, b]));
+const SAMPLE_URL = "{{ url_for('.database_map_sample', table='__T__') }}";
+const view = document.getElementById('dmView'), crumb = document.getElementById('dmCrumb');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mask = () => document.getElementById('dmMask').checked;
+const fmt = n => n == null ? '—' : Number(n).toLocaleString();
+let state = {level:1};
+
+function goTop(){ state = {level:1}; render(); }
+function openBlock(k){ state = {level:2, k}; render(); }
+function openTable(k, t){ state = {level:3, k, t}; render(); }
+
+const POS = { people:[500,290], programs:[165,85], enroll:[835,85], money:[835,500], outreach:[165,500], team:[500,545] };
+function level1(){
+  const W=1000,H=620, bw=290, bh=118;
+  let s = `<div class="dm-stage"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Database overview">`;
+  LINKS.forEach(l => {
+    const a=POS[l.a], b=POS[l.b], mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2;
+    s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#9fb3c8" stroke-width="3" stroke-dasharray="7 6"/>`;
+    s += `<text x="${mx}" y="${my-6}" text-anchor="middle" font-size="16" fill="#52667a" style="paint-order:stroke;stroke:#fff;stroke-width:6px">${esc(l.label)}</text>`;
+  });
+  DATA.forEach(b => {
+    const p=POS[b.key], x=p[0]-bw/2, y=p[1]-bh/2, money = b.key==='money' ? ' dm-money-n' : '';
+    s += `<g class="dm-box" onclick="openBlock('${b.key}')" tabindex="0" onkeydown="if(event.key==='Enter')openBlock('${b.key}')">
+      <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="16" fill="${b.color}"/>
+      <text x="${p[0]}" y="${y+38}" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">${esc(b.title)}</text>
+      <text class="${money}" x="${p[0]}" y="${y+78}" text-anchor="middle" font-size="34" font-weight="800" fill="#fff">${fmt(b.total)}</text>
+      <text x="${p[0]}" y="${y+102}" text-anchor="middle" font-size="14" fill="#fff" opacity=".9">${b.tables.length} ${b.tables.length===1?'table':'tables'} · click to open</text></g>`;
+  });
+  return s + `</svg></div><p class="muted" style="text-align:center">The number in each block is the total number of records across its tables. Dashed lines show how blocks connect.</p>`;
+}
+function level2(b){
+  return `<p style="font-size:1.1rem; max-width:760px">${esc(b.what)}</p><div class="dm-grid">` +
+    b.tables.map(t => `<div class="dm-card" style="--c:${b.color}" onclick="openTable('${b.key}','${t.name}')">
+      <h3>${esc(t.name)}</h3><div class="dm-n ${b.key==='money'?'dm-money-n':''}">${fmt(t.count)}</div>
+      <div class="muted" style="margin-bottom:6px">records · ${t.cols.length} fields</div><div>${esc(t.desc)}</div></div>`).join('') + `</div>`;
+}
+function level3(b, t){
+  const T = b.tables.find(x => x.name === t);
+  return `<p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
+    <p><span class="dm-n ${b.key==='money'?'dm-money-n':''}" style="--c:${b.color}">${fmt(T.count)}</span> <span class="muted">records</span></p>
+    <h3 style="margin:10px 0 4px">Fields (${T.cols.length})</h3><div class="dm-cols">${T.cols.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
+    <h3 style="margin:14px 0 6px">Sample rows (newest 5)</h3><div id="dmSample" class="muted">Loading…</div>`;
+}
+function loadSample(t){
+  fetch(SAMPLE_URL.replace('__T__', t) + '?mask=' + (mask() ? '1' : '0')).then(r => r.json()).then(d => {
+    const el = document.getElementById('dmSample'); if(!el) return;
+    if(!d.rows || !d.rows.length){ el.textContent = 'No records yet.'; return; }
+    el.innerHTML = '<div style="overflow:auto"><table class="dm-t"><tr>' + d.columns.map(c=>`<th>${esc(c)}</th>`).join('') + '</tr>' +
+      d.rows.map(r => '<tr>' + r.map(v=>`<td>${esc(v)}</td>`).join('') + '</tr>').join('') + '</table></div>' +
+      (d.hidden && d.hidden.length ? `<p class="muted" style="margin-top:6px">Never shown: ${esc(d.hidden.join(', '))}</p>` : '');
+  });
+}
+function render(){
+  const b = BYKEY[state.k];
+  if(state.level===1){ crumb.innerHTML = '<strong>Big picture</strong>'; view.innerHTML = level1(); }
+  else if(state.level===2){ crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <strong>${esc(b.title)}</strong>`; view.innerHTML = level2(b); }
+  else { crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <a onclick="openBlock('${b.key}')">${esc(b.title)}</a> › <strong>${esc(state.t)}</strong>`; view.innerHTML = level3(b, state.t); loadSample(state.t); }
+}
+window.goTop = goTop;
+document.getElementById('dmMask').addEventListener('change', () => { if(state.level===3) loadSample(state.t); });
+document.getElementById('dmPresent').addEventListener('click', () => {
+  document.body.classList.add('dm-present');
+  const el = document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+});
+document.addEventListener('fullscreenchange', () => { if(!document.fullscreenElement) document.body.classList.remove('dm-present'); });
+render();
+</script>
+{% endblock %}
