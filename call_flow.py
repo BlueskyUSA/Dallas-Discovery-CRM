@@ -118,6 +118,19 @@ def _digits(s):
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
 
+HELPER_DAILY_LIMIT = 20          # people one volunteer's link can bring in per day
+
+
+def _same_first(a, b):
+    """Loose first-name match: same name, or one begins with the other (Bob / Bobby); names under 3 letters must match exactly."""
+    a, b = (a or "").strip().lower(), (b or "").strip().lower()
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    return min(len(a), len(b)) >= 3 and (a.startswith(b[:3]) and b.startswith(a[:3]))
+
+
 def pretty_phone(s):
     d = _digits(s)
     if len(d) == 11 and d.startswith("1"):
@@ -200,6 +213,15 @@ def ensure_tables(get_db):
             page TEXT,
             call_ok TEXT,
             created_at TEXT NOT NULL)""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS volunteer_helpers (
+            id SERIAL PRIMARY KEY,
+            contact_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            referred_by INTEGER,
+            matched_by TEXT,
+            created_at TEXT NOT NULL,
+            welcome_sent_at TEXT,
+            last_seen_at TEXT)""")
         conn.commit()
         _ready = True
     except Exception as e:
@@ -237,6 +259,28 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
             f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
             f"We're looking forward to meeting you!\n\nWarmly,\nThe Discovery Team")
+    return subject, html, text
+
+
+def letter_helper_welcome(first, page_link, profile_link=None, returning=False):
+    subject = "Thank you for being a Discovery volunteer"
+    if returning:
+        lead = (f"<p>Hi {first},</p><p>Thank you for being a Dallas Discovery volunteer. We already have you in our records, "
+                f"so there is no need to start over.</p>")
+        tlead = f"Hi {first},\n\nThank you for being a Dallas Discovery volunteer. We already have you in our records, so there is no need to start over.\n\n"
+    else:
+        lead = f"<p>Hi {first},</p><p>Thank you for being a Dallas Discovery volunteer, and welcome!</p>"
+        tlead = f"Hi {first},\n\nThank you for being a Dallas Discovery volunteer, and welcome!\n\n"
+    prof_h = (f"<p>Please take a few minutes to update and complete your contact information here:<br>"
+              f"<a href=\"{profile_link}\">{profile_link}</a></p>") if profile_link else ""
+    prof_t = f"Please take a few minutes to update and complete your contact information here:\n{profile_link}\n\n" if profile_link else ""
+    html = (lead + f"<p>Here is your personal volunteer page. It is private to you, so please keep the link to yourself. "
+            f"Come back to it any time:</p><p><a href=\"{page_link}\">{page_link}</a></p>" + prof_h +
+            "<p>On your page you will find a link you can text or email to another Discovery volunteer who would like to help. "
+            "Every volunteer gets their own page.</p><p>Thank you for all that you do.</p><p>Warmly,<br>The Discovery Team</p>")
+    text = (tlead + f"Here is your personal volunteer page. It is private to you, so please keep the link to yourself. Come back to it any time:\n{page_link}\n\n"
+            + prof_t + "On your page you will find a link you can text or email to another Discovery volunteer who would like to help. "
+            "Every volunteer gets their own page.\n\nThank you for all that you do.\n\nWarmly,\nThe Discovery Team")
     return subject, html, text
 
 
@@ -975,6 +1019,140 @@ def register(app, crm, leadership_required, get_db):
             vol = conn.execute("SELECT * FROM call_volunteers WHERE id = ?", (vol["id"],)).fetchone()
             return render_template("public_cep_permission.html", vol=vol, wording=VOLUNTEER_CONSENT, error=error,
                                    phone=pretty_phone(vol["cell_phone"]), given_text=local_text(vol["consent_at"]))
+        finally:
+            conn.close()
+
+    # ----- Discovery volunteers: share a link, a friend joins, and gets a page of their own
+    def _helper_for_contact(conn, contact_id, referred_by=None, matched_by=None):
+        h = conn.execute("SELECT * FROM volunteer_helpers WHERE contact_id = ?", (contact_id,)).fetchone()
+        if h:
+            return h, False
+        tok = secrets.token_urlsafe(18)
+        conn.execute("INSERT INTO volunteer_helpers (contact_id, token, referred_by, matched_by, created_at) VALUES (?, ?, ?, ?, ?)",
+                     (contact_id, tok, referred_by, matched_by, _ts(_utc_now())))
+        return conn.execute("SELECT * FROM volunteer_helpers WHERE contact_id = ?", (contact_id,)).fetchone(), True
+
+    def _match_contact(conn, first, last, email, phone):
+        """(contact_id, how) \u2014 by email first (safe to treat as the same person), then by cell number plus a matching first name."""
+        row = conn.execute("SELECT id FROM contacts WHERE lower(email) = lower(?) OR lower(email_2) = lower(?) OR lower(email_3) = lower(?) ORDER BY id LIMIT 1",
+                           (email, email, email)).fetchone()
+        if row:
+            return row["id"], "email"
+        d = _digits(phone)
+        d = d[1:] if len(d) == 11 and d.startswith("1") else d
+        if len(d) == 10:
+            rows = conn.execute("SELECT id, first_name, last_name, cell_phone, home_phone, work_phone FROM contacts "
+                                "WHERE cell_phone IS NOT NULL OR home_phone IS NOT NULL OR work_phone IS NOT NULL ORDER BY id").fetchall()
+            for r in rows:
+                for ph in (r["cell_phone"], r["home_phone"], r["work_phone"]):
+                    pd = _digits(ph)
+                    pd = pd[1:] if len(pd) == 11 and pd.startswith("1") else pd
+                    if pd == d and _same_first(r["first_name"], first):
+                        return r["id"], "cell"
+        return None, None
+
+    @app.route("/volunteer-helper/join", methods=["GET", "POST"])
+    def public_helper_join():
+        ensure_tables(get_db)
+        ref = (request.values.get("ref") or "").strip()
+        error = None
+        if request.method == "POST":
+            f = request.form
+            if f.get("website"):                      # hidden spam-trap field
+                return redirect(url_for("public_helper_thanks"))
+            first = (f.get("first_name") or "").strip()[:80]
+            last = (f.get("last_name") or "").strip()[:80] or None
+            email = (f.get("email") or "").strip()[:200]
+            phone = (f.get("phone") or "").strip()[:40]
+            if not first or "@" not in email or "." not in email.split("@")[-1]:
+                error = "Please enter your first name and a valid email address."
+            elif phone and len(_digits(phone)) < 10:
+                error = "That cell number looks too short. Please include the area code, or leave it blank."
+            if not error:
+                conn = get_db()
+                try:
+                    referrer = None
+                    if ref:
+                        r = conn.execute("SELECT * FROM volunteer_helpers WHERE token = ?", (ref,)).fetchone()
+                        referrer = r
+                        # a limit on how many people one volunteer can bring in per day (spam guard)
+                        if r:
+                            n = conn.execute("SELECT COUNT(*) AS n FROM volunteer_helpers WHERE referred_by = ? AND created_at >= ?",
+                                             (r["contact_id"], _ts(_utc_now() - timedelta(hours=24)))).fetchone()["n"]
+                            if n >= HELPER_DAILY_LIMIT:
+                                error = "A lot of people have joined from this link today. Please try again tomorrow."
+                    if not error:
+                        cid, how = _match_contact(conn, first, last, email, phone)
+                        returning = bool(cid)
+                        note = f"Volunteer helper sign-up {_ts(_utc_now())[:10]}"
+                        if referrer:
+                            rc = conn.execute("SELECT first_name, last_name FROM contacts WHERE id = ?", (referrer["contact_id"],)).fetchone()
+                            note += f", shared by {rc['first_name']} {rc['last_name'] or ''}".rstrip()
+                        if not cid:
+                            cur = conn.execute("""INSERT INTO contacts (first_name, last_name, email, cell_phone, notes, marketing_source, status)
+                                                  VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                               (first, last, email, phone or None, note, "Volunteer referral" if referrer else "Volunteer sign-up", "Interested Party"))
+                            cid, how = cur.lastrowid, "new"
+                        else:
+                            _add_note(conn, cid, note + ("" if how == "email" else f" (matched by cell number; they typed {email})"))
+                        ref_cid = referrer["contact_id"] if referrer and referrer["contact_id"] != cid else None
+                        helper, created = _helper_for_contact(conn, cid, ref_cid, how)
+                        if ref_cid and created is False and not helper["referred_by"]:
+                            conn.execute("UPDATE volunteer_helpers SET referred_by = ? WHERE id = ?", (ref_cid, helper["id"]))
+                        # The welcome note goes ONLY to the email they typed, and the contact page link is included only
+                        # when that email is already on the contact (otherwise anyone could open someone else's page).
+                        profile_link = None
+                        if how == "email":
+                            pc = conn.execute("SELECT profile_token FROM contacts WHERE id = ?", (cid,)).fetchone()
+                            tok = pc["profile_token"] if pc else None
+                            if not tok:
+                                tok = secrets.token_urlsafe(24)
+                                conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (tok, cid))
+                            profile_link = _base_url() + url_for("public_complete_profile", token=tok)
+                        due = not helper["welcome_sent_at"] or _parse(helper["welcome_sent_at"]) < _utc_now() - timedelta(hours=1)
+                        conn.commit()
+                        if due and alerts_live():
+                            subject, html, text = letter_helper_welcome(first, f"{_base_url()}/volunteer/{helper['token']}",
+                                                                        profile_link, returning=returning and how == "email")
+                            try:
+                                _send(email, subject, html, text, to_name=first)
+                                conn.execute("UPDATE volunteer_helpers SET welcome_sent_at = ? WHERE id = ?", (_ts(_utc_now()), helper["id"]))
+                                conn.commit()
+                            except Exception as e:
+                                print(f"Couldn't email the volunteer welcome to {email}: {e}", flush=True)
+                        return redirect(url_for("public_helper_thanks"))
+                except Exception as e:
+                    conn.rollback()
+                    print(f"Volunteer join failed: {e}", flush=True)
+                    error = "Sorry, something went wrong on our end. Please try again in a moment."
+                finally:
+                    conn.close()
+        return render_template("public_helper_join.html", error=error, ref=ref, form=request.form)
+
+    @app.route("/volunteer-helper/thanks")
+    def public_helper_thanks():
+        return render_template("public_helper_thanks.html")
+
+    @app.route("/volunteer/<token>")
+    def public_helper_page(token):
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            h = conn.execute("SELECT * FROM volunteer_helpers WHERE token = ?", (token or "",)).fetchone()
+            if not h:
+                abort(404)
+            c = conn.execute("SELECT first_name, last_name, profile_token FROM contacts WHERE id = ?", (h["contact_id"],)).fetchone()
+            conn.execute("UPDATE volunteer_helpers SET last_seen_at = ? WHERE id = ?", (_ts(_utc_now()), h["id"]))
+            conn.commit()
+            joined = conn.execute("SELECT c.first_name, c.last_name, v.created_at FROM volunteer_helpers v JOIN contacts c ON c.id = v.contact_id "
+                                  "WHERE v.referred_by = ? ORDER BY v.id DESC", (h["contact_id"],)).fetchall()
+            share = f"{_base_url()}/volunteer-helper/join?ref={token}"
+            body = ("Hi, it's " + c["first_name"] + ". I volunteer with Dallas Discovery and thought of you. "
+                    "If you'd like to help too, tap here and it takes about a minute: " + share)
+            profile = _base_url() + url_for("public_complete_profile", token=c["profile_token"]) if c["profile_token"] else None
+            return render_template("public_helper_page.html", first=c["first_name"], share=share, sms_body=body,
+                                   joined=[dict(name=(r["first_name"] + " " + (r["last_name"] or "")).strip(), when=(r["created_at"] or "")[:10]) for r in joined],
+                                   profile=profile)
         finally:
             conn.close()
 
