@@ -1,5 +1,6 @@
-"""Owner-only email blasts: one card per audience (a contact list, or the Guides), an editable message,
-a test send, and a confirmed, paced, logged send.
+"""Owner-only email blasts: one card per audience (a contact list, attendees, or the Guides). Each audience holds
+LETTERS: you write or upload a letter, edit it while it is a draft, send yourself a test, and send it (confirmed,
+paced, logged). Once a letter has been sent it is locked and shows the date it went out; start a new letter for the next one.
 
 Safety: real sends need BLASTS_LIVE=1 in the environment, a test send of the CURRENT wording, and the
 word SEND typed on the confirm box. Nobody who asked not to be emailed is sent to, nobody gets the same
@@ -9,6 +10,7 @@ import hashlib
 import hmac
 import html as _html
 import os
+import re
 import threading
 import time
 
@@ -72,6 +74,18 @@ def ensure_tables(get_db):
             started_at TEXT NOT NULL,
             finished_at TEXT,
             snapshot_html TEXT)""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS blast_letters (
+            id SERIAL PRIMARY KEY,
+            audience_id INTEGER NOT NULL,
+            title TEXT,
+            kind TEXT NOT NULL DEFAULT 'text',
+            subject TEXT,
+            body TEXT,
+            link_path TEXT,
+            tested_hash TEXT,
+            tested_at TEXT,
+            sent_at TEXT,
+            created_at TEXT NOT NULL)""")
         conn.execute("""CREATE TABLE IF NOT EXISTS blast_recipients (
             id SERIAL PRIMARY KEY,
             send_id INTEGER NOT NULL,
@@ -87,6 +101,7 @@ def ensure_tables(get_db):
         conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS program_id INTEGER")
         conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS cohort_id INTEGER")
         conn.execute("ALTER TABLE blast_sends ADD COLUMN IF NOT EXISTS snapshot_html TEXT")
+        conn.execute("ALTER TABLE blast_sends ADD COLUMN IF NOT EXISTS letter_id INTEGER")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS do_not_email INTEGER NOT NULL DEFAULT 0")
         conn.commit()
         n = conn.execute("SELECT COUNT(*) AS n FROM blast_audiences").fetchone()["n"]
@@ -128,6 +143,28 @@ def ensure_tables(get_db):
             conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, everyone, created_at) "
                          "VALUES ('Excitement blast: Entire Database', 'excitement', NULL, ?, NULL, 25, 1, ?)",
                          (EXCITEMENT_BLAST_SUBJECT, cf._ts(cf._utc_now())))
+        # every audience gets at least one letter (earlier versions kept the wording on the audience itself)
+        for au in conn.execute("SELECT * FROM blast_audiences ORDER BY id").fetchall():
+            if conn.execute("SELECT 1 FROM blast_letters WHERE audience_id = ?", (au["id"],)).fetchone():
+                continue
+            lkind = "standard" if au["kind"] == "excitement" else "text"
+            if lkind == "standard":
+                title = "Excitement is Growing (standard letter)"
+            elif (au["body"] or "").strip():
+                title = au["subject"] or "Letter"
+            else:
+                title = "Draft letter"
+            letter = dict(kind=lkind, subject=au["subject"], body=au["body"], link_path=au["link_path"])
+            old_hash = hashlib.sha1(f"{au['kind']}|{au['subject']}|{au['body']}|{au['link_path']}".encode()).hexdigest()
+            th = content_hash(letter) if au["tested_hash"] and au["tested_hash"] == old_hash else None
+            conn.execute("INSERT INTO blast_letters (audience_id, title, kind, subject, body, link_path, tested_hash, tested_at, created_at) "
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (au["id"], title, lkind, au["subject"], au["body"], au["link_path"], th, au["tested_at"] if th else None, cf._ts(cf._utc_now())))
+            lid = conn.execute("SELECT id FROM blast_letters ORDER BY id DESC LIMIT 1").fetchone()["id"]
+            first_send = conn.execute("SELECT started_at FROM blast_sends WHERE audience_id = ? ORDER BY id LIMIT 1", (au["id"],)).fetchone()
+            if first_send:
+                conn.execute("UPDATE blast_letters SET sent_at = ? WHERE id = ?", (first_send["started_at"], lid))
+                conn.execute("UPDATE blast_sends SET letter_id = ? WHERE audience_id = ? AND letter_id IS NULL", (lid, au["id"]))
         resp_id = cf.list_id_for(conn, cf.RESPONDED_LIST)
         old = conn.execute("SELECT l.id FROM contact_lists l WHERE LOWER(l.name) = 'discovery volunteers'").fetchone()
         if old:
@@ -173,8 +210,8 @@ def unsub_target(token):
         return None
 
 
-def content_hash(aud):
-    return hashlib.sha1(f"{aud['kind']}|{aud['subject']}|{aud['body']}|{aud['link_path']}".encode()).hexdigest()
+def content_hash(letter):
+    return hashlib.sha1(f"{letter['kind']}|{letter['subject']}|{letter['body']}|{letter['link_path']}".encode()).hexdigest()
 
 
 def recipients(conn, aud):
@@ -219,14 +256,19 @@ def recipients(conn, aud):
     return out
 
 
-def already_received(conn, aud):
+def already_received(conn, letter):
     rows = conn.execute("""SELECT DISTINCT LOWER(r.email) AS e FROM blast_recipients r JOIN blast_sends s ON s.id = r.send_id
-                           WHERE s.audience_id = ? AND s.subject = ? AND r.status = 'sent'""", (aud["id"], aud["subject"])).fetchall()
+                           WHERE s.letter_id = ? AND r.status = 'sent'""", (letter["id"],)).fetchall()
     return {r["e"] for r in rows}
 
 
-def build(aud, first, contact_id, base_url):
-    """(subject, html, text) for one person."""
+def standard_text():
+    """The standard Excitement letter as plain text, with {first} where the name goes (a starting point to edit)."""
+    return excitement_blast_content("{first}")[1].strip()
+
+
+def build(letter, aud, first, contact_id, base_url):
+    """(subject, html, text) for one person. contact_id: 0 = preview, None = no unsubscribe line, <0 = a Guide."""
     greet = first.strip() if first and first.strip() else "Friend"
     footer_h = footer_t = ""
     if contact_id is not None:
@@ -237,22 +279,61 @@ def build(aud, first, contact_id, base_url):
         footer_h = (f'<hr style="border:none;border-top:1px solid #ddd;margin:24px 0 10px">'
                     f'<p style="font-size:.8em;color:#777">{why} <a href="{u}">{what}</a></p>')
         footer_t = f"\n\n--\n{why} {what}: {u}"
-    if aud["kind"] == "excitement":
+    if letter["kind"] == "standard":
         html, text = excitement_blast_content(greet)
-        return aud["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
-    link = (base_url + aud["link_path"]) if aud["link_path"] else ""
-    body = (aud["body"] or "").replace("{first}", greet)
-    paras = [p for p in body.split("\n\n") if p.strip()]
+        return letter["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
+    link = (base_url + letter["link_path"]) if letter["link_path"] else ""
+    body = (letter["body"] or "").replace("{first}", greet)
+    paras = [p for p in body.replace("\r\n", "\n").split("\n\n") if p.strip()]
     html_parts = []
     for p in paras:
         if p.strip() == "{link}":
             html_parts.append(f'<p><a href="{link}" style="display:inline-block;background:#1b2b45;color:#fff;padding:12px 22px;'
-                              f'border-radius:8px;text-decoration:none;font-weight:bold">Get my volunteer page</a></p>'
+                              f'border-radius:8px;text-decoration:none;font-weight:bold">Open the page</a></p>'
                               f'<p style="font-size:.85em;color:#555">Or paste this into your browser: {link}</p>')
         else:
-            html_parts.append("<p>" + _html.escape(p.strip()).replace("\n", "<br>").replace("{link}", f'<a href="{link}">{link}</a>') + "</p>")
+            esc = _html.escape(p.strip()).replace("\n", "<br>").replace("{link}", f'<a href="{link}">{link}</a>')
+            esc = re.sub(r'(?<!["\'>=])(https?://[^\s<]+)', r'<a href="\1">\1</a>', esc)
+            html_parts.append("<p>" + esc + "</p>")
     text = body.replace("{link}", link)
-    return aud["subject"], "".join(html_parts) + footer_h, text + footer_t
+    return letter["subject"], "".join(html_parts) + footer_h, text + footer_t
+
+
+def parse_upload(f):
+    """(subject or None, body text) from an uploaded .docx, .txt or .html letter."""
+    name = (f.filename or "").lower()
+    raw = f.read(3_000_000)
+    if name.endswith(".docx"):
+        import zipfile, io
+        import xml.etree.ElementTree as ET
+        W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            root = ET.fromstring(z.read("word/document.xml"))
+        lines = []
+        for para in root.iter(W + "p"):
+            txt = "".join((t.text or "") for t in para.iter() if t.tag in (W + "t",) or t.tag == W + "tab")
+            lines.append(txt)
+        text = "\n".join(lines)
+    else:
+        text = raw.decode("utf-8", errors="replace")
+        if name.endswith((".html", ".htm")):
+            text = re.sub(r"(?is)<(script|style).*?</\1>", "", text)
+            text = re.sub(r"(?i)</(p|div|h[1-6]|li|tr)>", "\n\n", text)
+            text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+            text = re.sub(r"<[^>]+>", "", text)
+            text = _html.unescape(text)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    # Word puts each paragraph on one line; make single line breaks into paragraph breaks unless blank lines already exist
+    if "\n\n" not in text:
+        text = text.replace("\n", "\n\n")
+    subject = None
+    m = re.match(r"(?i)\s*subject\s*:\s*(.+)\n+", text)
+    if m:
+        subject = m.group(1).strip()[:200]
+        text = text[m.end():].lstrip()
+    return subject, text
 
 
 def run_send(get_db, send_id, base_url):
@@ -261,12 +342,13 @@ def run_send(get_db, send_id, base_url):
     try:
         s = conn.execute("SELECT * FROM blast_sends WHERE id = ?", (send_id,)).fetchone()
         aud = conn.execute("SELECT * FROM blast_audiences WHERE id = ?", (s["audience_id"],)).fetchone()
+        letter = conn.execute("SELECT * FROM blast_letters WHERE id = ?", (s["letter_id"],)).fetchone()
         queue = conn.execute("SELECT * FROM blast_recipients WHERE send_id = ? AND status = 'queued' ORDER BY id", (send_id,)).fetchall()
         for r in queue:
             cur = conn.execute("SELECT status FROM blast_sends WHERE id = ?", (send_id,)).fetchone()
             if cur["status"] != "running":
                 break
-            subject, html, text = build(aud, r["first_name"], r["contact_id"], base_url)
+            subject, html, text = build(letter, aud, r["first_name"], r["contact_id"], base_url)
             subject = s["subject"] or subject
             try:
                 cf._send(r["email"], subject, html, text, to_name=r["first_name"] or None)
@@ -316,8 +398,29 @@ def register(app, crm, owner_required, get_db):
             abort(404)
         return a
 
+    def _letter(conn, lid):
+        l = conn.execute("SELECT * FROM blast_letters WHERE id = ?", (lid,)).fetchone()
+        if not l:
+            abort(404)
+        return l
+
     def _lists(conn):
         return conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
+
+    def _new_letter(conn, aid, title, kind="text", subject="", body="", link_path=None):
+        conn.execute("INSERT INTO blast_letters (audience_id, title, kind, subject, body, link_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (aid, title[:160], kind, subject, body, link_path, cf._ts(cf._utc_now())))
+        return conn.execute("SELECT id FROM blast_letters ORDER BY id DESC LIMIT 1").fetchone()["id"]
+
+    def _first_name():
+        n = session.get("staff_name") or ""
+        return n.split()[0] if n else "Friend"
+
+    def _letter_row(conn, l):
+        n_sent = conn.execute("SELECT COALESCE(SUM(sent_count), 0) AS n FROM blast_sends WHERE letter_id = ?", (l["id"],)).fetchone()["n"]
+        return dict(l, sent_when=(cf.local_text(l["sent_at"]) if l["sent_at"] else ""), sent_date=(cf.local_text(l["sent_at"]).split(",")[0] if l["sent_at"] else ""),
+                    sent_count=n_sent, empty=(l["kind"] != "standard" and not (l["body"] or "").strip()),
+                    shown_name=(l["title"] or l["subject"] or "Letter"))
 
     @crm.route("/email-blasts", methods=["GET", "POST"])
     @owner_required
@@ -332,16 +435,21 @@ def register(app, crm, owner_required, get_db):
                     conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, scope, created_at) VALUES (?, 'text', ?, '', '', 90, ?, ?)",
                                  (name, int(lid) if (lid and request.form.get("type") != "attendees") else None,
                                   "attendees" if request.form.get("type") == "attendees" else None, cf._ts(cf._utc_now())))
-                    conn.commit()
                     new = conn.execute("SELECT id FROM blast_audiences ORDER BY id DESC LIMIT 1").fetchone()
+                    _new_letter(conn, new["id"], "Draft letter")
+                    conn.commit()
                     return redirect(url_for(".email_blast_edit", aid=new["id"]))
             cards = []
             for a in conn.execute("SELECT * FROM blast_audiences ORDER BY sort_order, id").fetchall():
                 recips = recipients(conn, a)
                 lst = conn.execute("SELECT name FROM contact_lists WHERE id = ?", (a["list_id"],)).fetchone() if a["list_id"] else None
-                last = conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 1", (a["id"],)).fetchone()
-                cards.append(dict(a=a, count=len(recips), list_name=lst["name"] if lst else None, who=(attendee_label(conn, a) if a["scope"] == "attendees" else None),
-                                  last=(dict(last, when=cf.local_text(last["started_at"])) if last else None)))
+                letters = [_letter_row(conn, l) for l in conn.execute("SELECT * FROM blast_letters WHERE audience_id = ? ORDER BY id DESC", (a["id"],)).fetchall()]
+                drafts = [l for l in letters if not l["sent_at"]]
+                sent = [l for l in letters if l["sent_at"]]
+                cards.append(dict(a=a, count=len(recips), list_name=lst["name"] if lst else None,
+                                  who=(attendee_label(conn, a) if a["scope"] == "attendees" else None),
+                                  n_drafts=len(drafts), n_sent=len(sent), last_sent=(sent[0] if sent else None),
+                                  latest=(letters[0] if letters else None)))
             return render_template("email_blasts.html", cards=cards, lists=_lists(conn), live=blasts_live())
         finally:
             conn.close()
@@ -349,12 +457,13 @@ def register(app, crm, owner_required, get_db):
     @crm.route("/email-blasts/<int:aid>", methods=["GET", "POST"])
     @owner_required
     def email_blast_edit(aid):
+        """One audience: who it goes to, and its letters (drafts you can edit, and letters already sent)."""
         ensure_tables(get_db)
         conn = get_db()
         try:
             a = _aud(conn, aid)
             act = request.form.get("action") if request.method == "POST" else None
-            if act == "save":
+            if act == "save_audience":
                 lid = request.form.get("list_id") or None
                 if a["scope"] == "attendees":
                     pid = request.form.get("program_id") or None
@@ -364,52 +473,120 @@ def register(app, crm, owner_required, get_db):
                         pid = row["program_id"] if row else pid
                     conn.execute("UPDATE blast_audiences SET program_id = ?, cohort_id = ? WHERE id = ?",
                                  (int(pid) if pid else None, int(cid) if cid else None, aid))
-                conn.execute("UPDATE blast_audiences SET name = ?, list_id = ?, subject = ?, body = ?, link_path = ? WHERE id = ?",
+                conn.execute("UPDATE blast_audiences SET name = ?, list_id = ? WHERE id = ?",
                              ((request.form.get("name") or a["name"]).strip()[:120],
-                              int(lid) if (lid and a["kind"] != "guides" and not a["everyone"]) else a["list_id"],
-                              (request.form.get("subject") or "").strip()[:200],
-                              request.form.get("body") if a["kind"] == "text" or a["kind"] == "guides" else a["body"],
-                              ((request.form.get("link_path") or "").strip() or None) if a["kind"] != "excitement" else a["link_path"], aid))
+                              int(lid) if (lid and a["kind"] != "guides" and not a["everyone"] and a["scope"] != "attendees") else a["list_id"], aid))
+                conn.commit()
+                flash("Saved who this goes to.")
+                return redirect(url_for(".email_blast_edit", aid=aid))
+            if act == "new_letter":
+                title = (request.form.get("title") or "").strip() or "New letter"
+                subject, body = "", ""
+                f = request.files.get("file")
+                if f and f.filename:
+                    try:
+                        subject, body = parse_upload(f)
+                        subject = subject or ""
+                    except Exception as e:
+                        flash(f"That file could not be read ({e}). Word (.docx), text (.txt) and web page (.html) files work.")
+                        return redirect(url_for(".email_blast_edit", aid=aid))
+                lid = _new_letter(conn, aid, title, "text", subject, body, None)
+                conn.commit()
+                flash("New letter started. Check the wording, then send yourself a test." if body else "New letter started. Write the wording below.")
+                return redirect(url_for(".email_blast_letter", lid=lid))
+            recips = recipients(conn, a)
+            letters = [_letter_row(conn, l) for l in conn.execute("SELECT * FROM blast_letters WHERE audience_id = ? ORDER BY id DESC", (aid,)).fetchall()]
+            progs, sess = programs_and_sessions(conn)
+            sends = [dict(s, when=cf.local_text(s["started_at"])) for s in
+                     conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 10", (aid,)).fetchall()]
+            return render_template("email_blast_edit.html", a=a, lists=_lists(conn), progs=progs, sess=sess,
+                                   who=(attendee_label(conn, a) if a["scope"] == "attendees" else None), count=len(recips),
+                                   letters=letters, sends=sends, live=blasts_live())
+        finally:
+            conn.close()
+
+    @crm.route("/email-blasts/letter/<int:lid>", methods=["GET", "POST"])
+    @owner_required
+    def email_blast_letter(lid):
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            l = _letter(conn, lid)
+            a = _aud(conn, l["audience_id"])
+            locked = bool(l["sent_at"])
+            act = request.form.get("action") if request.method == "POST" else None
+            back = redirect(url_for(".email_blast_letter", lid=lid))
+            if act == "duplicate":
+                nid = _new_letter(conn, a["id"], (l["title"] or "Letter") + " (copy)", "text",
+                                  l["subject"] or "", (l["body"] if l["kind"] == "text" else standard_text()), l["link_path"])
+                conn.commit()
+                flash("A new draft was made from this letter. You can edit this one.")
+                return redirect(url_for(".email_blast_letter", lid=nid))
+            if act == "delete":
+                used = conn.execute("SELECT 1 FROM blast_sends WHERE letter_id = ?", (lid,)).fetchone()
+                if locked or used:
+                    flash("A letter that has been sent cannot be deleted.")
+                    return back
+                conn.execute("DELETE FROM blast_letters WHERE id = ?", (lid,))
+                conn.commit()
+                flash("Draft deleted.")
+                return redirect(url_for(".email_blast_edit", aid=a["id"]))
+            if act in ("save", "customize", "test") and locked:
+                flash("This letter has already been sent, so it can no longer be changed. Use \u201cCopy to a new draft\u201d to write another.")
+                return back
+            if act == "customize" and l["kind"] == "standard":
+                conn.execute("UPDATE blast_letters SET kind = 'text', body = ?, title = ? WHERE id = ?",
+                             (standard_text(), "Excitement is Growing (edited)", lid))
+                conn.commit()
+                flash("You can now edit the wording. Don't forget to send yourself a test.")
+                return back
+            if act == "save":
+                conn.execute("UPDATE blast_letters SET title = ?, subject = ?, body = ?, link_path = ? WHERE id = ?",
+                             ((request.form.get("title") or l["title"] or "Letter").strip()[:160], (request.form.get("subject") or "").strip()[:200],
+                              request.form.get("body") if l["kind"] == "text" else l["body"],
+                              ((request.form.get("link_path") or "").strip() or None) if l["kind"] == "text" else l["link_path"], lid))
                 conn.commit()
                 flash("Saved. Send yourself a test before the real send.")
-                return redirect(url_for(".email_blast_edit", aid=aid))
+                return back
             if act == "test":
                 to = (request.form.get("to") or "").strip()
                 if "@" not in to:
                     flash("Please enter an email address for the test.")
                 else:
-                    first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
-                    subject, html, text = build(a, first, 0, base())
+                    subject, html, text = build(l, a, _first_name(), 0, base())
                     try:
-                        cf._send(to, "[TEST] " + (subject or "(no subject)"), html, text, to_name=first)
-                        conn.execute("UPDATE blast_audiences SET tested_hash = ?, tested_at = ? WHERE id = ?",
-                                     (content_hash(a), cf._ts(cf._utc_now()), aid))
+                        cf._send(to, "[TEST] " + (subject or "(no subject)"), html, text, to_name=_first_name())
+                        conn.execute("UPDATE blast_letters SET tested_hash = ?, tested_at = ? WHERE id = ?", (content_hash(l), cf._ts(cf._utc_now()), lid))
                         conn.commit()
                         flash(f"Test sent to {to}. Check how it looks, then you can send for real.")
                     except Exception as e:
                         flash(f"The test could not be sent: {e}")
-                return redirect(url_for(".email_blast_edit", aid=aid))
+                return back
+            recips = recipients(conn, a)
+            skip = already_received(conn, l)
+            todo = [r for r in recips if r[2].lower() not in skip]
             if act == "send":
-                recips = recipients(conn, a)
-                skip = already_received(conn, a)
-                todo = [r for r in recips if r[2].lower() not in skip]
                 if not blasts_live():
                     flash("Real sending is switched off (BLASTS_LIVE is not set to 1 in Render).")
                 elif (request.form.get("confirm") or "").strip() != "SEND":
                     flash("Type SEND in the box to confirm.")
-                elif a["tested_hash"] != content_hash(a):
+                elif l["tested_hash"] != content_hash(l):
                     flash("Please send yourself a test of the current wording first.")
-                elif not (a["subject"] or "").strip() and a["kind"] != "excitement":
+                elif not (l["subject"] or "").strip() and l["kind"] != "standard":
                     flash("Please add a subject line.")
-                elif a["kind"] != "excitement" and not (a["body"] or "").strip():
+                elif l["kind"] != "standard" and not (l["body"] or "").strip():
                     flash("Please write the message first.")
                 elif not todo:
                     flash("There is nobody left to send this to.")
                 else:
-                    snap_subject, snap_html, _t = build(a, "Friend", 0, base())
-                    conn.execute("INSERT INTO blast_sends (audience_id, subject, sent_by, status, total, skipped_count, started_at, snapshot_html) VALUES (?, ?, ?, 'running', ?, ?, ?, ?)",
-                                 (aid, a["subject"] or snap_subject, session.get("staff_name"), len(todo), len(recips) - len(todo), cf._ts(cf._utc_now()), snap_html))
+                    snap_subject, snap_html, _t = build(l, a, "Friend", 0, base())
+                    now = cf._ts(cf._utc_now())
+                    conn.execute("INSERT INTO blast_sends (audience_id, letter_id, subject, sent_by, status, total, skipped_count, started_at, snapshot_html) "
+                                 "VALUES (?, ?, ?, ?, 'running', ?, ?, ?, ?)",
+                                 (a["id"], lid, l["subject"] or snap_subject, session.get("staff_name"), len(todo), len(recips) - len(todo), now, snap_html))
                     sid = conn.execute("SELECT id FROM blast_sends ORDER BY id DESC LIMIT 1").fetchone()["id"]
+                    if not l["sent_at"]:
+                        conn.execute("UPDATE blast_letters SET sent_at = ? WHERE id = ?", (now, lid))
                     for cid, first, email in todo:
                         conn.execute("INSERT INTO blast_recipients (send_id, contact_id, first_name, email) VALUES (?, ?, ?, ?)", (sid, cid, first, email))
                     conn.commit()
@@ -418,39 +595,35 @@ def register(app, crm, owner_required, get_db):
                     else:
                         threading.Thread(target=run_send, args=(get_db, sid, base()), daemon=True).start()
                     return redirect(url_for(".email_blast_send", sid=sid))
-                return redirect(url_for(".email_blast_edit", aid=aid))
-            recips = recipients(conn, a)
-            skip = already_received(conn, a)
-            first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
-            subject, html, _t = build(a, first, 0, base())
+                return back
+            subject, html, _t = build(l, a, _first_name(), 0, base())
             sends = [dict(s, when=cf.local_text(s["started_at"])) for s in
-                     conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 10", (aid,)).fetchall()]
+                     conn.execute("SELECT * FROM blast_sends WHERE letter_id = ? ORDER BY id DESC LIMIT 10", (lid,)).fetchall()]
             owner = conn.execute("SELECT email FROM staff WHERE id = ?", (session.get("staff_id"),)).fetchone()
-            progs, sess = programs_and_sessions(conn)
-            a = _aud(conn, aid)
-            return render_template("email_blast_edit.html", a=a, lists=_lists(conn), progs=progs, sess=sess,
-                                   who=(attendee_label(conn, a) if a["scope"] == "attendees" else None), count=len(recips), already=len([r for r in recips if r[2].lower() in skip]),
-                                   preview_subject=subject, preview_html=html, tested=(a["tested_hash"] == content_hash(a)),
-                                   tested_when=cf.local_text(a["tested_at"]) if a["tested_at"] else "", live=blasts_live(), sends=sends,
-                                   owner_email=(owner["email"] if owner else ""))
+            lr = _letter_row(conn, conn.execute("SELECT * FROM blast_letters WHERE id = ?", (lid,)).fetchone())
+            return render_template("email_blast_letter.html", a=a, l=lr, locked=locked, count=len(recips), remaining=len(todo),
+                                   already=len(recips) - len(todo), preview_subject=subject, preview_html=html,
+                                   tested=(l["tested_hash"] == content_hash(l)), tested_when=cf.local_text(l["tested_at"]) if l["tested_at"] else "",
+                                   live=blasts_live(), sends=sends, owner_email=(owner["email"] if owner else ""))
         finally:
             conn.close()
 
     @crm.route("/email-blasts/letters")
     @owner_required
     def email_blast_letters():
-        """Every audience's letter on one page, plus what was actually sent the last time."""
+        """Every letter on one page: drafts and the ones already sent, with the dates."""
         ensure_tables(get_db)
         conn = get_db()
         try:
-            first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
             items = []
             for a in conn.execute("SELECT * FROM blast_audiences ORDER BY sort_order, id").fetchall():
-                subject, html, _t = build(a, first, 0, base())
-                last = conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 1", (a["id"],)).fetchone()
-                items.append(dict(a=a, subject=subject, html=html, count=len(recipients(conn, a)),
-                                  empty=(a["kind"] != "excitement" and not (a["body"] or "").strip()),
-                                  last=(dict(last, when=cf.local_text(last["started_at"])) if last else None)))
+                count = len(recipients(conn, a))
+                ls = []
+                for l in conn.execute("SELECT * FROM blast_letters WHERE audience_id = ? ORDER BY id DESC", (a["id"],)).fetchall():
+                    row = _letter_row(conn, l)
+                    subject, html, _t = build(l, a, _first_name(), 0, base())
+                    ls.append(dict(row, subject_shown=subject, html=html))
+                items.append(dict(a=a, count=count, letters=ls))
             return render_template("email_blast_letters.html", items=items)
         finally:
             conn.close()
