@@ -2,7 +2,7 @@
 {% block title %}Sending — Email blasts{% endblock %}
 {% block content %}
 {% if s.status == 'running' %}<meta http-equiv="refresh" content="5">{% endif %}
-<p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; {{ a.name }}</a></p>
+<p><a href="{{ url_for('.email_blast_letter', lid=s.letter_id) if s.letter_id else url_for('.email_blast_edit', aid=a.id) }}">&larr; Back to the letter</a> &middot; <a href="{{ url_for('.email_blast_edit', aid=a.id) }}">{{ a.name }}</a></p>
 <h1>{{ a.name }}: {{ {'running': 'sending…', 'done': 'finished', 'stopped': 'stopped'}.get(s.status, s.status) }}</h1>
 <div class="card" style="max-width:560px">
   <p style="margin:0 0 6px">Started {{ started }}{% if s.sent_by %} by {{ s.sent_by }}{% endif %}</p>

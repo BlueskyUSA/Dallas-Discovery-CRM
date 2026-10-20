@@ -1,8 +1,8 @@
 {% extends "crm_base.html" %}
-{% block title %}Email blasts — {{ program_name }}{% endblock %}
+{% block title %}Email blasts, letters, and other communication — {{ program_name }}{% endblock %}
 {% block content %}
-<h1>Email blasts</h1>
-<p class="muted">Owner only. Each card sends one email to one group. Open a card to edit the message, send yourself a test, and send it for real. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
+<h1>Email blasts, letters, and other communication</h1>
+<p class="muted">Owner only. Each card sends one email to one group. Open a card to see its letters, edit a draft, upload another letter, send yourself a test, and send it for real. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong>. You can still edit and send yourself tests. To allow real sends, add <code>BLASTS_LIVE</code> = <code>1</code> in Render&rsquo;s Environment.</p>{% endif %}
 <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-bottom:24px">
@@ -11,11 +11,11 @@
     <h3 style="margin-top:0">{{ c.a.name }}</h3>
     <p style="margin:0 0 4px"><strong>{{ c.count }}</strong> {{ 'person' if c.count == 1 else 'people' }} would receive it</p>
     <p class="muted" style="margin:0 0 10px">
-      {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.a.everyone %}Everyone in the Entire Database{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
+      {% if c.a.kind == 'guides' %}Everyone active on the Guides page{% elif c.who %}{{ c.who }}{% elif c.a.everyone %}Everyone in the Entire Database{% elif c.list_name %}List: {{ c.list_name }}{% else %}No list chosen yet{% endif %}
     </p>
-    {% if c.a.kind != 'excitement' and not (c.a.body or '').strip() %}<p class="muted" style="margin:0 0 10px">No message written yet.</p>{% endif %}
-    {% if c.last %}<p class="muted" style="margin:0 0 10px">Last send: {{ c.last.when }} &mdash; {{ c.last.sent_count }} sent{% if c.last.failed_count %}, {{ c.last.failed_count }} failed{% endif %}</p>{% endif %}
-    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a> <a class="btn secondary" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}#preview">View letter</a>
+    <p class="muted" style="margin:0 0 10px">{{ c.n_sent }} sent &middot; {{ c.n_drafts }} draft{{ '' if c.n_drafts == 1 else 's' }}{% if c.last_sent %}<br>Last sent <strong>{{ c.last_sent.sent_date }}</strong> to {{ c.last_sent.sent_count }}{% endif %}</p>
+    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a>
+    {% if c.latest %}<a class="btn secondary" href="{{ url_for('.email_blast_letter', lid=c.latest.id) }}">{{ 'View letter' if c.latest.sent_at else 'Edit letter' }}</a>{% endif %}
   </div>
 {% endfor %}
 </div>
@@ -33,6 +33,8 @@
   <h3 style="margin-top:0">Add another audience</h3>
   <form method="post">
     <div class="field"><label>Name</label><input name="name" required maxlength="120" placeholder="e.g. Past TAs"></div>
+    <div class="field"><label>Who it goes to</label>
+      <select name="type"><option value="list">A contact list (choose below)</option><option value="attendees">Program attendees (choose program on the next page)</option></select></div>
     <div class="field"><label>Contact list</label>
       <select name="list_id"><option value="">Choose later&hellip;</option>{% for l in lists %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
     <button class="btn" type="submit">Add</button>
