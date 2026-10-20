@@ -55,6 +55,9 @@ def ensure_tables(get_db):
             tested_at TEXT,
             sort_order INTEGER NOT NULL DEFAULT 100,
             everyone INTEGER NOT NULL DEFAULT 0,
+            scope TEXT,
+            program_id INTEGER,
+            cohort_id INTEGER,
             created_at TEXT NOT NULL)""")
         conn.execute("""CREATE TABLE IF NOT EXISTS blast_sends (
             id SERIAL PRIMARY KEY,
@@ -78,7 +81,11 @@ def ensure_tables(get_db):
             status TEXT NOT NULL DEFAULT 'queued',
             error TEXT,
             sent_at TEXT)""")
+        conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS blast_optout INTEGER NOT NULL DEFAULT 0")
         conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS everyone INTEGER NOT NULL DEFAULT 0")
+        conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS scope TEXT")
+        conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS program_id INTEGER")
+        conn.execute("ALTER TABLE blast_audiences ADD COLUMN IF NOT EXISTS cohort_id INTEGER")
         conn.execute("ALTER TABLE blast_sends ADD COLUMN IF NOT EXISTS snapshot_html TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS do_not_email INTEGER NOT NULL DEFAULT 0")
         conn.commit()
@@ -100,6 +107,11 @@ def ensure_tables(get_db):
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (name, kind, lid, subj, body, link, order, 1 if "Entire Database" in name else 0, now))
             conn.commit()
         # make sure the two data-set lists exist, and point the volunteer email at the people who responded
+        if not conn.execute("SELECT 1 FROM blast_audiences WHERE scope = 'attendees'").fetchone():
+            now2 = cf._ts(cf._utc_now())
+            for name, order in (("Attendees: all programs", 60), ("Attendees: one program or session", 61)):
+                conn.execute("INSERT INTO blast_audiences (name, kind, subject, body, sort_order, scope, created_at) VALUES (?, 'text', '', '', ?, 'attendees', ?)",
+                             (name, order, now2))
         # The Discovery download keeps its own list, separate from all other data (earlier names are renamed).
         if not conn.execute("SELECT 1 FROM contact_lists WHERE LOWER(name) = LOWER(?)", (cf.DISCOVERY_LIST,)).fetchone():
             for old_name in cf.OLD_DISCOVERY_LISTS:
@@ -137,16 +149,26 @@ def _secret():
     return (current_app.secret_key or "dev").encode()
 
 
-def unsub_token(contact_id):
-    sig = hmac.new(_secret(), f"unsub:{contact_id}".encode(), hashlib.sha256).hexdigest()[:24]
-    return f"{contact_id}-{sig}"
+def unsub_token(ref):
+    """ref > 0 is a contact id; ref < 0 is a Guide (call_volunteers id)."""
+    if ref < 0:
+        sig = hmac.new(_secret(), f"unsubg:{-ref}".encode(), hashlib.sha256).hexdigest()[:24]
+        return f"g{-ref}-{sig}"
+    sig = hmac.new(_secret(), f"unsub:{ref}".encode(), hashlib.sha256).hexdigest()[:24]
+    return f"c{ref}-{sig}"
 
 
-def unsub_contact(token):
+def unsub_target(token):
+    """('contact', id) or ('guide', id) for a valid link, else None."""
     try:
-        cid, sig = (token or "").split("-", 1)
-        good = hmac.new(_secret(), f"unsub:{int(cid)}".encode(), hashlib.sha256).hexdigest()[:24]
-        return int(cid) if hmac.compare_digest(sig, good) else None
+        head, sig = (token or "").split("-", 1)
+        if head[:1] == "g":
+            n = int(head[1:])
+            good = hmac.new(_secret(), f"unsubg:{n}".encode(), hashlib.sha256).hexdigest()[:24]
+            return ("guide", n) if hmac.compare_digest(sig, good) else None
+        n = int(head[1:] if head[:1] == "c" else head)
+        good = hmac.new(_secret(), f"unsub:{n}".encode(), hashlib.sha256).hexdigest()[:24]
+        return ("contact", n) if hmac.compare_digest(sig, good) else None
     except Exception:
         return None
 
@@ -159,8 +181,21 @@ def recipients(conn, aud):
     """[(contact_id or None, first_name, email)] — people who can be emailed, one per address."""
     rows = []
     if aud["kind"] == "guides":
-        for r in conn.execute("SELECT name, email FROM call_volunteers WHERE active = 1 ORDER BY id").fetchall():
-            rows.append((None, (r["name"] or "").split()[0] if r["name"] else "", r["email"]))
+        for r in conn.execute("SELECT id, name, email FROM call_volunteers WHERE active = 1 AND COALESCE(blast_optout, 0) = 0 ORDER BY id").fetchall():
+            rows.append((-r["id"], (r["name"] or "").split()[0] if r["name"] else "", r["email"]))
+    elif aud["scope"] == "attendees":
+        sql = ("SELECT DISTINCT c.id, c.first_name, c.email FROM enrollments e JOIN contacts c ON c.id = e.contact_id "
+               "JOIN cohorts co ON co.id = e.cohort_id WHERE COALESCE(co.status, '') <> 'Cancelled' "
+               "AND c.email IS NOT NULL AND c.email <> '' AND COALESCE(c.do_not_email, 0) = 0")
+        args = []
+        if aud["cohort_id"]:
+            sql += " AND co.id = ?"
+            args.append(aud["cohort_id"])
+        elif aud["program_id"]:
+            sql += " AND co.program_id = ?"
+            args.append(aud["program_id"])
+        for r in conn.execute(sql + " ORDER BY c.id", tuple(args)).fetchall():
+            rows.append((r["id"], r["first_name"] or "", r["email"]))
     elif aud["everyone"]:
         for r in conn.execute("""SELECT id, first_name, email FROM contacts WHERE email IS NOT NULL AND email <> '' AND COALESCE(do_not_email, 0) = 0 ORDER BY id""").fetchall():
             rows.append((r["id"], r["first_name"] or "", r["email"]))
@@ -172,6 +207,7 @@ def recipients(conn, aud):
             rows.append((r["id"], r["first_name"] or "", r["email"]))
     # an address that has unsubscribed on ANY contact record is never emailed (people are sometimes in the database twice)
     blocked = {r["e"] for r in conn.execute("SELECT DISTINCT LOWER(email) AS e FROM contacts WHERE COALESCE(do_not_email, 0) = 1 AND email IS NOT NULL").fetchall()}
+    blocked |= {r["e"] for r in conn.execute("SELECT DISTINCT LOWER(email) AS e FROM call_volunteers WHERE COALESCE(blast_optout, 0) = 1 AND email IS NOT NULL").fetchall()}
     seen, out = set(blocked), []
     for cid, first, email in rows:
         e = (email or "").strip()
@@ -193,12 +229,14 @@ def build(aud, first, contact_id, base_url):
     """(subject, html, text) for one person."""
     greet = first.strip() if first and first.strip() else "Friend"
     footer_h = footer_t = ""
-    if aud["kind"] != "guides" and contact_id is not None:
-        u = "#" if contact_id == -1 else f"{base_url}/unsubscribe/{unsub_token(contact_id)}"
+    if contact_id is not None:
+        u = "#" if contact_id == 0 else f"{base_url}/unsubscribe/{unsub_token(contact_id)}"
+        what = ("Unsubscribe from Guide announcements (you will still get alerts about requests)" if aud["kind"] == "guides" else "Unsubscribe")
+        why = ("You are receiving this because you are a Dallas Discovery Guide." if aud["kind"] == "guides"
+               else "You are receiving this because you are part of the Dallas Discovery community.")
         footer_h = (f'<hr style="border:none;border-top:1px solid #ddd;margin:24px 0 10px">'
-                    f'<p style="font-size:.8em;color:#777">You are receiving this because you are part of the Dallas Discovery community. '
-                    f'<a href="{u}">Unsubscribe</a></p>')
-        footer_t = f"\n\n--\nYou are receiving this because you are part of the Dallas Discovery community. Unsubscribe: {u}"
+                    f'<p style="font-size:.8em;color:#777">{why} <a href="{u}">{what}</a></p>')
+        footer_t = f"\n\n--\n{why} {what}: {u}"
     if aud["kind"] == "excitement":
         html, text = excitement_blast_content(greet)
         return aud["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
@@ -249,6 +287,26 @@ def run_send(get_db, send_id, base_url):
         conn.close()
 
 
+def attendee_label(conn, aud):
+    """Plain-English description of who an 'attendees' audience goes to."""
+    if aud["cohort_id"]:
+        r = conn.execute("SELECT p.name AS pn, co.session_number AS n, co.session_date AS d FROM cohorts co JOIN programs p ON p.id = co.program_id WHERE co.id = ?", (aud["cohort_id"],)).fetchone()
+        if r:
+            return f"Enrolled in {r['pn']} session #{r['n']} ({r['d']})"
+    if aud["program_id"]:
+        r = conn.execute("SELECT name FROM programs WHERE id = ?", (aud["program_id"],)).fetchone()
+        if r:
+            return f"Everyone enrolled in {r['name']}"
+    return "Everyone enrolled in any program"
+
+
+def programs_and_sessions(conn):
+    progs = conn.execute("SELECT id, name FROM programs ORDER BY id").fetchall()
+    sess = conn.execute("SELECT co.id, co.program_id, co.session_number, co.session_date, p.name AS pn FROM cohorts co JOIN programs p ON p.id = co.program_id "
+                        "ORDER BY co.session_date DESC").fetchall()
+    return progs, sess
+
+
 def register(app, crm, owner_required, get_db):
     base = lambda: cf._base_url()
 
@@ -271,8 +329,9 @@ def register(app, crm, owner_required, get_db):
                 name = (request.form.get("name") or "").strip()[:120]
                 lid = request.form.get("list_id") or None
                 if name:
-                    conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, created_at) VALUES (?, 'text', ?, '', '', 90, ?)",
-                                 (name, int(lid) if lid else None, cf._ts(cf._utc_now())))
+                    conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, scope, created_at) VALUES (?, 'text', ?, '', '', 90, ?, ?)",
+                                 (name, int(lid) if (lid and request.form.get("type") != "attendees") else None,
+                                  "attendees" if request.form.get("type") == "attendees" else None, cf._ts(cf._utc_now())))
                     conn.commit()
                     new = conn.execute("SELECT id FROM blast_audiences ORDER BY id DESC LIMIT 1").fetchone()
                     return redirect(url_for(".email_blast_edit", aid=new["id"]))
@@ -281,7 +340,7 @@ def register(app, crm, owner_required, get_db):
                 recips = recipients(conn, a)
                 lst = conn.execute("SELECT name FROM contact_lists WHERE id = ?", (a["list_id"],)).fetchone() if a["list_id"] else None
                 last = conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 1", (a["id"],)).fetchone()
-                cards.append(dict(a=a, count=len(recips), list_name=lst["name"] if lst else None,
+                cards.append(dict(a=a, count=len(recips), list_name=lst["name"] if lst else None, who=(attendee_label(conn, a) if a["scope"] == "attendees" else None),
                                   last=(dict(last, when=cf.local_text(last["started_at"])) if last else None)))
             return render_template("email_blasts.html", cards=cards, lists=_lists(conn), live=blasts_live())
         finally:
@@ -297,6 +356,14 @@ def register(app, crm, owner_required, get_db):
             act = request.form.get("action") if request.method == "POST" else None
             if act == "save":
                 lid = request.form.get("list_id") or None
+                if a["scope"] == "attendees":
+                    pid = request.form.get("program_id") or None
+                    cid = request.form.get("cohort_id") or None
+                    if cid:
+                        row = conn.execute("SELECT program_id FROM cohorts WHERE id = ?", (int(cid),)).fetchone()
+                        pid = row["program_id"] if row else pid
+                    conn.execute("UPDATE blast_audiences SET program_id = ?, cohort_id = ? WHERE id = ?",
+                                 (int(pid) if pid else None, int(cid) if cid else None, aid))
                 conn.execute("UPDATE blast_audiences SET name = ?, list_id = ?, subject = ?, body = ?, link_path = ? WHERE id = ?",
                              ((request.form.get("name") or a["name"]).strip()[:120],
                               int(lid) if (lid and a["kind"] != "guides" and not a["everyone"]) else a["list_id"],
@@ -312,7 +379,7 @@ def register(app, crm, owner_required, get_db):
                     flash("Please enter an email address for the test.")
                 else:
                     first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
-                    subject, html, text = build(a, first, -1 if a["kind"] != "guides" else None, base())
+                    subject, html, text = build(a, first, 0, base())
                     try:
                         cf._send(to, "[TEST] " + (subject or "(no subject)"), html, text, to_name=first)
                         conn.execute("UPDATE blast_audiences SET tested_hash = ?, tested_at = ? WHERE id = ?",
@@ -339,7 +406,7 @@ def register(app, crm, owner_required, get_db):
                 elif not todo:
                     flash("There is nobody left to send this to.")
                 else:
-                    snap_subject, snap_html, _t = build(a, "Friend", -1 if a["kind"] != "guides" else None, base())
+                    snap_subject, snap_html, _t = build(a, "Friend", 0, base())
                     conn.execute("INSERT INTO blast_sends (audience_id, subject, sent_by, status, total, skipped_count, started_at, snapshot_html) VALUES (?, ?, ?, 'running', ?, ?, ?, ?)",
                                  (aid, a["subject"] or snap_subject, session.get("staff_name"), len(todo), len(recips) - len(todo), cf._ts(cf._utc_now()), snap_html))
                     sid = conn.execute("SELECT id FROM blast_sends ORDER BY id DESC LIMIT 1").fetchone()["id"]
@@ -355,11 +422,14 @@ def register(app, crm, owner_required, get_db):
             recips = recipients(conn, a)
             skip = already_received(conn, a)
             first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
-            subject, html, _t = build(a, first, -1 if a["kind"] != "guides" else None, base())
+            subject, html, _t = build(a, first, 0, base())
             sends = [dict(s, when=cf.local_text(s["started_at"])) for s in
                      conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 10", (aid,)).fetchall()]
             owner = conn.execute("SELECT email FROM staff WHERE id = ?", (session.get("staff_id"),)).fetchone()
-            return render_template("email_blast_edit.html", a=a, lists=_lists(conn), count=len(recips), already=len([r for r in recips if r[2].lower() in skip]),
+            progs, sess = programs_and_sessions(conn)
+            a = _aud(conn, aid)
+            return render_template("email_blast_edit.html", a=a, lists=_lists(conn), progs=progs, sess=sess,
+                                   who=(attendee_label(conn, a) if a["scope"] == "attendees" else None), count=len(recips), already=len([r for r in recips if r[2].lower() in skip]),
                                    preview_subject=subject, preview_html=html, tested=(a["tested_hash"] == content_hash(a)),
                                    tested_when=cf.local_text(a["tested_at"]) if a["tested_at"] else "", live=blasts_live(), sends=sends,
                                    owner_email=(owner["email"] if owner else ""))
@@ -376,7 +446,7 @@ def register(app, crm, owner_required, get_db):
             first = (session.get("staff_name") or "").split()[0] if session.get("staff_name") else "Friend"
             items = []
             for a in conn.execute("SELECT * FROM blast_audiences ORDER BY sort_order, id").fetchall():
-                subject, html, _t = build(a, first, -1 if a["kind"] != "guides" else None, base())
+                subject, html, _t = build(a, first, 0, base())
                 last = conn.execute("SELECT * FROM blast_sends WHERE audience_id = ? ORDER BY id DESC LIMIT 1", (a["id"],)).fetchone()
                 items.append(dict(a=a, subject=subject, html=html, count=len(recipients(conn, a)),
                                   empty=(a["kind"] != "excitement" and not (a["body"] or "").strip()),
@@ -408,21 +478,29 @@ def register(app, crm, owner_required, get_db):
     @app.route("/unsubscribe/<token>", methods=["GET", "POST"])
     def public_unsubscribe(token):
         ensure_tables(get_db)
-        cid = unsub_contact(token)
-        if not cid:
+        t = unsub_target(token)
+        if not t:
             abort(404)
+        kind, n = t
         done = False
         if request.method == "POST":
             conn = get_db()
             try:
-                conn.execute("UPDATE contacts SET do_not_email = 1 WHERE id = ?", (cid,))
-                conn.execute("UPDATE contacts SET do_not_email = 1 WHERE email IS NOT NULL AND LOWER(email) = "
-                             "(SELECT LOWER(email) FROM contacts WHERE id = ?)", (cid,))
+                if kind == "guide":
+                    conn.execute("UPDATE call_volunteers SET blast_optout = 1 WHERE LOWER(email) = (SELECT LOWER(email) FROM call_volunteers WHERE id = ?)", (n,))
+                    conn.execute("UPDATE contacts SET do_not_email = 1 WHERE email IS NOT NULL AND LOWER(email) = "
+                                 "(SELECT LOWER(email) FROM call_volunteers WHERE id = ?)", (n,))
+                else:
+                    conn.execute("UPDATE contacts SET do_not_email = 1 WHERE id = ?", (n,))
+                    conn.execute("UPDATE contacts SET do_not_email = 1 WHERE email IS NOT NULL AND LOWER(email) = "
+                                 "(SELECT LOWER(email) FROM contacts WHERE id = ?)", (n,))
+                    conn.execute("UPDATE call_volunteers SET blast_optout = 1 WHERE LOWER(email) = "
+                                 "(SELECT LOWER(email) FROM contacts WHERE id = ?)", (n,))
                 conn.commit()
                 done = True
             finally:
                 conn.close()
-        return render_template("public_unsubscribe.html", done=done)
+        return render_template("public_unsubscribe.html", done=done, guide=(kind == "guide"))
 
     # a restart in the middle of a send picks up where it left off
     def _resume():
