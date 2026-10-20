@@ -24,9 +24,10 @@
   <form method="post" enctype="multipart/form-data">
     <input type="hidden" name="action" value="new_letter">
     <div class="field"><label>Name for this letter</label><input name="title" maxlength="160" placeholder="e.g. November update"></div>
-    <div class="field"><label>Upload a letter (optional)</label><input type="file" name="file" accept=".docx,.txt,.html,.htm">
+    <div class="field"><label>Upload a letter (optional)</label><input type="file" name="file" accept=".docx,.txt,.html,.htm" onchange="document.getElementById('upHint').style.display=this.files.length?'block':'none'">
       <div class="muted">Word (.docx), text or web page. Fonts and pictures are not kept; paragraphs are. If the first line says <code>Subject: ...</code> it becomes the subject. Use <code>{first}</code> where the first name goes. Leave this empty to write one from scratch.</div></div>
-    <button class="btn" type="submit">Start letter</button>
+    <p id="upHint" style="display:none; margin:0 0 8px; color:#a15c00"><strong>File chosen. Now click the button below to upload it.</strong></p>
+    <button class="btn" type="submit">Upload letter &amp; start</button>
   </form>
 </div>
 
