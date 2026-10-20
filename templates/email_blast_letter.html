@@ -44,13 +44,13 @@
 
 {% if not locked %}
 <div class="card" style="max-width:760px; margin-bottom:16px">
-  <h3 style="margin-top:0">3. Send yourself a test</h3>
+  <h3 style="margin-top:0">3. Send to yourself or someone else for review and test</h3>
   <form method="post" class="inline">
     <input type="hidden" name="action" value="test">
     <input name="to" type="email" value="{{ owner_email }}" style="min-width:260px">
     <button class="btn secondary" type="submit">Send test</button>
   </form>
-  <p class="muted" style="margin:8px 0 0">{% if tested %}Tested {{ tested_when }}. This is the wording that will go out.{% else %}Not tested yet with the current wording. Save any changes, then send a test.{% endif %}</p>
+  <p class="muted" style="margin:8px 0 0">{% if tested %}Tested {{ tested_when }}. This is the wording that will go out.{% else %}Not tested yet with the current wording. Save any changes, then send a test. You can type any email address, such as a reviewer, to see it first.{% endif %}</p>
 </div>
 {% endif %}
 
