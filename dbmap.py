@@ -14,7 +14,7 @@ BLOCKS = [
         ("profile_relationship", "The Relationship Training (D4) profile: questions about the relationship. Stored in training_profiles."),
         ("profile_d1", "The D1 profile: basic questions now, the rest still to be determined (TBD). Stored in training_profiles."),
     ]),
-    ("programs", "Programs and sessions", "#6a4c93", "What we teach and when: programs, scheduled sessions and their groups.", [
+    ("programs", "Programs and Sessions", "#6a4c93", "What we teach and when: programs, scheduled sessions and their groups.", [
         ("programs", "The trainings we offer (D1, Relationship Training and so on)."),
         ("cohorts", "Each scheduled session of a program, with dates and capacity."),
         ("small_groups", "The small groups inside a session."),
@@ -23,7 +23,7 @@ BLOCKS = [
         ("playlist_songs", "The songs on those lists."),
         ("program_movies", "Movies used in a program."),
     ]),
-    ("enroll", "Enrollment and training", "#2a7f62", "Who is enrolled in which session, who staffed it, and what they said afterward.", [
+    ("enroll", "Enrollment and Training", "#2a7f62", "Who is enrolled in which session, who staffed it, and what they said afterward.", [
         ("enrollments", "One row each time a person is enrolled in a session."),
         ("cohort_staffing", "Who served on a session's team (Director, Facilitator, TA)."),
         ("small_group_staffing", "Who led each small group."),
@@ -34,7 +34,7 @@ BLOCKS = [
     ("money", "Money", "#b5651d", "Gifts and donations.", [
         ("donations", "One row per donation."),
     ]),
-    ("outreach", "Outreach and volunteers", "#c0392b", "People asking to hear from us, the Guides who answer, and our emails.", [
+    ("outreach", "Outreach and Volunteers", "#c0392b", "People asking to hear from us, the Guides who answer, and our emails.", [
         ("interest_log", "Each time someone used a Curious / interest form."),
         ("call_requests", "A request to be called or texted, and how it went."),
         ("call_notices", "The alert sent to each Guide for a request."),
@@ -44,7 +44,7 @@ BLOCKS = [
         ("blast_sends", "Each blast that was sent."),
         ("blast_recipients", "Who each blast went to, and whether it arrived."),
     ]),
-    ("team", "Team and access", "#34495e", "Staff logins and what each can see.", [
+    ("team", "Team and Access", "#34495e", "Staff logins and what each can see.", [
         ("staff", "Staff and leadership accounts."),
         ("access_grants", "Extra areas a staff member has been given."),
     ]),
@@ -76,6 +76,11 @@ def _reorder(table, names, rows=None):
 
 # Plain-English names shown on the map (the technical table name stays visible underneath).
 TITLES = {
+    "cohorts": "Sessions (Cohorts)",
+    "call_volunteers": "Guides",
+    "blast_audiences": "Correspondence Groups",
+    "blast_sends": "Correspondence Sends",
+    "blast_recipients": "Correspondence Recipients",
     "contact_lists": "Data Sources",
     "contact_list_members": "Who Is in Each Data Source",
     "profile_relationship": "Relationship Training Profile (D4)",
@@ -150,6 +155,8 @@ NAME_LOOKUPS = {
     "program_id": ("program_name", "SELECT name FROM programs WHERE id = ?"),
     "cohort_id": ("session", "SELECT p.code || ' #' || c.session_number FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?"),
     "enrollment_id": ("enrollee", "SELECT TRIM(COALESCE(ct.first_name,'') || ' ' || COALESCE(ct.last_name,'')) FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id WHERE e.id = ?"),
+    "staff_id": ("staff_name", "SELECT name FROM staff WHERE id = ?"),
+    "volunteer_id": ("guide_name", "SELECT name FROM call_volunteers WHERE id = ?"),
     "audience_id": ("group_name", "SELECT name FROM blast_audiences WHERE id = ?"),
     "letter_id": ("letter_name", "SELECT title FROM blast_letters WHERE id = ?"),
 }
@@ -163,7 +170,7 @@ def register(app, crm, owner_required, get_db):
         try:
             blocks = []
             for key, title, color, what, tables in BLOCKS:
-                ts = [dict(name=t, title=TITLES.get(t, t), desc=d, count=count_of(conn, t), cols=columns_of(conn, t)) for t, d in tables]
+                ts = [dict(name=t, title=TITLES.get(t) or t.replace("_", " ").title(), desc=(d[:1].upper() + d[1:]), count=count_of(conn, t), cols=columns_of(conn, t)) for t, d in tables]
                 blocks.append(dict(key=key, title=title, color=color, what=what, tables=ts,
                                    total=sum(t["count"] or 0 for t in ts)))
             return render_template("database_map.html", blocks=blocks,
