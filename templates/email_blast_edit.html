@@ -11,7 +11,24 @@
   <form method="post">
     <input type="hidden" name="action" value="save">
     <div class="field"><label>Name of this audience</label><input name="name" value="{{ a.name }}" maxlength="120"></div>
-    {% if a.everyone %}<p class="muted">This goes to <strong>everyone in the Entire Database</strong> who has an email address and has not unsubscribed.</p>
+    {% if a.scope == 'attendees' %}
+    <div class="field"><label>Program</label>
+      <select name="program_id" id="bProg"><option value="">All programs</option>{% for p in progs %}<option value="{{ p.id }}" {{ 'selected' if p.id == a.program_id }}>{{ p.code }}{% if p.name != p.code %} &mdash; {{ p.name }}{% endif %}</option>{% endfor %}</select>
+      <div class="muted">Pick a program to email everyone enrolled in it.</div></div>
+    <div class="field"><label>Session (optional)</label>
+      <select name="cohort_id" id="bSess"><option value="">All sessions of this program</option>{% for c in sess %}<option value="{{ c.id }}" data-program="{{ c.program_id }}" {{ 'selected' if c.id == a.cohort_id }}>{{ c.pc }} #{{ c.session_number }} &mdash; {{ c.session_date }}</option>{% endfor %}</select>
+      <div class="muted">Choose a session to email only the people enrolled in that one. People enrolled in a cancelled session, with no email, or who unsubscribed are left out. Staff and TAs are not included.</div></div>
+    <p class="muted">Right now this goes to: <strong>{{ who }}</strong>.</p>
+    <script>
+      (function(){
+        var p=document.getElementById('bProg'), s=document.getElementById('bSess');
+        function filt(){ var v=p.value; for(var i=0;i<s.options.length;i++){ var o=s.options[i], d=o.getAttribute('data-program');
+          var show = !d || !v || d===v; o.hidden=!show; o.disabled=!show; }
+          if(s.selectedOptions[0] && s.selectedOptions[0].disabled) s.value=''; }
+        p.addEventListener('change',filt); filt();
+      })();
+    </script>
+    {% elif a.everyone %}<p class="muted">This goes to <strong>everyone in the Entire Database</strong> who has an email address and has not unsubscribed.</p>
     {% elif a.kind != 'guides' %}
     <div class="field"><label>Contact list it goes to</label>
       <select name="list_id"><option value="">No list chosen</option>{% for l in lists %}<option value="{{ l.id }}" {{ 'selected' if l.id == a.list_id }}>{{ l.name }}</option>{% endfor %}</select>
