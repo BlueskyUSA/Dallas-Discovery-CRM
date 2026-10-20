@@ -48,9 +48,11 @@ const mask = () => document.getElementById('dmMask').checked;
 const fmt = n => n == null ? '—' : Number(n).toLocaleString();
 let state = {level:1};
 
-function goTop(){ state = {level:1}; render(); }
-function openBlock(k){ state = {level:2, k}; render(); }
-function openTable(k, t){ state = {level:3, k, t}; render(); }
+function go(s){ state = s; try{ history.pushState(s, ''); }catch(e){} render(); }
+function goTop(){ go({level:1}); }
+function openBlock(k){ go({level:2, k}); }
+function openTable(k, t){ go({level:3, k, t}); }
+window.addEventListener('popstate', e => { state = (e.state && e.state.level) ? e.state : {level:1}; render(); });
 
 const POS = { people:[500,290], programs:[165,85], enroll:[835,85], money:[835,500], outreach:[165,500], team:[500,545] };
 function level1(){
@@ -106,6 +108,7 @@ document.getElementById('dmPresent').addEventListener('click', () => {
   const el = document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
 });
 document.addEventListener('fullscreenchange', () => { if(!document.fullscreenElement) document.body.classList.remove('dm-present'); });
+try{ history.replaceState(state, ''); }catch(e){}
 render();
 </script>
 {% endblock %}
