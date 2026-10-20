@@ -4,7 +4,6 @@
 <style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
 <p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; All letters and settings for {{ a.name }} (add another letter, change who gets it)</a></p>
 <h1>{{ l.shown_name }}</h1>
-{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
 
 
@@ -51,14 +50,21 @@
     {% if l.kind == 'standard' %}
       <p class="muted">This is the standard &ldquo;Excitement is Growing&rdquo; letter. You can send it as is, or turn it into text you can edit.</p>
       <button class="btn" type="submit">Save subject</button>
+    {% elif l.kind == 'html' %}
+      <p class="muted">This letter came from a Word file and keeps its formatting. To change the wording, edit the Word file and upload it again below. You can type <code>[First Name]</code> in the document where the first name goes.</p>
+      <button class="btn" type="submit">Save name and subject</button>
     {% else %}
       <div class="field"><label>Message</label><textarea name="body" rows="28" style="min-height:420px; resize:vertical">{{ l.body or '' }}</textarea>
-        <div class="muted">Blank line = new paragraph. <code>{first}</code> becomes the person&rsquo;s first name. A line that says only <code>{link}</code> becomes a button.</div></div>
+        <div class="muted">Blank line = new paragraph. <code>{first}</code> becomes the person&rsquo;s first name. Put <code>**two stars**</code> around words to make them bold. A line that says only <code>{link}</code> becomes a button.</div></div>
       <div class="field"><label>Page the {link} button opens (optional)</label><input name="link_path" value="{{ l.link_path or '' }}" placeholder="/volunteer-helper/join">
         <div class="muted">Part after the web address, starting with a slash.</div></div>
       <button class="btn" type="submit">Save</button>
     {% endif %}
   </form>
+  {% if l.kind == 'html' %}
+  <form method="post" enctype="multipart/form-data" style="margin-top:10px"><input type="hidden" name="action" value="replace_file"><label><strong>Replace with a new Word file</strong></label><br><input type="file" name="file" accept=".docx"> <button class="btn secondary" type="submit">Upload and replace</button></form>
+  <form method="post" style="margin-top:10px" onsubmit="return confirm('Plain text loses the colors, bold and links. Continue?')"><input type="hidden" name="action" value="to_text"><button class="btn secondary" type="submit">Switch to plain text editing</button></form>
+  {% endif %}
   {% if l.kind == 'standard' %}
   <form method="post" style="margin-top:10px"><input type="hidden" name="action" value="customize"><button class="btn secondary" type="submit">Edit the wording of this letter</button></form>
   {% endif %}

@@ -4,7 +4,6 @@
 <style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
 <p><a href="{{ url_for('.email_blasts') }}">&larr; Email blasts, letters, and other communication</a></p>
 <h1>{{ a.name }}</h1>
-{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
 
 <div class="card" style="max-width:760px; margin-bottom:16px">
@@ -25,10 +24,16 @@
     <input type="hidden" name="action" value="new_letter">
     <div class="field"><label>Name for this letter</label><input name="title" maxlength="160" placeholder="e.g. November update"></div>
     <div class="field"><label>Upload a letter (optional)</label><input type="file" name="file" accept=".docx,.txt,.html,.htm" onchange="document.getElementById('upHint').style.display=this.files.length?'block':'none'">
-      <div class="muted">Word (.docx), text or web page. Fonts and pictures are not kept; paragraphs are. If the first line says <code>Subject: ...</code> it becomes the subject. Use <code>{first}</code> where the first name goes. Leave this empty to write one from scratch.</div></div>
+      <div class="muted">Word (.docx), text or web page. Bold, italics, colors, links, headings, lists and alignment are kept; pictures and tables are not. If the first line says <code>Subject: ...</code> it becomes the subject. Use <code>{first}</code> where the first name goes. Leave this empty to write one from scratch.</div></div>
     <p id="upHint" style="display:none; margin:0 0 8px; color:#a15c00"><strong>File chosen. Now click the button below to upload it.</strong></p>
     <button class="btn" type="submit">Upload letter &amp; start</button>
   </form>
+</div>
+
+<div class="card" style="max-width:760px; margin-bottom:16px">
+  <h3 style="margin-top:0">Use the standard Excitement letter</h3>
+  <p class="muted" style="margin:0 0 8px">Adds the original &ldquo;Excitement is Growing&rdquo; letter with its colors, bold text and buttons exactly as it looks now. Copy and paste loses that look, so use this instead.</p>
+  <form method="post"><input type="hidden" name="action" value="add_standard"><button class="btn secondary" type="submit">Add the standard Excitement letter</button></form>
 </div>
 
 <div class="card" style="max-width:760px; margin-bottom:16px">
