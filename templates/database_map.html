@@ -20,6 +20,10 @@
   table.dm-t th { background:#eef3f8 }
   .dm-cols { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 }
   .dm-cols span { background:#eef3f8; border-radius:6px; padding:3px 8px; font-size:.88rem }
+  .dm-sub { display:block; margin:22px 0 10px; padding:9px 14px; border-radius:8px; background:var(--c,#1f6f8b); color:#fff; font-size:1.2rem; font-weight:800; letter-spacing:.02em }
+  .dm-title { margin:6px 0 4px; font-size:1.9rem; font-weight:800; color:var(--c,#1f6f8b) }
+  body.dm-present .dm-sub { font-size:1.6rem }
+  body.dm-present .dm-title { font-size:2.6rem }
   .dm-hide-money .dm-money-n { visibility:hidden }
   body.dm-present .navbar, body.dm-present header.topbar, body.dm-present nav { display:none }
   body.dm-present .dm-wrap { font-size:1.35rem }
@@ -81,10 +85,10 @@ function level2(b){
 }
 function level3(b, t){
   const T = b.tables.find(x => x.name === t);
-  return `<p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
+  return `<div class="dm-title" style="--c:${b.color}">${esc(T.name)}</div><p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
     <p><span class="dm-n ${b.key==='money'?'dm-money-n':''}" style="--c:${b.color}">${fmt(T.count)}</span> <span class="muted">records</span></p>
-    <h3 style="margin:10px 0 4px">Fields (${T.cols.length})</h3><div class="dm-cols">${T.cols.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
-    <h3 style="margin:14px 0 6px">Sample rows (newest 5)</h3><div id="dmSample" class="muted">Loading…</div>`;
+    <div class="dm-sub" style="--c:${b.color}">Fields (${T.cols.length})</div><div class="dm-cols">${T.cols.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
+    <div class="dm-sub" style="--c:${b.color}">Sample rows (newest 5)</div><div id="dmSample" class="muted">Loading…</div>`;
 }
 function loadSample(t){
   fetch(SAMPLE_URL.replace('__T__', t) + '?mask=' + (mask() ? '1' : '0')).then(r => r.json()).then(d => {
