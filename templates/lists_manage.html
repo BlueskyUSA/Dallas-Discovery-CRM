@@ -1,5 +1,5 @@
 {% extends "crm_base.html" %}
-{% block title %}Data Sources — {{ program_name }} ERP{% endblock %}
+{% block title %}Data Sources — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Data Sources</h1>
 <p class="muted">
@@ -7,6 +7,16 @@
   create or change lists. Add or remove a person from a list on their contact page; the Contacts page can
   be filtered by list.
 </p>
+<div class="card" style="margin-bottom:14px; border-left:5px solid #c9a227; background:#fffbea">
+  <h3 style="margin-top:0">Caution: purchased or third-party databases</h3>
+  <p style="margin:0 0 6px"><strong>Do not buy a database, and do not email one, until we have researched every requirement through Claude.</strong></p>
+  <ul style="margin:0; padding-left:20px">
+    <li><strong>Brevo (our email service)</strong> generally does not allow sending to purchased or rented lists, and an account can be suspended for it. That would stop the portal&rsquo;s other emails too.</li>
+    <li>U.S. law (CAN-SPAM) also requires a working unsubscribe link and a physical mailing address in commercial email, and other laws may apply.</li>
+    <li>For a database someone lets us download, keep a record of their permission to email it.</li>
+    <li>Keep each source on its own list, so it can be found and removed later.</li>
+  </ul>
+</div>
 <div class="card">
   <table>
     <tr><th>List</th><th>Contacts</th><th>Created</th><th></th></tr>
