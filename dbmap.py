@@ -156,6 +156,7 @@ NAME_LOOKUPS = {
     "program_id": ("program_name", "SELECT name FROM programs WHERE id = ?"),
     "cohort_id": ("session", "SELECT p.code || ' #' || c.session_number FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?"),
     "enrollment_id": ("enrollee", "SELECT TRIM(COALESCE(ct.first_name,'') || ' ' || COALESCE(ct.last_name,'')) FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id WHERE e.id = ?"),
+    "area_key": ("program_name", "SELECT name FROM programs WHERE code = ?", lambda k: str(k).split(":")[0]),
     "staff_id": ("staff_name", "SELECT name FROM staff WHERE id = ?"),
     "volunteer_id": ("guide_name", "SELECT name FROM call_volunteers WHERE id = ?"),
     "audience_id": ("group_name", "SELECT name FROM blast_audiences WHERE id = ?"),
@@ -221,7 +222,9 @@ def register(app, crm, owner_required, get_db):
                         line.append(s if len(s) <= 60 else s[:57] + "...")
                 out.append(line)
             # show the name next to each id so the numbers mean something (list 1 = which list, contact 20 = who)
-            for fk, (label, q) in list(NAME_LOOKUPS.items()):
+            for fk, spec in list(NAME_LOOKUPS.items()):
+                label, q = spec[0], spec[1]
+                prep = spec[2] if len(spec) > 2 else (lambda k: k)
                 if fk not in shown:
                     continue
                 pos = shown.index(fk)
@@ -230,7 +233,7 @@ def register(app, crm, owner_required, get_db):
                     key = line[pos]
                     if key not in cache:
                         try:
-                            row = conn.execute(q, (key,)).fetchone() if key != "" else None
+                            row = conn.execute(q, (prep(key),)).fetchone() if key != "" else None
                             cache[key] = (_first(row) if row else "") or ""
                         except Exception:
                             try:
