@@ -11,7 +11,8 @@ BLOCKS = [
         ("contact_lists", "The data sources (lists) a person can belong to, such as Entire Discovery database."),
         ("contact_list_members", "Which person is on which list."),
         ("contact_photos", "Photos people have uploaded."),
-        ("training_profiles", "The longer profile a person fills in about themselves."),
+        ("profile_relationship", "The Relationship Training (D4) profile: questions about the relationship. Stored in training_profiles."),
+        ("profile_d1", "The D1 profile: basic questions now, the rest still to be determined (TBD). Stored in training_profiles."),
     ]),
     ("programs", "Programs and sessions", "#6a4c93", "What we teach and when: programs, scheduled sessions and their groups.", [
         ("programs", "The trainings we offer (D1, Relationship Training and so on)."),
@@ -62,7 +63,22 @@ HIDE_ALWAYS = re.compile(r"password|token|consent_ip|push_user_key|secret", re.I
 MASK = re.compile(r"email|phone|cell|street|address|city|zip|birth|dob|notes|note|emergency|partner|sponsor_|consent_name|message|answer|response|body", re.I)
 
 
+PROFILE_CODES = {"profile_relationship": "D4", "profile_d1": "D1"}
+D1_TBD = ["relationship_length", "how_met", "childhood_patterns", "emotional_milestone", "relationship_strengths",
+          "relationship_weaknesses", "stress_points", "song_artist", "song_feelings"]
+PROFILE_JOIN = ("FROM training_profiles tp JOIN enrollments e ON e.id = tp.enrollment_id "
+                "JOIN cohorts c ON c.id = e.cohort_id JOIN programs p ON p.id = c.program_id WHERE p.code = ?")
+
+
+def profile_label(table, col):
+    if table == "profile_d1" and col in D1_TBD:
+        return f"question_{D1_TBD.index(col) + 3} (TBD)"
+    return col
+
+
 def columns_of(conn, table):
+    if table in PROFILE_CODES:
+        return [profile_label(table, c) for c in columns_of(conn, "training_profiles")]
     try:
         rows = conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = ? ORDER BY ordinal_position", (table,)).fetchall()
         if rows:
@@ -80,6 +96,9 @@ def columns_of(conn, table):
 
 def count_of(conn, table):
     try:
+        if table in PROFILE_CODES:
+            r = conn.execute("SELECT COUNT(*) AS n " + PROFILE_JOIN, (PROFILE_CODES[table],)).fetchone()
+            return r["n"] if hasattr(r, "keys") else r[0]
         r = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
         return r["n"] if hasattr(r, "keys") else r[0]
     except Exception:
@@ -104,6 +123,7 @@ NAME_LOOKUPS = {
     "contact_id": ("contact_name", "SELECT TRIM(COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) FROM contacts WHERE id = ?"),
     "program_id": ("program_name", "SELECT name FROM programs WHERE id = ?"),
     "cohort_id": ("session", "SELECT p.code || ' #' || c.session_number FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?"),
+    "enrollment_id": ("enrollee", "SELECT TRIM(COALESCE(ct.first_name,'') || ' ' || COALESCE(ct.last_name,'')) FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id WHERE e.id = ?"),
     "audience_id": ("group_name", "SELECT name FROM blast_audiences WHERE id = ?"),
     "letter_id": ("letter_name", "SELECT title FROM blast_letters WHERE id = ?"),
 }
@@ -136,11 +156,17 @@ def register(app, crm, owner_required, get_db):
             cols = columns_of(conn, table)
             shown = [c for c in cols if not HIDE_ALWAYS.search(c)]
             rows = []
+            real = "training_profiles" if table in PROFILE_CODES else table
+            real_of = {profile_label(table, c): c for c in columns_of(conn, real)} if table in PROFILE_CODES else {}
             if shown:
-                sel = ", ".join(shown)
-                for q in (f"SELECT {sel} FROM {table} ORDER BY id DESC LIMIT 5", f"SELECT {sel} FROM {table} LIMIT 5"):
+                sel = ", ".join(("tp." + real_of[c]) if real_of else c for c in shown)
+                if table in PROFILE_CODES:
+                    qs = [("SELECT " + sel + " " + PROFILE_JOIN + " ORDER BY tp.id DESC LIMIT 5", (PROFILE_CODES[table],))]
+                else:
+                    qs = [(f"SELECT {sel} FROM {table} ORDER BY id DESC LIMIT 5", ()), (f"SELECT {sel} FROM {table} LIMIT 5", ())]
+                for q, qargs in qs:
                     try:
-                        rows = conn.execute(q).fetchall()
+                        rows = conn.execute(q, qargs).fetchall()
                         break
                     except Exception:
                         try:
@@ -151,7 +177,7 @@ def register(app, crm, owner_required, get_db):
             for r in rows:
                 line = []
                 for i, c in enumerate(shown):
-                    v = r[i] if not hasattr(r, "keys") else r[c]
+                    v = r[i] if not hasattr(r, "keys") else (r[real_of.get(c, c)] if real_of else r[c])
                     if v is None or v == "":
                         line.append("")
                     elif mask and MASK.search(c):
