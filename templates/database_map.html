@@ -45,6 +45,8 @@
 const DATA = {{ blocks|tojson }};
 const LINKS = {{ links|tojson }};
 const BYKEY = Object.fromEntries(DATA.map(b => [b.key, b]));
+const PEOPLE_URL = "{{ url_for('.database_map_access_people') }}";
+let pickedStaff = '';
 const SAMPLE_URL = "{{ url_for('.database_map_sample', table='__T__') }}";
 const view = document.getElementById('dmView'), crumb = document.getElementById('dmCrumb');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -52,7 +54,7 @@ const mask = () => document.getElementById('dmMask').checked;
 const fmt = n => n == null ? '—' : Number(n).toLocaleString();
 let state = {level:1};
 
-function go(s){ state = s; try{ history.pushState(s, ''); }catch(e){} render(); }
+function go(s){ pickedStaff = ''; state = s; try{ history.pushState(s, ''); }catch(e){} render(); }
 function goTop(){ go({level:1}); }
 function openBlock(k){ go({level:2, k}); }
 function openTable(k, t){ go({level:3, k, t}); }
@@ -88,10 +90,23 @@ function level3(b, t){
   return `<div class="dm-title" style="--c:${b.color}">${esc(T.title || T.name)}</div>${T.title && T.title !== T.name ? `<div class="muted" style="margin:-2px 0 6px">Database table: ${esc(T.name)}</div>` : ''}<p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
     <p><span class="dm-n ${b.key==='money'?'dm-money-n':''}" style="--c:${b.color}">${fmt(T.count)}</span> <span class="muted">records</span></p>
     <div class="dm-sub" style="--c:${b.color}">Fields (${T.cols.length})</div><div class="dm-cols">${T.cols.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
-    <div class="dm-sub" style="--c:${b.color}">Sample rows (newest 5)</div><div id="dmSample" class="muted">Loading…</div>`;
+    ${T.name === 'access_grants' ? `<div class="dm-sub" style="--c:${b.color}">Look up one person</div>
+      <p style="margin:0 0 6px">Choose a team member to see everything they can access.
+      <select id="dmStaff" onchange="pickStaff(this.value)" style="font-size:1.05rem; padding:6px 10px; min-width:260px"><option value="">Everyone (newest 5 shown below)</option></select></p>` : ''}
+    <div class="dm-sub" id="dmSampleTitle" style="--c:${b.color}">Sample rows (newest 5)</div><div id="dmSample" class="muted">Loading…</div>`;
+}
+function pickStaff(v){ pickedStaff = v; loadSample('access_grants'); }
+function loadStaffPicker(){
+  fetch(PEOPLE_URL).then(r => r.json()).then(d => {
+    const el = document.getElementById('dmStaff'); if(!el) return;
+    d.people.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name} (${p.n} area${p.n==1?'':'s'})`; el.appendChild(o); });
+    el.value = pickedStaff;
+  });
 }
 function loadSample(t){
-  fetch(SAMPLE_URL.replace('__T__', t) + '?mask=' + (mask() ? '1' : '0')).then(r => r.json()).then(d => {
+  const staffQ = (t === 'access_grants' && pickedStaff) ? '&staff=' + encodeURIComponent(pickedStaff) : '';
+  const ttl = document.getElementById('dmSampleTitle'); if(ttl && t === 'access_grants'){ const sel = document.getElementById('dmStaff'); ttl.textContent = (pickedStaff && sel && sel.selectedIndex > 0) ? 'Access for ' + sel.options[sel.selectedIndex].textContent : 'Sample rows (newest 5)'; }
+  fetch(SAMPLE_URL.replace('__T__', t) + '?mask=' + (mask() ? '1' : '0') + staffQ).then(r => r.json()).then(d => {
     const el = document.getElementById('dmSample'); if(!el) return;
     if(!d.rows || !d.rows.length){ el.textContent = 'No records yet.'; return; }
     el.innerHTML = '<div style="overflow:auto"><table class="dm-t"><tr>' + d.columns.map(c=>`<th>${esc(c)}</th>`).join('') + '</tr>' +
@@ -103,7 +118,7 @@ function render(){
   const b = BYKEY[state.k];
   if(state.level===1){ crumb.innerHTML = '<strong>Big picture</strong>'; view.innerHTML = level1(); }
   else if(state.level===2){ crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <strong>${esc(b.title)}</strong>`; view.innerHTML = level2(b); }
-  else { crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <a onclick="openBlock('${b.key}')">${esc(b.title)}</a> › <strong>${esc((b.tables.find(x => x.name === state.t) || {}).title || state.t)}</strong>`; view.innerHTML = level3(b, state.t); loadSample(state.t); }
+  else { crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <a onclick="openBlock('${b.key}')">${esc(b.title)}</a> › <strong>${esc((b.tables.find(x => x.name === state.t) || {}).title || state.t)}</strong>`; view.innerHTML = level3(b, state.t); loadSample(state.t); if(state.t === 'access_grants') loadStaffPicker(); }
 }
 window.goTop = goTop;
 document.getElementById('dmMask').addEventListener('change', () => { if(state.level===3) loadSample(state.t); });
