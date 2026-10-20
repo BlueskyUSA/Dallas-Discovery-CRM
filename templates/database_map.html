@@ -80,12 +80,12 @@ function level1(){
 function level2(b){
   return `<p style="font-size:1.1rem; max-width:760px">${esc(b.what)}</p><div class="dm-grid">` +
     b.tables.map(t => `<div class="dm-card" style="--c:${b.color}" onclick="openTable('${b.key}','${t.name}')">
-      <h3>${esc(t.name)}</h3><div class="dm-n ${b.key==='money'?'dm-money-n':''}">${fmt(t.count)}</div>
+      <h3>${esc(t.title || t.name)}</h3>${t.title && t.title !== t.name ? `<div class="muted" style="font-size:.8rem; margin:-2px 0 4px">table: ${esc(t.name)}</div>` : ''}<div class="dm-n ${b.key==='money'?'dm-money-n':''}">${fmt(t.count)}</div>
       <div class="muted" style="margin-bottom:6px">records · ${t.cols.length} fields</div><div>${esc(t.desc)}</div></div>`).join('') + `</div>`;
 }
 function level3(b, t){
   const T = b.tables.find(x => x.name === t);
-  return `<div class="dm-title" style="--c:${b.color}">${esc(T.name)}</div><p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
+  return `<div class="dm-title" style="--c:${b.color}">${esc(T.title || T.name)}</div>${T.title && T.title !== T.name ? `<div class="muted" style="margin:-2px 0 6px">Database table: ${esc(T.name)}</div>` : ''}<p style="font-size:1.1rem; max-width:760px">${esc(T.desc)}</p>
     <p><span class="dm-n ${b.key==='money'?'dm-money-n':''}" style="--c:${b.color}">${fmt(T.count)}</span> <span class="muted">records</span></p>
     <div class="dm-sub" style="--c:${b.color}">Fields (${T.cols.length})</div><div class="dm-cols">${T.cols.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
     <div class="dm-sub" style="--c:${b.color}">Sample rows (newest 5)</div><div id="dmSample" class="muted">Loading…</div>`;
