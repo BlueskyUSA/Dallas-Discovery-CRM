@@ -82,18 +82,13 @@ def ensure_tables(get_db):
         conn.commit()
         n = conn.execute("SELECT COUNT(*) AS n FROM blast_audiences").fetchone()["n"]
         if not n:
-            def list_id(name):
-                row = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
-                if not row:
-                    conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", (name, cf._ts(cf._utc_now())[:10]))
-                    row = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
-                return row["id"]
+            list_id = lambda name: cf.list_id_for(conn, name)
             now = cf._ts(cf._utc_now())
             seeds = [
                 ("Excitement blast: my contacts", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 10),
-                ("Excitement blast: Discovery contacts", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 20),
+                ("Excitement blast: Discovery contacts", "excitement", list_id(cf.ENTIRE_LIST), EXCITEMENT_BLAST_SUBJECT, None, None, 20),
                 ("Discovery Guides", "guides", None, "", GUIDES_BODY, None, 30),
-                ("Discovery volunteers", "text", list_id("Discovery volunteers"), "Exciting Changes to the Dallas Discovery Program",
+                ("Discovery volunteers", "text", list_id(cf.RESPONDED_LIST), "Exciting Changes to the Dallas Discovery Program",
                  VOLUNTEERS_BODY, "/volunteer-helper/join", 40),
                 ("Volunteer staff", "text", list_id("Volunteer staff"), "", "", None, 50),
             ]
@@ -101,6 +96,13 @@ def ensure_tables(get_db):
                 conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, link_path, sort_order, created_at) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (name, kind, lid, subj, body, link, order, now))
             conn.commit()
+        # make sure the two data-set lists exist, and point the volunteer email at the people who responded
+        cf.list_id_for(conn, cf.ENTIRE_LIST)
+        resp_id = cf.list_id_for(conn, cf.RESPONDED_LIST)
+        old = conn.execute("SELECT l.id FROM contact_lists l WHERE LOWER(l.name) = 'discovery volunteers'").fetchone()
+        if old:
+            conn.execute("UPDATE blast_audiences SET list_id = ? WHERE name = 'Discovery volunteers' AND list_id = ?", (resp_id, old["id"]))
+        conn.commit()
         _ready = True
     except Exception as e:
         conn.rollback()

@@ -2235,6 +2235,7 @@ def public_connect_request(token):
                WHERE id = ?""",
             (method, phone, note, datetime.utcnow().isoformat(), contact["id"]),
         )
+        call_flow.add_to_list(conn, contact["id"], call_flow.RESPONDED_LIST, "Responded to the Excitement blast (reach-out link)")
         conn.commit()
 
         emailed = False
@@ -6330,6 +6331,8 @@ def inject_area_access():
 
 app.jinja_env.globals["role_label"] = role_label
 call_flow.register(app, crm, leadership_required, get_db)
+import blasts
+blasts.register(app, crm, owner_required, get_db)
 app.register_blueprint(crm)
 
 
