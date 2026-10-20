@@ -8,8 +8,8 @@ from flask import render_template, request, jsonify
 BLOCKS = [
     ("people", "People", "#1f6f8b", "Everyone we know: alumni, volunteers, interested people, sponsors.", [
         ("contacts", "One row per person: name, email, phones, address, who sponsored them, where they came from."),
-        ("contact_lists", "The data sources (lists) a person can belong to, such as Entire Discovery database."),
-        ("contact_list_members", "Which person is on which list."),
+        ("contact_lists", "The groups our contacts come from or belong to, such as Kent's Contact Data, the Discovery Contact list and Responded to the Excitement blast. A person can be in more than one."),
+        ("contact_list_members", "Which person is in which data source."),
         ("contact_photos", "Photos people have uploaded."),
         ("profile_relationship", "The Relationship Training (D4) profile: questions about the relationship. Stored in training_profiles."),
         ("profile_d1", "The D1 profile: basic questions now, the rest still to be determined (TBD). Stored in training_profiles."),
@@ -73,6 +73,14 @@ def _reorder(table, names, rows=None):
     idx = [names.index(c) for c in order]
     return order, ([[r[i] for i in idx] for r in rows] if rows is not None else None)
 
+
+# Plain-English names shown on the map (the technical table name stays visible underneath).
+TITLES = {
+    "contact_lists": "Data Sources",
+    "contact_list_members": "Who Is in Each Data Source",
+    "profile_relationship": "Relationship Training Profile (D4)",
+    "profile_d1": "D1 Profile",
+}
 
 PROFILE_CODES = {"profile_relationship": "D4", "profile_d1": "D1"}
 D1_TBD = ["relationship_length", "how_met", "childhood_patterns", "emotional_milestone", "relationship_strengths",
@@ -155,7 +163,7 @@ def register(app, crm, owner_required, get_db):
         try:
             blocks = []
             for key, title, color, what, tables in BLOCKS:
-                ts = [dict(name=t, desc=d, count=count_of(conn, t), cols=columns_of(conn, t)) for t, d in tables]
+                ts = [dict(name=t, title=TITLES.get(t, t), desc=d, count=count_of(conn, t), cols=columns_of(conn, t)) for t, d in tables]
                 blocks.append(dict(key=key, title=title, color=color, what=what, tables=ts,
                                    total=sum(t["count"] or 0 for t in ts)))
             return render_template("database_map.html", blocks=blocks,
