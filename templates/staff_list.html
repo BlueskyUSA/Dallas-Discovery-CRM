@@ -9,11 +9,18 @@
   Donations, Contracts, or Contacts. Deactivating an account keeps its history but blocks it from logging in.
 </p>
 
+<div class="card" style="margin-bottom:12px; padding:12px 16px">
+  <label for="staffPick"><strong>Find a person:</strong></label>
+  <select id="staffPick" style="font-size:1.05rem; padding:6px 10px; min-width:280px; margin-left:6px">
+    <option value="">Everyone ({{ staff|length }})</option>
+    {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}{% if not s.active %} (deactivated){% endif %}</option>{% endfor %}
+  </select>
+</div>
 <div class="card">
-  <table>
+  <table id="staffTable">
     <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr>
     {% for s in staff %}
-    <tr>
+    <tr data-staff="{{ s.id }}">
       <td>
         {{ s.name }}{% if s.is_owner %} <span class="badge good">Owner</span>{% endif %}
         <br>
@@ -152,4 +159,14 @@
   </p>
   <a class="btn" href="{{ url_for('.staff_new_search') }}">Add a team account</a>
 </div>
+<script>
+(function(){
+  var pick=document.getElementById('staffPick');
+  if(!pick) return;
+  pick.addEventListener('change', function(){
+    var v=pick.value, rows=document.querySelectorAll('#staffTable tr[data-staff]');
+    rows.forEach(function(r){ r.style.display = (!v || r.getAttribute('data-staff')===v) ? '' : 'none'; });
+  });
+})();
+</script>
 {% endblock %}
