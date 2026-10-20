@@ -1,6 +1,7 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ l.shown_name }} — Email blasts, letters, and other communication{% endblock %}
 {% block content %}
+<style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
 <p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; All letters and settings for {{ a.name }} (add another letter, change who gets it)</a></p>
 <h1>{{ l.shown_name }}</h1>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
