@@ -180,6 +180,18 @@ def register(app, crm, owner_required, get_db):
         finally:
             conn.close()
 
+    @crm.route("/database-map/access-people")
+    @owner_required
+    def database_map_access_people():
+        """Team members who have been given access to anything, with how many areas each has (for the picker)."""
+        conn = get_db()
+        try:
+            rows = conn.execute("""SELECT s.id, s.name, COUNT(g.id) AS n FROM staff s JOIN access_grants g ON g.staff_id = s.id
+                                   GROUP BY s.id, s.name ORDER BY s.name""").fetchall()
+            return jsonify(people=[dict(id=r["id"], name=r["name"], n=r["n"]) for r in rows])
+        finally:
+            conn.close()
+
     @crm.route("/database-map/sample/<table>")
     @owner_required
     def database_map_sample(table):
@@ -197,6 +209,8 @@ def register(app, crm, owner_required, get_db):
                 sel = ", ".join(("tp." + real_of[c]) if real_of else c for c in shown)
                 if table in PROFILE_CODES:
                     qs = [("SELECT " + sel + " " + PROFILE_JOIN + " ORDER BY tp.id DESC LIMIT 5", (PROFILE_CODES[table],))]
+                elif table == "access_grants" and (request.args.get("staff") or "").isdigit():
+                    qs = [(f"SELECT {sel} FROM access_grants WHERE staff_id = ? ORDER BY area_key", (int(request.args["staff"]),))]
                 else:
                     qs = [(f"SELECT {sel} FROM {table} ORDER BY id DESC LIMIT 5", ()), (f"SELECT {sel} FROM {table} LIMIT 5", ())]
                 for q, qargs in qs:
