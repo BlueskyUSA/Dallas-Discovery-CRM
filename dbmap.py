@@ -74,6 +74,16 @@ def _reorder(table, names, rows=None):
     return order, ([[r[i] for i in idx] for r in rows] if rows is not None else None)
 
 
+FIXED_DESC = {
+    "accounting": "The Finance pages: payments, balances and accounting records.",
+    "marketing": "The marketing pages and materials.",
+    "contacts": "The Contacts database, including each person's record and the training session pages.",
+    "donations": "The Donations list and recording gifts.",
+    "contracts": "Contracts, their revisions and the business plan.",
+    "session_team": "See who is on the team for a training session, on each session page. Also gives Contacts.",
+    "trainee_roster": "See who is registered for a training session, on each session page. Also gives Contacts.",
+}
+
 # Plain-English names shown on the map (the technical table name stays visible underneath).
 TITLES = {
     "access_grants": "Site Access",
@@ -177,6 +187,27 @@ def register(app, crm, owner_required, get_db):
                                    total=sum(t["count"] or 0 for t in ts)))
             return render_template("database_map.html", blocks=blocks,
                                    links=[dict(a=a, b=b, label=l) for a, b, l in LINKS])
+        finally:
+            conn.close()
+
+    @crm.route("/database-map/site-access")
+    @owner_required
+    def database_map_site_access():
+        """How site access is divided: who the roles are, the fixed areas, and each program's four headings,
+        with the people who hold each one right now."""
+        from app import FIXED_ACCESS_AREAS, MATERIAL_CATEGORIES, RESERVED_PROGRAM_AREA_CODES, ACCESS_AREA_MAX_GRANTS, SESSION_VIEW_AREAS
+        conn = get_db()
+        try:
+            by_area = {}
+            for r in conn.execute("SELECT g.area_key, s.name FROM access_grants g JOIN staff s ON s.id = g.staff_id ORDER BY s.name").fetchall():
+                by_area.setdefault(r["area_key"], []).append(r["name"])
+            names = {r["code"]: r["name"] for r in conn.execute("SELECT code, name FROM programs").fetchall()}
+            fixed = [dict(key=k, label=lbl, desc=FIXED_DESC.get(k, ""), people=by_area.get(k, []),
+                          cap=(None if k in SESSION_VIEW_AREAS else ACCESS_AREA_MAX_GRANTS)) for k, lbl in FIXED_ACCESS_AREAS]
+            programs = [dict(code=c, name=names.get(c), cells=[dict(h=h, people=by_area.get(f"{c}:{h}", [])) for h in MATERIAL_CATEGORIES])
+                        for c in RESERVED_PROGRAM_AREA_CODES]
+            return render_template("database_site_access.html", fixed=fixed, programs=programs, headings=MATERIAL_CATEGORIES,
+                                   cap=ACCESS_AREA_MAX_GRANTS)
         finally:
             conn.close()
 
