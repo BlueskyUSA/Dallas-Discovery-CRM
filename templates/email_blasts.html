@@ -1,10 +1,9 @@
 {% extends "crm_base.html" %}
-{% block title %}Email blasts, letters, and other communication — {{ program_name }}{% endblock %}
+{% block title %}Correspondence — {{ program_name }}{% endblock %}
 {% block content %}
 <style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
-<h1>Email blasts, letters, and other communication</h1>
+<h1>Correspondence</h1>
 <p class="muted">Owner only. Each card sends one email to one group. Open a card to see its letters, edit a draft, upload another letter, send yourself a test, and send it for real. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
-{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong>. You can still edit and send yourself tests. To allow real sends, add <code>BLASTS_LIVE</code> = <code>1</code> in Render&rsquo;s Environment.</p>{% endif %}
 <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-bottom:24px">
 {% for c in cards %}

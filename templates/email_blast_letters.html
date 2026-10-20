@@ -1,7 +1,7 @@
 {% extends "crm_base.html" %}
-{% block title %}All the letters — Email blasts, letters, and other communication{% endblock %}
+{% block title %}All the letters — Correspondence{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('.email_blasts') }}">&larr; Email blasts, letters, and other communication</a></p>
+<p><a href="{{ url_for('.email_blasts') }}">&larr; Correspondence</a></p>
 <h1>All the letters</h1>
 <p class="muted">What each group receives, with the date each was sent. Names are shown with your first name as an example.</p>
 {% for i in items %}

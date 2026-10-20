@@ -1,8 +1,8 @@
 {% extends "crm_base.html" %}
-{% block title %}{{ a.name }} — Email blasts, letters, and other communication{% endblock %}
+{% block title %}{{ a.name }} — Correspondence{% endblock %}
 {% block content %}
 <style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
-<p><a href="{{ url_for('.email_blasts') }}">&larr; Email blasts, letters, and other communication</a></p>
+<p><a href="{{ url_for('.email_blasts') }}">&larr; Correspondence</a></p>
 <h1>{{ a.name }}</h1>
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
 

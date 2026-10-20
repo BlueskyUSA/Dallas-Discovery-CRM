@@ -23,7 +23,7 @@
     <div class="muted">Everyone, from every source: <strong>{{ total_contacts }}</strong> contacts, <strong>{{ emailable_contacts }}</strong> with an email address.</div>
   </div>
   <a class="btn" href="{{ url_for('.contacts_list') }}">View Entire Database</a>
-  {% if session.is_owner %}<a class="btn secondary" href="{{ url_for('.email_blasts') }}">Email blasts, letters, and other communication</a>{% endif %}
+  {% if session.is_owner %}<a class="btn secondary" href="{{ url_for('.email_blasts') }}">Correspondence</a>{% endif %}
 </div>
 <div class="card">
   <table>
