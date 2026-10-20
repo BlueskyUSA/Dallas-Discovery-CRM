@@ -6,6 +6,35 @@
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
 
+
+<div class="card" style="max-width:760px; margin-bottom:16px; padding:12px 16px">
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+    {% if not locked %}<button type="button" class="btn secondary" onclick="document.getElementById('testBox').open=!document.getElementById('testBox').open">Send for review / test</button>{% endif %}
+    {% if not locked or remaining > 0 %}<button type="button" class="btn" onclick="document.getElementById('sendBox').open=!document.getElementById('sendBox').open">{{ 'Finish sending' if locked else 'Send to' }} {{ remaining }} {{ 'person' if remaining == 1 else 'people' }}&hellip;</button>{% endif %}
+    <span class="muted">{% if locked %}Sent {{ l.sent_when }}{% elif tested %}Tested {{ tested_when }}{% else %}Not tested yet{% endif %}</span>
+  </div>
+  {% if not locked %}
+  <details id="testBox" style="margin-top:10px"><summary style="display:none"></summary>
+    <form method="post" class="inline">
+      <input type="hidden" name="action" value="test">
+      <input name="to" type="email" value="{{ owner_email }}" style="min-width:260px">
+      <button class="btn secondary" type="submit">Send test</button>
+    </form>
+    <p class="muted" style="margin:6px 0 0">Type any email address, such as a reviewer, to see it first. Save your changes before testing. Any change after a test needs a new test.</p>
+  </details>
+  {% endif %}
+  {% if not locked or remaining > 0 %}
+  <details id="sendBox" style="margin-top:10px"><summary style="display:none"></summary>
+    <p style="margin:0 0 6px"><strong>{{ count }}</strong> {{ 'person' if count == 1 else 'people' }} on {{ a.name }} can be emailed{% if already %}; <strong>{{ already }}</strong> already got this letter and are skipped{% endif %}. People who unsubscribed or have no email are left out. Sending locks the letter and records the date.</p>
+    <form method="post" class="inline">
+      <input type="hidden" name="action" value="send">
+      <input name="confirm" autocomplete="off" placeholder="Type SEND" style="max-width:140px">
+      <button class="btn" type="submit" {{ '' if (live and (tested or locked) and remaining > 0) else 'disabled' }}>Send now</button>
+    </form>
+    {% if not (live and (tested or locked) and remaining > 0) %}<p class="muted" style="margin:6px 0 0">Not ready yet: needs real sending ON{% if not tested and not locked %}, a current test{% endif %}{% if remaining == 0 %}, and at least one person{% endif %}.</p>{% endif %}
+  </details>
+  {% endif %}
+</div>
 {% if locked %}
 <div class="card" style="max-width:760px; margin-bottom:16px; border-left:5px solid #2a6">
   <p style="margin:0 0 8px"><strong>Sent {{ l.sent_when }}</strong> to {{ l.sent_count }} {{ 'person' if l.sent_count == 1 else 'people' }}. This letter is locked and can no longer be edited.</p>
@@ -41,32 +70,6 @@
   <p class="muted" style="margin:0 0 8px">Subject: <strong>{{ preview_subject or '(none yet)' }}</strong></p>
   <div style="border:1px solid #d9e2ec; border-radius:8px; padding:6px 18px; background:#fff">{{ preview_html|safe }}</div>
 </div>
-
-{% if not locked %}
-<div class="card" style="max-width:760px; margin-bottom:16px">
-  <h3 style="margin-top:0">3. Send to yourself or someone else for review and test</h3>
-  <form method="post" class="inline">
-    <input type="hidden" name="action" value="test">
-    <input name="to" type="email" value="{{ owner_email }}" style="min-width:260px">
-    <button class="btn secondary" type="submit">Send test</button>
-  </form>
-  <p class="muted" style="margin:8px 0 0">{% if tested %}Tested {{ tested_when }}. This is the wording that will go out.{% else %}Not tested yet with the current wording. Save any changes, then send a test. You can type any email address, such as a reviewer, to see it first.{% endif %}</p>
-</div>
-{% endif %}
-
-{% if not locked or remaining > 0 %}
-<div class="card" style="max-width:760px; margin-bottom:16px">
-  <h3 style="margin-top:0">{{ 'Finish sending' if locked else '4. Send for real' }}</h3>
-  <p style="margin:0 0 6px"><strong>{{ count }}</strong> {{ 'person' if count == 1 else 'people' }} on {{ a.name }} can be emailed{% if already %}; <strong>{{ already }}</strong> already got this letter and will be skipped{% endif %}.</p>
-  <p class="muted" style="margin:0 0 10px">People who unsubscribed, have no email, or appear twice are left out automatically. Sending locks the letter and records the date.</p>
-  <form method="post">
-    <input type="hidden" name="action" value="send">
-    <div class="field"><label>Type SEND to confirm</label><input name="confirm" autocomplete="off" style="max-width:160px"></div>
-    <button class="btn" type="submit" {{ '' if (live and (tested or locked) and remaining > 0) else 'disabled' }}>Send to {{ remaining }} {{ 'person' if remaining == 1 else 'people' }}</button>
-    {% if not (live and (tested or locked) and remaining > 0) %}<span class="muted">&nbsp;(needs: sending ON, a current test, and at least one person)</span>{% endif %}
-  </form>
-</div>
-{% endif %}
 
 {% if sends %}
 <div class="card" style="max-width:760px">
