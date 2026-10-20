@@ -109,7 +109,7 @@ def ensure_tables(get_db):
             list_id = lambda name: cf.list_id_for(conn, name)
             now = cf._ts(cf._utc_now())
             seeds = [
-                ("Excitement blast: my contacts", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 10),
+                ("Excitement blast: Kent's contacts", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 10),
                 ("Excitement blast: Discovery Contact list", "excitement", list_id(cf.DISCOVERY_LIST), EXCITEMENT_BLAST_SUBJECT, None, None, 20),
                 ("Excitement blast: Entire Database", "excitement", None, EXCITEMENT_BLAST_SUBJECT, None, None, 25),
                 ("Discovery Guides", "guides", None, "", GUIDES_BODY, None, 30),
@@ -121,6 +121,8 @@ def ensure_tables(get_db):
                 conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, link_path, sort_order, everyone, created_at) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (name, kind, lid, subj, body, link, order, 1 if "Entire Database" in name else 0, now))
             conn.commit()
+        conn.execute("UPDATE blast_audiences SET name = ? WHERE name = ?", ("Excitement blast: Kent's contacts", "Excitement blast: my contacts"))
+        conn.commit()
         # make sure the two data-set lists exist, and point the volunteer email at the people who responded
         if not conn.execute("SELECT 1 FROM blast_audiences WHERE scope = 'attendees'").fetchone():
             now2 = cf._ts(cf._utc_now())
