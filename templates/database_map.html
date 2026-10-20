@@ -103,7 +103,7 @@ function render(){
   const b = BYKEY[state.k];
   if(state.level===1){ crumb.innerHTML = '<strong>Big picture</strong>'; view.innerHTML = level1(); }
   else if(state.level===2){ crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <strong>${esc(b.title)}</strong>`; view.innerHTML = level2(b); }
-  else { crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <a onclick="openBlock('${b.key}')">${esc(b.title)}</a> › <strong>${esc(state.t)}</strong>`; view.innerHTML = level3(b, state.t); loadSample(state.t); }
+  else { crumb.innerHTML = `<a onclick="goTop()">Big picture</a> › <a onclick="openBlock('${b.key}')">${esc(b.title)}</a> › <strong>${esc((b.tables.find(x => x.name === state.t) || {}).title || state.t)}</strong>`; view.innerHTML = level3(b, state.t); loadSample(state.t); }
 }
 window.goTop = goTop;
 document.getElementById('dmMask').addEventListener('change', () => { if(state.level===3) loadSample(state.t); });
