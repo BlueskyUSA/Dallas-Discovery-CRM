@@ -3,11 +3,20 @@
 {% block content %}
 <style>.card .field input:not([type=file]):not([type=checkbox]), .card .field select, .card .field textarea {width:100%; box-sizing:border-box}</style>
 <h1>Correspondence</h1>
-<p class="muted">Owner only. Each card sends one email to one group. Open a card to see its letters, edit a draft, upload another letter, send yourself a test, and send it for real. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
+<p class="muted">Owner only. Choose a group to see its letters, edit a draft, upload another letter, send yourself a test, and send it for real. Everything that has been sent is listed below. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong>. You can still edit and send yourself tests. To allow real sends, add <code>BLASTS_LIVE</code> = <code>1</code> in Render&rsquo;s Environment.</p>{% endif %}
-<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-bottom:24px">
+<style>
+  .cr-sub { display:block; margin:24px 0 10px; padding:9px 14px; border-radius:8px; background:#3e5641; color:#fff; font-size:1.2rem; font-weight:800 }
+</style>
+<div class="cr-sub">Choose a group</div>
+<div class="card" style="max-width:760px; margin-bottom:12px; padding:14px 16px">
+  <select id="grpPick" style="font-size:1.1rem; padding:8px 12px; width:100%; max-width:520px">
+    <option value="">Choose a group&hellip;</option>
+    {% for c in cards %}<option value="{{ c.a.id }}">{{ c.a.name }} ({{ c.count }} {{ 'person' if c.count == 1 else 'people' }})</option>{% endfor %}
+  </select>
+</div>
 {% for c in cards %}
-  <div class="card">
+  <div class="card grpcard" id="grp{{ c.a.id }}" style="display:none; max-width:760px; margin-bottom:16px">
     <h3 style="margin-top:0">{{ c.a.name }}</h3>
     <p style="margin:0 0 4px"><strong>{{ c.count }}</strong> {{ 'person' if c.count == 1 else 'people' }} would receive it</p>
     <p class="muted" style="margin:0 0 10px">
@@ -18,7 +27,39 @@
     <a class="btn secondary" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Letters &amp; settings</a>
   </div>
 {% endfor %}
+
+<div class="cr-sub">Drafts waiting</div>
+{% if drafts %}
+<div class="card" style="max-width:900px; margin-bottom:12px"><table>
+  <tr><th>Group</th><th>Letter</th><th></th></tr>
+  {% for d in drafts %}<tr><td>{{ d.group }}</td><td>{{ d.title }}</td><td><a class="btn" href="{{ url_for('.email_blast_letter', lid=d.lid) }}">Open</a></td></tr>{% endfor %}
+</table></div>
+{% else %}<p class="muted">No drafts waiting.</p>{% endif %}
+
+<div class="cr-sub">Sent history</div>
+{% if history %}
+<div style="margin:0 0 8px">
+  <label><strong>Group:</strong> <select id="hGroup" style="padding:5px 8px"><option value="">All groups</option>{% for c in cards %}<option>{{ c.a.name }}</option>{% endfor %}</select></label>
+  <label style="margin-left:12px"><strong>Year:</strong> <select id="hYear" style="padding:5px 8px"><option value="">All years</option>{% for y in years %}<option>{{ y }}</option>{% endfor %}</select></label>
 </div>
+<div class="card" style="max-width:900px; margin-bottom:16px"><table id="hTable">
+  <tr><th>Date sent</th><th>Group</th><th>Letter</th><th>Sent to</th><th></th></tr>
+  {% for h in history %}<tr data-group="{{ h.group }}" data-year="{{ h.year }}"><td>{{ h.sent_date }}, {{ h.year }}</td><td>{{ h.group }}</td><td>{{ h.title }}</td><td>{{ h.sent_count }}</td><td><a href="{{ url_for('.email_blast_letter', lid=h.lid) }}">View</a></td></tr>{% endfor %}
+</table></div>
+{% else %}<p class="muted">Nothing has been sent yet. Sent letters will be listed here with their dates.</p>{% endif %}
+<script>
+(function(){
+  var p=document.getElementById('grpPick');
+  p.addEventListener('change', function(){
+    document.querySelectorAll('.grpcard').forEach(function(c){ c.style.display='none'; });
+    if(p.value){ var el=document.getElementById('grp'+p.value); if(el) el.style.display='block'; }
+  });
+  var g=document.getElementById('hGroup'), y=document.getElementById('hYear');
+  function f(){ document.querySelectorAll('#hTable tr[data-group]').forEach(function(r){
+    r.style.display = ((!g.value || r.dataset.group===g.value) && (!y.value || r.dataset.year===y.value)) ? '' : 'none'; }); }
+  if(g){ g.addEventListener('change', f); y.addEventListener('change', f); }
+})();
+</script>
 <div class="card" style="max-width:760px; margin-bottom:16px; border-left:5px solid #c9a227; background:#fffbea">
   <h3 style="margin-top:0">Caution: purchased or third-party databases</h3>
   <p style="margin:0 0 6px"><strong>Do not buy a database, and do not email one, until we have researched every requirement through Claude.</strong></p>
