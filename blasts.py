@@ -179,6 +179,9 @@ def ensure_tables(get_db):
         conn.close()
 
 
+MAILING_ADDRESS = os.environ.get("BLAST_MAILING_ADDRESS", "Dallas Discovery, 964 Condor Drive, Coppell, TX 75019")
+
+
 def blasts_live():
     return os.environ.get("BLASTS_LIVE") == "1"
 
@@ -278,8 +281,8 @@ def build(letter, aud, first, contact_id, base_url):
         why = ("You are receiving this because you are a Dallas Discovery Guide." if aud["kind"] == "guides"
                else "You are receiving this because you are part of the Dallas Discovery community.")
         footer_h = (f'<hr style="border:none;border-top:1px solid #ddd;margin:24px 0 10px">'
-                    f'<p style="font-size:.8em;color:#777">{why} <a href="{u}">{what}</a></p>')
-        footer_t = f"\n\n--\n{why} {what}: {u}"
+                    f'<p style="font-size:.8em;color:#777">{why} <a href="{u}">{what}</a><br>{_html.escape(MAILING_ADDRESS)}</p>')
+        footer_t = f"\n\n--\n{why} {what}: {u}\n{MAILING_ADDRESS}"
     if letter["kind"] == "standard":
         html, text = excitement_blast_content(greet)
         return letter["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
