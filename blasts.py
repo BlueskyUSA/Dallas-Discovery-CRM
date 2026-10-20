@@ -290,19 +290,19 @@ def run_send(get_db, send_id, base_url):
 def attendee_label(conn, aud):
     """Plain-English description of who an 'attendees' audience goes to."""
     if aud["cohort_id"]:
-        r = conn.execute("SELECT p.name AS pn, co.session_number AS n, co.session_date AS d FROM cohorts co JOIN programs p ON p.id = co.program_id WHERE co.id = ?", (aud["cohort_id"],)).fetchone()
+        r = conn.execute("SELECT p.name AS pn, p.code AS pc, co.session_number AS n, co.session_date AS d FROM cohorts co JOIN programs p ON p.id = co.program_id WHERE co.id = ?", (aud["cohort_id"],)).fetchone()
         if r:
-            return f"Enrolled in {r['pn']} session #{r['n']} ({r['d']})"
+            return f"Enrolled in {r['pc']} session #{r['n']} ({r['d']})"
     if aud["program_id"]:
-        r = conn.execute("SELECT name FROM programs WHERE id = ?", (aud["program_id"],)).fetchone()
+        r = conn.execute("SELECT code, name FROM programs WHERE id = ?", (aud["program_id"],)).fetchone()
         if r:
-            return f"Everyone enrolled in {r['name']}"
+            return f"Everyone enrolled in {r['code']}" + (f" ({r['name']})" if r['name'] != r['code'] else "")
     return "Everyone enrolled in any program"
 
 
 def programs_and_sessions(conn):
-    progs = conn.execute("SELECT id, name FROM programs ORDER BY id").fetchall()
-    sess = conn.execute("SELECT co.id, co.program_id, co.session_number, co.session_date, p.name AS pn FROM cohorts co JOIN programs p ON p.id = co.program_id "
+    progs = conn.execute("SELECT id, code, name FROM programs ORDER BY code").fetchall()
+    sess = conn.execute("SELECT co.id, co.program_id, co.session_number, co.session_date, p.name AS pn, p.code AS pc FROM cohorts co JOIN programs p ON p.id = co.program_id "
                         "ORDER BY co.session_date DESC").fetchall()
     return progs, sess
 
