@@ -118,6 +118,34 @@ def _digits(s):
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
 
+RESPONDED_LIST = "Responded to the Excitement blast"
+ENTIRE_LIST = "Entire Discovery database"
+
+
+def list_id_for(conn, name):
+    """Id of the contact list with this name, creating the list if it doesn't exist yet."""
+    row = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
+    if not row:
+        conn.execute("INSERT INTO contact_lists (name, created_at) VALUES (?, ?)", (name, _ts(_utc_now())[:10]))
+        row = conn.execute("SELECT id FROM contact_lists WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
+    return row["id"]
+
+
+def add_to_list(conn, contact_id, list_name, note=None):
+    """Puts a contact on a list (once). Returns True if they were newly added. Never raises."""
+    try:
+        lid = list_id_for(conn, list_name)
+        if conn.execute("SELECT 1 FROM contact_list_members WHERE contact_id = ? AND list_id = ?", (contact_id, lid)).fetchone():
+            return False
+        conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?, ?, ?)", (contact_id, lid, _ts(_utc_now())[:10]))
+        if note:
+            _add_note(conn, contact_id, f"{note} ({_ts(_utc_now())[:10]})")
+        return True
+    except Exception as e:
+        print(f"Couldn't add contact {contact_id} to list {list_name}: {e}", flush=True)
+        return False
+
+
 HELPER_DAILY_LIMIT = 20          # people one volunteer's link can bring in per day
 
 
@@ -1097,6 +1125,7 @@ def register(app, crm, leadership_required, get_db):
                             _add_note(conn, cid, note + ("" if how == "email" else f" (matched by cell number; they typed {email})"))
                         ref_cid = referrer["contact_id"] if referrer and referrer["contact_id"] != cid else None
                         helper, created = _helper_for_contact(conn, cid, ref_cid, how)
+                        add_to_list(conn, cid, RESPONDED_LIST, "Responded to the Excitement blast (volunteer sign-up link)")
                         if ref_cid and created is False and not helper["referred_by"]:
                             conn.execute("UPDATE volunteer_helpers SET referred_by = ? WHERE id = ?", (ref_cid, helper["id"]))
                         # The welcome note goes ONLY to the email they typed, and the contact page link is included only
