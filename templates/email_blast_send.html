@@ -1,0 +1,29 @@
+{% extends "crm_base.html" %}
+{% block title %}Sending — Email blasts{% endblock %}
+{% block content %}
+{% if s.status == 'running' %}<meta http-equiv="refresh" content="5">{% endif %}
+<p><a href="{{ url_for('.email_blast_edit', aid=a.id) }}">&larr; {{ a.name }}</a></p>
+<h1>{{ a.name }}: {{ {'running': 'sending…', 'done': 'finished', 'stopped': 'stopped'}.get(s.status, s.status) }}</h1>
+<div class="card" style="max-width:560px">
+  <p style="margin:0 0 6px">Started {{ started }}{% if s.sent_by %} by {{ s.sent_by }}{% endif %}</p>
+  <p style="font-size:1.4rem; margin:0 0 6px"><strong>{{ s.sent_count }}</strong> of {{ s.total }} sent{% if s.failed_count %}, <span style="color:#a33">{{ s.failed_count }} failed</span>{% endif %}</p>
+  {% if s.skipped_count %}<p class="muted" style="margin:0 0 6px">{{ s.skipped_count }} skipped (already received this message).</p>{% endif %}
+  {% if s.status == 'running' %}
+    <p class="muted">This page refreshes by itself. You can leave it; the sending keeps going.</p>
+    <form method="post"><input type="hidden" name="action" value="stop"><button class="btn secondary" type="submit">Stop sending</button></form>
+  {% endif %}
+</div>
+{% if s.snapshot_html %}
+<div class="card" style="max-width:760px; margin-top:16px">
+  <h3 style="margin-top:0">The letter that was sent</h3>
+  <p class="muted" style="margin:0 0 8px">Subject: <strong>{{ s.subject }}</strong> (shown with the first name &ldquo;Friend&rdquo;)</p>
+  <div style="border:1px solid #d9e2ec; border-radius:8px; padding:6px 18px; background:#fff">{{ s.snapshot_html|safe }}</div>
+</div>
+{% endif %}
+{% if failed %}
+<div class="card" style="max-width:760px; margin-top:16px">
+  <h3 style="margin-top:0">Did not send</h3>
+  <table><tr><th>Name</th><th>Email</th><th>Reason</th></tr>{% for f in failed %}<tr><td>{{ f.first_name }}</td><td>{{ f.email }}</td><td>{{ f.error }}</td></tr>{% endfor %}</table>
+</div>
+{% endif %}
+{% endblock %}

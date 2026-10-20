@@ -1,0 +1,69 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ a.name }} — Email blasts{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.email_blasts') }}">&larr; All email blasts</a></p>
+<h1>{{ a.name }}</h1>
+{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+{% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong> (<code>BLASTS_LIVE</code> is not 1 in Render). Tests still work.</p>{% endif %}
+
+<div class="card" style="max-width:760px; margin-bottom:16px">
+  <h3 style="margin-top:0">1. The message</h3>
+  <form method="post">
+    <input type="hidden" name="action" value="save">
+    <div class="field"><label>Name of this audience</label><input name="name" value="{{ a.name }}" maxlength="120"></div>
+    {% if a.kind != 'guides' %}
+    <div class="field"><label>Contact list it goes to</label>
+      <select name="list_id"><option value="">No list chosen</option>{% for l in lists %}<option value="{{ l.id }}" {{ 'selected' if l.id == a.list_id }}>{{ l.name }}</option>{% endfor %}</select>
+      <div class="muted">Add people to the list from the Contacts pages. The blast uses whoever is on the list on the day you send it.</div></div>
+    {% else %}<p class="muted">This goes to everyone who is active on the Guides page.</p>{% endif %}
+    {% if a.kind == 'excitement' %}
+      <p class="muted">This audience uses the standard &ldquo;Excitement is Growing&rdquo; email, so there is no wording to edit here.</p>
+      <div class="field"><label>Subject</label><input name="subject" value="{{ a.subject }}" maxlength="200"></div>
+    {% else %}
+      <div class="field"><label>Subject</label><input name="subject" value="{{ a.subject }}" maxlength="200"></div>
+      <div class="field"><label>Message</label><textarea name="body" rows="14">{{ a.body }}</textarea>
+        <div class="muted">Blank line = new paragraph. <code>{first}</code> becomes the person&rsquo;s first name. A line that says only <code>{link}</code> becomes a button.</div></div>
+      <div class="field"><label>Page the {link} button opens (optional)</label><input name="link_path" value="{{ a.link_path or '' }}" placeholder="/volunteer-helper/join">
+        <div class="muted">Part after the web address, starting with a slash.</div></div>
+    {% endif %}
+    <button class="btn" type="submit">Save</button>
+  </form>
+</div>
+
+<div class="card" id="preview" style="max-width:760px; margin-bottom:16px">
+  <h3 style="margin-top:0">2. Preview</h3>
+  <p class="muted" style="margin:0 0 8px">Subject: <strong>{{ preview_subject or '(none yet)' }}</strong></p>
+  <div style="border:1px solid #d9e2ec; border-radius:8px; padding:6px 18px; background:#fff">{{ preview_html|safe }}</div>
+</div>
+
+<div class="card" style="max-width:760px; margin-bottom:16px">
+  <h3 style="margin-top:0">3. Send yourself a test</h3>
+  <form method="post" class="inline">
+    <input type="hidden" name="action" value="test">
+    <input name="to" type="email" value="{{ owner_email }}" style="min-width:260px">
+    <button class="btn secondary" type="submit">Send test</button>
+  </form>
+  <p class="muted" style="margin:8px 0 0">{% if tested %}Tested {{ tested_when }}. This is the wording that will go out.{% else %}Not tested yet with the current wording. Save any changes, then send a test.{% endif %}</p>
+</div>
+
+<div class="card" style="max-width:760px; margin-bottom:16px">
+  <h3 style="margin-top:0">4. Send for real</h3>
+  <p style="margin:0 0 6px"><strong>{{ count }}</strong> {{ 'person' if count == 1 else 'people' }} on this audience can be emailed{% if already %}; <strong>{{ already }}</strong> already got this exact subject and will be skipped{% endif %}.</p>
+  <p class="muted" style="margin:0 0 10px">People who unsubscribed, have no email, or appear twice are left out automatically.</p>
+  <form method="post">
+    <input type="hidden" name="action" value="send">
+    <div class="field"><label>Type SEND to confirm</label><input name="confirm" autocomplete="off" style="max-width:160px"></div>
+    <button class="btn" type="submit" {{ '' if (live and tested and count - already > 0) else 'disabled' }}>Send to {{ count - already }} {{ 'person' if count - already == 1 else 'people' }}</button>
+    {% if not (live and tested and count - already > 0) %}<span class="muted">&nbsp;(needs: sending ON, a current test, and at least one person)</span>{% endif %}
+  </form>
+</div>
+
+{% if sends %}
+<div class="card" style="max-width:760px">
+  <h3 style="margin-top:0">Past sends</h3>
+  <table><tr><th>When</th><th>By</th><th>Sent</th><th>Failed</th><th>Status</th><th></th></tr>
+  {% for s in sends %}<tr><td>{{ s.when }}</td><td>{{ s.sent_by }}</td><td>{{ s.sent_count }} of {{ s.total }}</td><td>{{ s.failed_count }}</td><td>{{ s.status }}</td><td><a href="{{ url_for('.email_blast_send', sid=s.id) }}">Details</a></td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

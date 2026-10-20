@@ -1,0 +1,22 @@
+{% extends "crm_base.html" %}
+{% block title %}All the letters — Email blasts{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.email_blasts') }}">&larr; All email blasts</a></p>
+<h1>All the letters</h1>
+<p class="muted">What each group receives. Names are shown with your first name as an example.</p>
+{% for i in items %}
+<div class="card" style="max-width:760px; margin-bottom:18px">
+  <h3 style="margin-top:0">{{ i.a.name }} <span class="muted" style="font-size:.7em; font-weight:400">&middot; {{ i.count }} {{ 'person' if i.count == 1 else 'people' }}</span></h3>
+  {% if i.empty %}
+    <p class="muted">No letter has been written for this group yet.</p>
+  {% else %}
+    <p class="muted" style="margin:0 0 8px">Subject: <strong>{{ i.subject }}</strong></p>
+    <div style="border:1px solid #d9e2ec; border-radius:8px; padding:6px 18px; background:#fff">{{ i.html|safe }}</div>
+  {% endif %}
+  <p style="margin:10px 0 0">
+    {% if i.last %}<span class="muted">Last sent {{ i.last.when }} &mdash; {{ i.last.sent_count }} sent.</span> <a href="{{ url_for('.email_blast_send', sid=i.last.id) }}">See what was sent</a> &middot; {% else %}<span class="muted">Not sent yet.</span> {% endif %}
+    <a href="{{ url_for('.email_blast_edit', aid=i.a.id) }}">Edit</a>
+  </p>
+</div>
+{% endfor %}
+{% endblock %}

@@ -2,7 +2,7 @@
 {% block title %}Email blasts — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Email blasts</h1>
-<p class="muted">Owner only. Each card sends one email to one group. Open a card to edit the message, send yourself a test, and send it for real.</p>
+<p class="muted">Owner only. Each card sends one email to one group. Open a card to edit the message, send yourself a test, and send it for real. <a href="{{ url_for('.email_blast_letters') }}"><strong>See all the letters on one page &rarr;</strong></a></p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 {% if not live %}<p class="flash" style="background:#fdecea; border-color:#e5a39b">Real sending is <strong>OFF</strong>. You can still edit and send yourself tests. To allow real sends, add <code>BLASTS_LIVE</code> = <code>1</code> in Render&rsquo;s Environment.</p>{% endif %}
 <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-bottom:24px">
@@ -15,7 +15,7 @@
     </p>
     {% if c.a.kind != 'excitement' and not (c.a.body or '').strip() %}<p class="muted" style="margin:0 0 10px">No message written yet.</p>{% endif %}
     {% if c.last %}<p class="muted" style="margin:0 0 10px">Last send: {{ c.last.when }} &mdash; {{ c.last.sent_count }} sent{% if c.last.failed_count %}, {{ c.last.failed_count }} failed{% endif %}</p>{% endif %}
-    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a>
+    <a class="btn" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}">Open</a> <a class="btn secondary" href="{{ url_for('.email_blast_edit', aid=c.a.id) }}#preview">View letter</a>
   </div>
 {% endfor %}
 </div>
