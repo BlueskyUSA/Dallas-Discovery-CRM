@@ -283,6 +283,13 @@ def build(letter, aud, first, contact_id, base_url):
         footer_h = (f'<hr style="border:none;border-top:1px solid #ddd;margin:24px 0 10px">'
                     f'<p style="font-size:.8em;color:#777">{why} <a href="{u}">{what}</a><br>{_html.escape(MAILING_ADDRESS)}</p>')
         footer_t = f"\n\n--\n{why} {what}: {u}\n{MAILING_ADDRESS}"
+    if letter["kind"] == "html":
+        g = _html.escape(greet)
+        body_h = re.sub(r"(?i)\[\s*first\s*name\s*\]|\{\s*first\s*name\s*\}", g, letter["body"] or "")
+        plain = re.sub(r"(?i)</(p|h2|li)>", "\n\n", body_h.replace("<br>", "\n"))
+        plain = _html.unescape(re.sub(r"<[^>]+>", "", plain)).strip()
+        wrap = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222">' + body_h + "</div>"
+        return letter["subject"] or "", wrap + footer_h, plain + footer_t
     if letter["kind"] == "standard":
         html, text = excitement_blast_content(greet)
         return letter["subject"] or EXCITEMENT_BLAST_SUBJECT, html + footer_h, text + footer_t
@@ -298,9 +305,135 @@ def build(letter, aud, first, contact_id, base_url):
         else:
             esc = _html.escape(p.strip()).replace("\n", "<br>").replace("{link}", f'<a href="{link}">{link}</a>')
             esc = re.sub(r'(?<!["\'>=])(https?://[^\s<]+)', r'<a href="\1">\1</a>', esc)
+            esc = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", esc)
             html_parts.append("<p>" + esc + "</p>")
     text = body.replace("{link}", link)
     return letter["subject"], "".join(html_parts) + footer_h, text + footer_t
+
+
+def docx_to_html(raw):
+    """(subject or None, safe html) from a Word file, keeping bold, italic, underline, color, size, links, headings, lists and alignment."""
+    import zipfile, io
+    import xml.etree.ElementTree as ET
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    doc = ET.fromstring(z.read("word/document.xml"))
+    rels = {}
+    try:
+        for r in ET.fromstring(z.read("word/_rels/document.xml.rels")):
+            rels[r.get("Id")] = r.get("Target")
+    except KeyError:
+        pass
+    numfmt = {}
+    try:
+        num = ET.fromstring(z.read("word/numbering.xml"))
+        absfmt = {}
+        for a in num.iter(W + "abstractNum"):
+            lvl = a.find(W + "lvl")
+            f = lvl.find(W + "numFmt") if lvl is not None else None
+            absfmt[a.get(W + "abstractNumId")] = f.get(W + "val") if f is not None else "bullet"
+        for n in num.iter(W + "num"):
+            ab = n.find(W + "abstractNumId")
+            if ab is not None:
+                numfmt[n.get(W + "numId")] = absfmt.get(ab.get(W + "val"), "bullet")
+    except KeyError:
+        pass
+
+    def on(el):
+        return el is not None and el.get(W + "val", "1").lower() not in ("0", "false", "none")
+
+    def run_html(r):
+        parts = []
+        for c in r:
+            if c.tag == W + "t":
+                parts.append(_html.escape(c.text or ""))
+            elif c.tag == W + "br":
+                parts.append("<br>")
+            elif c.tag == W + "tab":
+                parts.append("&emsp;&emsp;")
+        out = "".join(parts)
+        if not out:
+            return ""
+        rp = r.find(W + "rPr")
+        if rp is not None:
+            css = []
+            col = rp.find(W + "color")
+            if col is not None and re.fullmatch(r"[0-9A-Fa-f]{6}", col.get(W + "val", "")) and col.get(W + "val").lower() != "000000":
+                css.append("color:#" + col.get(W + "val"))
+            sz = rp.find(W + "sz")
+            if sz is not None and sz.get(W + "val", "").isdigit() and int(sz.get(W + "val")) not in (22, 24):
+                css.append(f"font-size:{int(sz.get(W + 'val')) / 2:g}pt")
+            if css:
+                out = f'<span style="{";".join(css)}">{out}</span>'
+            if on(rp.find(W + "u")):
+                out = f"<u>{out}</u>"
+            if on(rp.find(W + "i")):
+                out = f"<em>{out}</em>"
+            if on(rp.find(W + "b")):
+                out = f"<strong>{out}</strong>"
+        return out
+
+    def walk(el):
+        out = ""
+        for c in el:
+            if c.tag == W + "r":
+                out += run_html(c)
+            elif c.tag == W + "hyperlink":
+                inner = walk(c)
+                href = rels.get(c.get(R + "id"), "")
+                if href.lower().startswith(("http://", "https://", "mailto:")):
+                    out += f'<a href="{_html.escape(href, quote=True)}">{inner}</a>'
+                else:
+                    out += inner
+            elif c.tag in (W + "ins", W + "smartTag", W + "sdt", W + "sdtContent", W + "fldSimple"):
+                out += walk(c)
+        return out
+
+    blocks = []   # (list_kind or None, html, plain)
+    for p in doc.iter(W + "p"):
+        inner = walk(p)
+        plain = re.sub(r"<[^>]+>", "", inner.replace("<br>", "\n"))
+        if not plain.strip():
+            continue
+        pp = p.find(W + "pPr")
+        style, jc, numid = "", "", None
+        if pp is not None:
+            ps = pp.find(W + "pStyle")
+            style = ps.get(W + "val", "") if ps is not None else ""
+            j = pp.find(W + "jc")
+            jc = j.get(W + "val", "") if j is not None else ""
+            npr = pp.find(W + "numPr")
+            if npr is not None and npr.find(W + "numId") is not None:
+                numid = npr.find(W + "numId").get(W + "val")
+        align = f"text-align:{ {'center': 'center', 'right': 'right', 'both': 'left'}.get(jc, 'left') };" if jc in ("center", "right") else ""
+        if style.lower().startswith("listbullet") or style.lower().startswith("listparagraph") and not numid:
+            blocks.append(("ul", f"<li>{inner}</li>", plain))
+        elif style.lower().startswith("listnumber"):
+            blocks.append(("ol", f"<li>{inner}</li>", plain))
+        elif numid and numid != "0":
+            blocks.append(("ol" if numfmt.get(numid, "bullet") != "bullet" else "ul", f"<li>{inner}</li>", plain))
+        elif style.lower().startswith("heading") or style.lower() == "title":
+            blocks.append((None, f'<h2 style="margin:18px 0 8px;{align}">{inner}</h2>', plain))
+        else:
+            blocks.append((None, f'<p style="margin:0 0 14px;{align}">{inner}</p>', plain))
+    subject = None
+    if blocks and re.match(r"(?i)\s*subject\s*:", blocks[0][2]):
+        subject = re.sub(r"(?i)^\s*subject\s*:\s*", "", blocks[0][2]).strip()[:200]
+        blocks = blocks[1:]
+    out, i = [], 0
+    while i < len(blocks):
+        k = blocks[i][0]
+        if k:
+            j = i
+            items = []
+            while j < len(blocks) and blocks[j][0] == k:
+                items.append(blocks[j][1]); j += 1
+            out.append(f'<{k} style="margin:0 0 14px 22px;padding:0">' + "".join(items) + f"</{k}>")
+            i = j
+        else:
+            out.append(blocks[i][1]); i += 1
+    return subject, "".join(out)
 
 
 def parse_upload(f):
@@ -492,9 +625,14 @@ def register(app, crm, owner_required, get_db):
                 conn.commit()
                 flash("Saved who this goes to.")
                 return redirect(url_for(".email_blast_edit", aid=aid))
+            if act == "add_standard":
+                lid = _new_letter(conn, aid, "Excitement is Growing (standard letter)", "standard", EXCITEMENT_BLAST_SUBJECT, "", None)
+                conn.commit()
+                flash("The standard Excitement letter was added with its original look. Send yourself a test, then send.")
+                return redirect(url_for(".email_blast_letter", lid=lid))
             if act == "new_letter":
                 title = (request.form.get("title") or "").strip() or "New letter"
-                subject, body = "", ""
+                subject, body, lkind = "", "", "text"
                 f = request.files.get("file")
                 if f and f.filename:
                     ext = (f.filename or "").lower().rsplit(".", 1)[-1]
@@ -504,17 +642,21 @@ def register(app, crm, owner_required, get_db):
                               "You can also leave the file empty and paste the wording in on the next page.")
                         return redirect(url_for(".email_blast_edit", aid=aid))
                     try:
-                        subject, body = parse_upload(f)
+                        if ext == "docx":
+                            subject, body = docx_to_html(f.read(3_000_000))
+                            lkind = "html"
+                        else:
+                            subject, body = parse_upload(f)
                         subject = subject or ""
                     except Exception as e:
                         flash(f"That file could not be read ({e}). Please save it as a Word (.docx) file and try again.")
                         return redirect(url_for(".email_blast_edit", aid=aid))
-                    if not body.strip():
+                    if not re.sub(r"<[^>]+>", "", body).strip():
                         flash("That file had no text in it. Nothing was added.")
                         return redirect(url_for(".email_blast_edit", aid=aid))
-                lid = _new_letter(conn, aid, title, "text", subject, body, None)
+                lid = _new_letter(conn, aid, title, lkind, subject, body, None)
                 conn.commit()
-                flash("New letter started. Check the wording, then send yourself a test." if body else "New letter started. Write the wording below.")
+                flash("Letter uploaded with its formatting. Check it below, then send yourself a test." if body else "New letter started. Write the wording below.")
                 return redirect(url_for(".email_blast_letter", lid=lid))
             recips = recipients(conn, a)
             letters = [_letter_row(conn, l) for l in conn.execute("SELECT * FROM blast_letters WHERE audience_id = ? ORDER BY id DESC", (aid,)).fetchall()]
@@ -539,8 +681,11 @@ def register(app, crm, owner_required, get_db):
             act = request.form.get("action") if request.method == "POST" else None
             back = redirect(url_for(".email_blast_letter", lid=lid))
             if act == "duplicate":
-                nid = _new_letter(conn, a["id"], (l["title"] or "Letter") + " (copy)", "text",
-                                  l["subject"] or "", (l["body"] if l["kind"] == "text" else standard_text()), l["link_path"])
+                if l["kind"] == "standard":
+                    nid = _new_letter(conn, a["id"], (l["title"] or "Letter") + " (copy)", "standard", l["subject"] or EXCITEMENT_BLAST_SUBJECT, "", None)
+                else:
+                    nid = _new_letter(conn, a["id"], (l["title"] or "Letter") + " (copy)", l["kind"],
+                                      l["subject"] or "", l["body"], l["link_path"])
                 conn.commit()
                 flash("A new draft was made from this letter. You can edit this one.")
                 return redirect(url_for(".email_blast_letter", lid=nid))
@@ -553,8 +698,32 @@ def register(app, crm, owner_required, get_db):
                 conn.commit()
                 flash("Draft deleted.")
                 return redirect(url_for(".email_blast_edit", aid=a["id"]))
-            if act in ("save", "customize", "test") and locked:
+            if act in ("save", "customize", "test", "replace_file", "to_text") and locked:
                 flash("This letter has already been sent, so it can no longer be changed. Use \u201cCopy to a new draft\u201d to write another.")
+                return back
+            if act == "replace_file":
+                f = request.files.get("file")
+                if not f or not (f.filename or "").lower().endswith(".docx"):
+                    flash("Choose a Word (.docx) file to replace this letter.")
+                    return back
+                try:
+                    subj, body = docx_to_html(f.read(3_000_000))
+                except Exception as e:
+                    flash(f"That file could not be read ({e}). Please save it as a Word (.docx) file and try again.")
+                    return back
+                if not re.sub(r"<[^>]+>", "", body).strip():
+                    flash("That file had no text in it. Nothing was changed.")
+                    return back
+                conn.execute("UPDATE blast_letters SET kind = 'html', body = ?, subject = ? WHERE id = ?", (body, subj or l["subject"], lid))
+                conn.commit()
+                flash("Letter replaced with the new Word file. Send yourself a test.")
+                return back
+            if act == "to_text" and l["kind"] == "html":
+                plain = re.sub(r"(?i)</(p|h2|li)>", "\n\n", l["body"].replace("<br>", "\n"))
+                plain = _html.unescape(re.sub(r"<[^>]+>", "", plain)).strip()
+                conn.execute("UPDATE blast_letters SET kind = 'text', body = ? WHERE id = ?", (plain, lid))
+                conn.commit()
+                flash("Now plain text. You can type changes here, but the colors, bold and links are gone.")
                 return back
             if act == "customize" and l["kind"] == "standard":
                 conn.execute("UPDATE blast_letters SET kind = 'text', body = ?, title = ? WHERE id = ?",
