@@ -1396,7 +1396,7 @@ def date_span(row):
 @app.context_processor
 def inject_program_name():
     """Makes {{ program_name }} available in every template (see config.py)."""
-    return {"program_name": PROGRAM_NAME}
+    return {"program_name": PROGRAM_NAME, "public_brand": "Discovery!"}
 
 
 @app.context_processor
