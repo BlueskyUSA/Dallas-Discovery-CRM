@@ -5926,10 +5926,16 @@ def public_about_program():
 
 @app.route("/programs")
 def public_programs():
-    conn = get_db()
-    programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
-    conn.close()
-    return render_template("public_programs.html", programs=programs)
+    return render_template("public_programs.html")
+
+
+@app.route("/programs/<slug>")
+def public_program_page(slug):
+    from public_programs_data import PROGRAM_PAGES
+    p = PROGRAM_PAGES.get(slug)
+    if not p:
+        abort(404)
+    return render_template("public_program_page.html", p=p)
 
 
 @app.route("/questionnaire/<token>", methods=["GET", "POST"])

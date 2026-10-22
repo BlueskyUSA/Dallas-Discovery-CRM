@@ -175,7 +175,7 @@ def _program_label(code):
     for c, label in POOLS:
         if c == code:
             return label
-    return code or "Discovery"
+    return {"D2": "D2 \u2013 Awakening", "D3": "D3 \u2013 Vision"}.get(code) or code or "Dallas Discovery"
 
 
 def ensure_tables(get_db):
