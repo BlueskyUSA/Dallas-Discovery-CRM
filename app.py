@@ -5894,6 +5894,26 @@ def public_relationship_training():
     return render_template("public_relationship.html", date_text=date_text)
 
 
+@app.route("/preview/home")
+def public_home_preview():
+    """Unlinked draft of the new front page. Only the logged-in account owner can see it."""
+    if not session.get("is_owner"):
+        abort(404)
+    resp = make_response(render_template("public_home_draft.html"))
+    resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
+
+
+@app.route("/preview/d1")
+def public_d1_preview():
+    """Unlinked draft of the D1 page. Only the logged-in account owner can see it."""
+    if not session.get("is_owner"):
+        abort(404)
+    resp = make_response(render_template("public_d1_draft.html"))
+    resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
+
+
 @app.route("/our-story")
 def public_our_story():
     return render_template("public_our_story.html")
