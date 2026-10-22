@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title }} — {{ program_name }}{% endblock %}
+{% block meta_description %}{{ p.tagline }}{% endblock %}
+{% block content %}
+<style>
+.pg{color:#183b45;line-height:1.7}.pg h1,.pg h2,.pg h3{font-family:Georgia,'Times New Roman',serif;font-weight:500;border:0!important;color:#123e54}
+.pg-hero{background:linear-gradient(135deg,#0a3150,#006c86);color:#fff;padding:64px 24px;text-align:center}
+.pg-hero .k{font-size:.75rem;letter-spacing:.18em;font-weight:700;color:#bfe3ea}
+.pg-hero h1{color:#fff;font-size:clamp(2.2rem,5vw,3.4rem);margin:10px 0 8px}.pg-hero p{max-width:720px;margin:0 auto;font-size:1.1rem}
+.pg-body{max-width:860px;margin:0 auto;padding:40px 24px}
+.pg-body p{font-size:1.05rem}.pg-pts{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:24px 0}
+.pg-pt{background:#f2f9f8;border-radius:12px;padding:18px 20px}.pg-pt h3{margin:0 0 6px;font-size:1.15rem}.pg-pt p{margin:0;font-size:.97rem}
+.pg-box{background:#edf7f7;border-radius:12px;padding:18px 22px;margin:18px 0}
+.pg .btn{display:inline-block;background:#006d86;color:#fff!important;text-decoration:none;border-radius:40px;padding:13px 28px;font-weight:700;font-size:.85rem;letter-spacing:.05em;margin:6px 8px 0 0}
+.pg .btn.alt{background:transparent;color:#006d86!important;border:1px solid #006d86}
+@media(max-width:680px){.pg-pts{grid-template-columns:1fr}}
+</style>
+<div class="pg">
+<section class="pg-hero"><div class="k">{{ p.num }}</div><h1>{{ p.title }}</h1><p>{{ p.tagline }}</p></section>
+<section class="pg-body">
+  <p>{{ p.intro }}</p>
+  {% if p.points %}<div class="pg-pts">{% for t, d in p.points %}<div class="pg-pt"><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div>{% endif %}
+  <div class="pg-box"><strong>Where this fits.</strong> {{ p.fit }}</div>
+  <div class="pg-box"><strong>Tentative schedule.</strong> {{ p.schedule }} Exact dates and registration details will be announced.</div>
+  <p><a class="btn" href="{{ url_for('public_register') }}#interested">BE THE FIRST TO HEAR</a>
+     <a class="btn alt" href="{{ url_for('public_programs') }}">ALL PROGRAMS</a>
+     <a class="btn alt" href="{{ url_for('public_home') }}">HOME</a></p>
+</section>
+</div>
+{% endblock %}

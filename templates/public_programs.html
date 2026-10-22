@@ -1,28 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Programs — {{ program_name }}{% endblock %}
+{% block meta_description %}Four immersive, three-day experiential seminars: The Art of Us, The Beginning, Awakening, and Vision.{% endblock %}
 {% block content %}
-<section class="pub-section">
-  <div class="pub-container">
-    <h2>Our Programs</h2>
-    <p class="lead">
-      D1, D2, and D3 build on each other and are taken in order, one per month.
-      The Relationship Training is our coaching weekend for couples and stands on
-      its own — no prerequisite required. Refocus and the Spiritual training round
-      out our offerings.
-    </p>
-    <div class="card-grid">
-      {% for p in programs %}
-      <div class="program-card">
-        <span class="code-badge">{{ p.code }}</span>
-        <h3>{{ p.name }}</h3>
-        <p>{{ p.description or "" }}</p>
-      </div>
-      {% endfor %}
-    </div>
-    <div style="margin-top:36px">
-      <a class="pub-btn dark" href="{{ url_for('public_register') }}">See upcoming session dates &rarr;</a>
-    </div>
+<style>
+.pp{color:#103754}.pp h2,.pp h3{font-family:Georgia,'Times New Roman',serif;font-weight:500;border:0!important}
+.pp-sec{padding:44px 28px;text-align:center}.pp-sec.alt{background:#edf7f7}
+.pp .eyebrow{font-size:.75rem;letter-spacing:.21em;text-transform:uppercase;font-weight:700;color:#174b65}
+.pp h2{font-size:clamp(1.9rem,3.2vw,2.7rem);margin:8px 0 12px;color:#123e54}
+.pp-lead{max-width:800px;margin:0 auto 26px;line-height:1.7;color:#456575}
+.pp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;max-width:1060px;margin:auto;text-align:left}
+.pp-card{background:#fff;border:1px solid #dbe8e9;border-radius:13px;padding:24px 25px;box-shadow:0 6px 20px rgba(19,60,75,.05);display:flex;flex-direction:column;min-height:245px}
+.pp-num{font:700 .72rem/1.5 Arial,sans-serif;letter-spacing:.13em;color:#477e8b}
+.pp-card h3{font-size:1.7rem;color:#133d54;margin:10px 0 9px}
+.pp-card p{font-size:.97rem;line-height:1.65;color:#405b68;margin:0 0 17px}
+.pp-foot{margin-top:auto;border-top:1px solid #e5eeee;padding-top:12px;color:#477784;font-size:.84rem;font-weight:600}
+.pp-open{display:inline-block;margin-top:14px;color:#086c79;font-weight:700;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:3px}
+.pp-seq{margin:25px auto 0;line-height:1.8;color:#254c5c}
+.pp-launch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:1060px;margin:0 auto}
+.pp-month{background:#fff;border:1px solid #d8e9e8;border-radius:16px;padding:22px 18px;text-align:left}
+.pp-month .m{font-size:.8rem;letter-spacing:.12em;color:#347d86;font-weight:800;margin-bottom:13px}
+.pp-month h3{font-size:1.1rem;margin:0;line-height:1.35;color:#15394c}
+.pp-note{max-width:790px;margin:26px auto 0;font-size:.94rem;line-height:1.65;color:#3b5c65}
+@media(max-width:900px){.pp-launch{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.pp-grid{grid-template-columns:1fr}.pp-sec{padding:32px 18px}.pp-card{min-height:0}.pp-launch{grid-template-columns:1fr}}
+</style>
+<div class="pp">
+<section class="pp-sec">
+  <div class="eyebrow">Programs</div>
+  <h2>Explore the Dallas Discovery Programs</h2>
+  <p class="pp-lead">Four immersive, three-day experiential seminars. Explore the relationship experience or follow the progressive personal-growth journey.</p>
+  <div class="pp-grid">
+    <article class="pp-card"><div class="pp-num">PROGRAM 1 · RELATIONSHIPS</div><h3>The Art of Us</h3><p>Creating a more honest, intimate, and fulfilling marriage or committed relationship. A fun, challenging experience focused on communicating more accurately and building one another up.</p><div class="pp-foot">Standalone · No prerequisites</div><a class="pp-open" href="{{ url_for('public_program_page', slug='the-art-of-us') }}">Explore this program &rarr;</a></article>
+    <article class="pp-card"><div class="pp-num">PROGRAM 2 · THE PAST</div><h3>The Beginning</h3><p>Explore your upbringing, the beliefs you developed about yourself, and the ways early experiences may still influence your life today.</p><div class="pp-foot">First step in the personal-growth sequence</div><a class="pp-open" href="{{ url_for('public_program_page', slug='the-beginning') }}">Explore this program &rarr;</a></article>
+    <article class="pp-card"><div class="pp-num">PROGRAM 3 · THE PRESENT</div><h3>Awakening</h3><p>Bring greater awareness to your thoughts, emotions, relationships, and choices, and discover new ways of responding to life today.</p><div class="pp-foot">Prerequisite: The Beginning</div><a class="pp-open" href="{{ url_for('public_program_page', slug='awakening') }}">Explore this program &rarr;</a></article>
+    <article class="pp-card"><div class="pp-num">PROGRAM 4 · THE FUTURE</div><h3>Vision</h3><p>Clarify what matters most, imagine new possibilities, and begin shaping a future that reflects your values and intentions.</p><div class="pp-foot">Prerequisites: The Beginning + Awakening</div><a class="pp-open" href="{{ url_for('public_program_page', slug='vision') }}">Explore this program &rarr;</a></article>
   </div>
+  <p class="pp-seq"><strong>Personal-growth sequence (Programs 2&ndash;4): The Beginning &rarr; Awakening &rarr; Vision</strong><br>The Art of Us can be attended independently.</p>
 </section>
+<section class="pp-sec alt" id="schedule">
+  <div class="eyebrow">Upcoming seminars (tentative)</div>
+  <h2>Your Dallas Discovery Journey Begins Here</h2>
+  <p class="pp-lead">Our planned opening schedule, from March through June.</p>
+  <div class="pp-launch">
+    <article class="pp-month"><div class="m">MARCH</div><h3>The Art of Us</h3></article>
+    <article class="pp-month"><div class="m">APRIL</div><h3>The Beginning</h3></article>
+    <article class="pp-month"><div class="m">MAY</div><h3>The Beginning<br>+ Awakening</h3></article>
+    <article class="pp-month"><div class="m">JUNE</div><h3>The Beginning<br>+ Awakening<br>+ Vision</h3></article>
+  </div>
+  <p class="pp-note"><strong>Choose the next step in your journey.</strong> The Beginning comes first, followed by Awakening and then Vision. In May and June, the seminars are held at the same facility in separate groups. Each seminar is a separate three-day experience; participants complete prerequisites before moving forward. This schedule is tentative. Specific dates and registration details will be announced.</p>
+</section>
+</div>
 {% set cf_page='programs' %}{% set cf_program='' %}{% include '_call_form.html' %}
 {% endblock %}
