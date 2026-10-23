@@ -5937,6 +5937,8 @@ def public_program_page(slug):
         abort(404)
     if slug == "the-art-of-us":
         return render_template("public_art_of_us.html", p=p)
+    if slug == "the-beginning":
+        return render_template("public_the_beginning.html", p=p)
     return render_template("public_program_page.html", p=p)
 
 
