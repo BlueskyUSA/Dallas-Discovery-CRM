@@ -5942,6 +5942,22 @@ def public_program_page(slug):
     return render_template("public_program_page.html", p=p)
 
 
+@app.route("/programs/<slug>/whats-included")
+def public_whats_included(slug):
+    from public_programs_data import PROGRAM_PAGES
+    p = PROGRAM_PAGES.get(slug)
+    if not p:
+        abort(404)
+    names = {"the-art-of-us": "The Art of Us", "the-beginning": "The Beginning",
+             "awakening": "Awakening", "vision": "Vision"}
+    # Start/end times differ by program; update here once confirmed.
+    when = {"the-art-of-us": "Friday 10:00 am through Sunday 3:00 pm",
+            "the-beginning": "Friday 10:00 am through Sunday 3:00 pm"}.get(
+        slug, "Three days (start and end times to be announced)")
+    w = {"slug": slug, "name": names.get(slug, slug.title()), "when": when}
+    return render_template("public_whats_included.html", w=w)
+
+
 @app.route("/questionnaire/<token>", methods=["GET", "POST"])
 def public_questionnaire(token):
     """Public, no-login page where a trainee answers their own questionnaire. The private link is the key;
