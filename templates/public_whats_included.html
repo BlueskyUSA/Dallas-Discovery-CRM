@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}What&rsquo;s Included — {{ w.name }} — Discovery!{% endblock %}
+{% block meta_description %}What&rsquo;s included in {{ w.name }}: the hotel, the schedule, and everything that is taken care of so you can focus on the experience.{% endblock %}
+{% block site_header %}{% endblock %}
+{% block content %}
+<style>
+.wi{font-family:Arial,Helvetica,sans-serif;color:#103754;background:#fff;line-height:1.55}
+.wi *{box-sizing:border-box}
+.wi h1,.wi h2{font-family:Georgia,'Times New Roman',serif;font-weight:500;border:0!important;padding:0!important;margin:0}
+.wi a{color:inherit}
+.wi-hero{background:linear-gradient(135deg,#0a3150,#006c86);color:#fff;text-align:center;padding:26px 5% clamp(60px,8vw,110px)}
+.wi-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-bottom:clamp(34px,5vw,64px)}
+.wi-nav a{color:#fff;text-decoration:none;font-weight:700;font-size:clamp(13px,1.3vw,18px)}
+.wi-nav a.reg{background:#fff;color:#06405c;padding:.4em 1.1em;border-radius:40px}
+.wi-brand{display:block;font-family:Georgia,serif;font-size:clamp(28px,3vw,44px);color:#fff;text-decoration:none;margin-bottom:22px}
+.wi-brand em{font-size:.7em}
+.wi-kick{text-transform:uppercase;letter-spacing:.2em;font-weight:700;font-size:clamp(.85rem,1.2vw,1.1rem);color:#bfe6ee}
+.wi-hero h1{font-size:clamp(2.8rem,6.5vw,5.5rem);line-height:1.05;margin:14px 0 18px}
+.wi-hero p{font-family:Georgia,serif;font-style:italic;font-size:clamp(1.3rem,2.4vw,2.1rem);max-width:820px;margin:0 auto}
+.wi-sec{padding:clamp(40px,6vw,80px) 6%;max-width:1300px;margin:0 auto}
+.wi-lead{text-align:center;font-family:Georgia,serif;font-style:italic;color:#006c86;font-size:clamp(1.4rem,2.6vw,2.2rem);line-height:1.4;max-width:900px;margin:0 auto 40px}
+.wi-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px)}
+.wi-card{background:#f1f8f9;border-radius:18px;overflow:hidden}
+.wi-card img{display:block;width:100%;height:clamp(220px,26vw,340px);object-fit:cover}
+.wi-card .in{padding:26px 28px 32px}
+.wi-card h2{font-size:clamp(1.7rem,2.6vw,2.3rem);color:#006c86;margin-bottom:14px!important}
+.wi-card ul{margin:0;padding-left:1.2em}
+.wi-card li{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.55;margin:0 0 10px}
+.wi-card p{font-size:clamp(1.05rem,1.4vw,1.25rem);margin:0 0 12px}
+.wi-tbc{text-align:center;font-size:.9rem;color:#526b79;max-width:760px;margin:30px auto 0}
+.wi-end{background:linear-gradient(135deg,#0a3150,#006c86);color:#fff;text-align:center;padding:50px 20px 56px}
+.wi-end h2{font-size:clamp(2rem,3.4vw,3rem);margin-bottom:18px!important}
+.wi-btn{display:inline-block;background:#fff;color:#06405c!important;text-decoration:none;font-weight:700;letter-spacing:.05em;border-radius:40px;padding:14px 28px;margin:6px;font-size:.9rem}
+.wi-btn.alt{background:transparent;border:1px solid #fff;color:#fff!important}
+.wi-links{text-align:center;padding:14px;font-size:.85rem;background:#f5f9f9}.wi-links a{margin:0 10px;color:#176878}
+@media(max-width:760px){.wi-grid{grid-template-columns:1fr}}
+</style>
+<div class="wi">
+<header class="wi-hero">
+<nav class="wi-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us</a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning</a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening</a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision</a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register') }}#interested">Register</a></nav>
+<a class="wi-brand" href="{{ url_for('public_home') }}">Discovery<em>!</em></a>
+<div class="wi-kick">{{ w.name }}</div>
+<h1>What&rsquo;s Included</h1>
+<p>Everything is taken care of, so you can focus on the experience.</p>
+</header>
+<main class="wi-sec">
+<div class="wi-lead">{{ w.when }}, in a comfortable hotel just north of DFW Airport.</div>
+<div class="wi-grid">
+<section class="wi-card"><img src="{{ url_for('static', filename='hotel-room.png') }}" alt="A comfortable hotel room" loading="lazy"><div class="in"><h2>What&rsquo;s included</h2><ul>
+<li>Two nights in the hotel</li>
+<li>All sessions and program materials</li>
+<li>Snacks, coffee, tea and water throughout the program</li>
+<li>Meals and room arrangements: details will be confirmed before registration opens</li></ul></div></section>
+<section class="wi-card"><img src="{{ url_for('static', filename='hotel-exterior.png') }}" alt="The Four Points by Sheraton Dallas Fort Worth Airport North at dusk" loading="lazy"><div class="in"><h2>Where we&rsquo;ll be</h2>
+<p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>Coppell, Texas, about six miles from DFW Airport.</p>
+<ul><li>{{ w.when }}</li><li>Modern rooms with free Wi-Fi, outdoor pool, 24-hour fitness center, and on-site restaurant and bar</li><li>Free parking for guests</li><li>Free hourly hotel shuttle from DFW Airport (from Love Field, take Uber or a taxi)</li></ul></div></section>
+</div>
+<p class="wi-tbc">Schedule, meals, room arrangements and pricing are still being finalized and will be confirmed here.</p>
+</main>
+<section class="wi-end"><h2>Ready to take the next step?</h2>
+<a class="wi-btn" href="{{ url_for('public_register') }}#interested">BE THE FIRST TO HEAR</a>
+<a class="wi-btn alt" href="{{ url_for('public_program_page', slug=w.slug) }}">BACK TO {{ w.name|upper }}</a></section>
+<div class="wi-links"><a href="{{ url_for('public_our_story') }}">About the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div>
+</div>
+{% endblock %}
