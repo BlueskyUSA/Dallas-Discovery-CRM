@@ -15,7 +15,7 @@
       <div class="field"><label>Role</label>
         <select name="role">
           <option value="Team">Team</option>
-          <option value="Leadership">Leadership</option>
+          {% if session.is_owner %}<option value="Leadership">Leadership</option>{% endif %}
           {% if session.is_owner %}<option value="Accounting">Accounting &amp; Legal (view-only)</option>{% endif %}
         </select>
       </div>

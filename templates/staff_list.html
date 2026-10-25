@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Site Access</h1>
 <p class="muted">
-  Only the Owner sees this page. It controls who can log in and what each person can open.
+  The Owner and Leadership see this page. It controls who can log in{% if session.is_owner %} and what each person can open{% else %}. Leadership can add, deactivate, reactivate and reset passwords for Team accounts; the Owner handles everything else{% endif %}.
   Leadership accounts see confidential areas (Contacts, Donations, Contracts, program materials) only once you authorize them here.
   <strong>Accounting &amp; Legal</strong> logins (accountant, bookkeeper, attorney) are view-only and can only be given Accounting,
   Donations, Contracts, or Contacts. Deactivating an account keeps its history but blocks it from logging in.
@@ -77,6 +77,7 @@
       </td>
       <td style="white-space:nowrap">
         {% set is_self_owner_row = (s.id == session.staff_id and s.is_owner) %}
+        {% if session.is_owner %}
         <details style="display:inline-block; vertical-align:middle;">
           <summary class="btn secondary" style="display:inline-block; cursor:pointer;">Edit</summary>
           <form method="post" action="{{ url_for('.staff_edit', staff_id=s.id) }}" style="margin-top:8px; min-width:220px;">
@@ -94,7 +95,8 @@
           </form>
           {% endif %}
         </details>
-        {% if not is_self_owner_row and (session.is_owner or s.role != 'Accounting') %}
+        {% endif %}
+        {% if not is_self_owner_row and (session.is_owner or (s.role == 'Team' and not s.is_owner)) %}
           {% if s.active %}
           <form method="post" action="{{ url_for('.staff_deactivate', staff_id=s.id) }}" style="display:inline">
             <button class="btn secondary" type="submit">Deactivate</button>
@@ -104,7 +106,7 @@
             <button class="btn secondary" type="submit">Reactivate</button>
           </form>
           {% endif %}
-          {% if session.is_owner %}
+          {% if True %}
           <details style="display:inline-block; vertical-align:top">
             <summary class="btn secondary" style="display:inline-block; cursor:pointer">Reset password</summary>
             <form method="post" action="{{ url_for('.staff_reset_password', staff_id=s.id) }}" style="margin-top:6px"
