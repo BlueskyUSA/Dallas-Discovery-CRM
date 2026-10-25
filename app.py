@@ -1124,7 +1124,7 @@ def staff_new_for_contact(contact_id):
             conn.close()
             email_sent, email_error, sms_body = _email_team_login(
                 contact["first_name"], contact["full_name"], email, role, temp_password,
-                "You've been added back to the")
+                "You've been added to the")
             return render_template(
                 "staff_new_done.html", heading=f"{contact['full_name']} was added as {role_label(role)}",
                 person=contact, email=email, temp_password=temp_password,
