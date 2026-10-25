@@ -47,6 +47,11 @@ section.pg-hero{position:relative}
 .dd .hx-nav>a:nth-child(7),.aou-links>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){grid-column:2/6!important;grid-row:4!important;justify-self:center;font-size:16px!important;padding:.55em 2.2em!important;margin-top:4px}
 .dd .hx-nav{padding-top:40px!important}.aou-nav.aou-wrap{padding-top:40px!important}.wi-hero,.pg-hero{padding-top:42px!important}
 }
+@media(max-width:760px){
+.dd .hx-nav>a:nth-child(7),.aou-links>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){font-size:14px!important;font-weight:600!important;padding:.4em 1.6em!important;background:transparent!important;border:1px solid currentColor;box-shadow:none!important;text-shadow:none!important;margin-top:0}
+.dd .hx-nav>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){color:#fff!important}
+.aou-links>a:nth-child(7){color:#103d59!important}
+}
 </style>
 <div class="pg">
 <section class="pg-hero"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Wherever You Go,<br>There You Are</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register', program=p.code) }}#interested">Register</a></nav><a class="team-login" href="{{ url_for('crm.dashboard') }}">Team Login</a><a class="pg-brand" href="{{ url_for('public_home') }}">Discovery<em>!</em></a><div class="k">{{ p.num }}</div><h1>{{ p.title }}</h1><p>{{ p.tagline }}</p></section>
