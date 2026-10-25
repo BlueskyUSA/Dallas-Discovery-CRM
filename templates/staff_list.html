@@ -48,8 +48,9 @@
             <div style="margin-top:8px; min-width:260px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
               {% if s.role != 'Accounting' %}
               <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
-                    onsubmit="return confirm('Give {{ s.name }} full access to every area of the ERP?');" style="margin-bottom:10px;">
+                    onsubmit="return confirm('Give {{ s.name }} full access to everything except Accounting, Donations, Contracts and Marketing? You can turn those on separately.');" style="margin-bottom:10px;">
                 <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
+                <span class="muted" style="display:block; font-size:.8rem; margin-top:4px">Excludes Accounting, Donations, Contracts &amp; Marketing &mdash; tick those below if needed.</span>
               </form>
               {% endif %}
               {% if s.role == 'Leadership' %}
