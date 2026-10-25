@@ -6,9 +6,13 @@
   The Owner and Leadership see this page. It controls who can log in{% if session.is_owner %} and what each person can open{% else %}. Leadership can add, deactivate, reactivate and reset passwords for Team accounts; the Owner handles everything else{% endif %}.
   Leadership accounts see confidential areas (Contacts, Donations, Contracts, program materials) only once you authorize them here.
   <strong>Accounting &amp; Legal</strong> logins (accountant, bookkeeper, attorney) are view-only and can only be given Accounting,
-  Donations, Contracts, or Contacts. Deactivating an account keeps its history but blocks it from logging in.
+  Donations, Contracts, or Contacts. Deactivating an account blocks it from logging in and removes it from this list; the person stays in Contacts, and adding them again turns their account back on.
 </p>
 
+<div style="position:sticky; top:56px; z-index:40; background:var(--bg, #f5f1e8); padding:8px 0; margin-bottom:8px">
+  <a class="btn" href="{{ url_for('.staff_new_search') }}">+ Add a team account</a>
+  <span class="muted" style="margin-left:10px; font-size:.9rem">Find them in Contacts (or add them as a contact) first.</span>
+</div>
 <div class="card" style="margin-bottom:12px; padding:12px 16px">
   <label for="staffPick"><strong>Find a person:</strong></label>
   <select id="staffPick" style="font-size:1.05rem; padding:6px 10px; min-width:280px; margin-left:6px">
@@ -153,37 +157,6 @@
   </table>
 </div>
 
-{% set inactive_staff = staff|rejectattr("active")|list %}
-{% if inactive_staff %}
-<details class="card" style="margin-top:16px">
-  <summary style="cursor:pointer"><strong>Deactivated accounts ({{ inactive_staff|length }})</strong> <span class="muted">&mdash; kept for history; they can't log in</span></summary>
-  <table style="margin-top:10px">
-    <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
-    {% for s in inactive_staff %}
-    <tr>
-      <td>{{ s.name }}</td><td>{{ s.email }}</td><td>{{ role_label(s.role) }}</td>
-      <td>
-        {% if session.is_owner or (s.role == 'Team' and not s.is_owner) %}
-        <form method="post" action="{{ url_for('.staff_reactivate', staff_id=s.id) }}" style="display:inline"
-              onsubmit="return confirm('Reactivate {{ s.name }}? They will get a new temporary password by email.');">
-          <button class="btn secondary" type="submit">Reactivate</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-</details>
-{% endif %}
-
-<h2>Add a team account</h2>
-<div class="card">
-  <p class="muted" style="margin-top:0">
-    Team members are matched to their Contact record, so their name, address, and other details live in one place.
-    Find them (or add them as a contact) to get started.
-  </p>
-  <a class="btn" href="{{ url_for('.staff_new_search') }}">Add a team account</a>
-</div>
 <script>
 (function(){
   var pick=document.getElementById('staffPick');
