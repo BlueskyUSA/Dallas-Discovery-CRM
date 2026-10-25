@@ -329,7 +329,7 @@ FIXED_ACCESS_AREAS = [
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
 FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence")
-UNCAPPED_AREAS = set(SESSION_VIEW_AREAS)
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence"}
 
 
 def _can_see_session_part(part):
@@ -1401,6 +1401,31 @@ def staff_grant_full_access(staff_id):
         msg += f" ({', '.join(skipped_full)} already had 4 authorized users -- remove one there if they need it too.)"
     flash(msg)
     return redirect(url_for(".staff_list", open=staff_id))
+
+
+@crm.route("/staff/correspondence-leadership", methods=["POST"])
+@owner_required
+def staff_correspondence_leadership():
+    """One click: every active Leadership account gets Correspondence (or loses it)."""
+    give = request.form.get("action") != "remove"
+    conn = get_db()
+    leaders = conn.execute(
+        "SELECT id, name FROM staff WHERE role = 'Leadership' AND active = 1 AND COALESCE(is_owner, 0) = 0").fetchall()
+    n = 0
+    for p in leaders:
+        has = conn.execute("SELECT id FROM access_grants WHERE area_key = 'correspondence' AND staff_id = ?",
+                           (p["id"],)).fetchone()
+        if give and not has:
+            conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES ('correspondence', ?)", (p["id"],))
+            n += 1
+        elif not give and has:
+            conn.execute("DELETE FROM access_grants WHERE id = ?", (has["id"],))
+            n += 1
+    conn.commit()
+    conn.close()
+    flash(f"Correspondence {'given to' if give else 'removed from'} {n} Leadership account{'' if n == 1 else 's'}."
+          if n else "No changes -- every Leadership account was already set that way.")
+    return redirect(url_for(".staff_list"))
 
 
 @crm.route("/staff/<int:staff_id>/remove-full-access", methods=["POST"])
