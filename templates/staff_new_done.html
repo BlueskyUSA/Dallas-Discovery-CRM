@@ -1,0 +1,23 @@
+{% extends "crm_base.html" %}
+{% block title %}Team account added — {{ program_name }} CRM{% endblock %}
+{% block content %}
+<h1>{{ heading }}</h1>
+
+<div class="card">
+  {% if email_sent %}
+  <p><strong>&#10003; Login details emailed</strong> to {{ email }} (their login link, email, and temporary password).</p>
+  {% else %}
+  <p><strong>The email didn't go out.</strong> {{ email_error }}</p>
+  <p class="muted">The account itself was created. Give them this email ({{ email }}) and temporary password: <strong>{{ temp_password }}</strong></p>
+  {% endif %}
+
+  {% if person.cell_phone %}
+  <p style="margin-top:18px">Text the same details from your phone ({{ person.cell_phone }}):</p>
+  <a class="btn" href="sms:{{ person.cell_phone|replace('-','')|replace(' ','')|replace('(','')|replace(')','') }}?&amp;body={{ sms_body|urlencode }}">Text it from my phone</a>
+  <p class="muted" style="margin-top:10px;font-size:.9rem">This opens your phone's Messages app with the message ready &mdash; you just tap Send. (Sending texts automatically from the site would need a separate text-messaging service.)</p>
+  {% else %}
+  <p class="muted" style="margin-top:18px">There's no cell number on {{ person.first_name or 'their' }}'s contact record, so there's nothing to text yet.</p>
+  {% endif %}
+</div>
+<p style="margin-top:14px"><a href="{{ url_for('.staff_list') }}">&larr; Back to the team list</a></p>
+{% endblock %}
