@@ -13,6 +13,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db, init_db
 from seed import seed
+import html as _html
 from config import PROGRAM_NAME
 from email_utils import send_email, EmailSendError
 import call_flow
@@ -794,6 +795,17 @@ def staff_list():
     )
 
 
+def _staff_person(conn, staff):
+    """A small dict (first_name, cell_phone) for a team member, taken from their linked Contact
+    record when there is one -- used for the 'Text it from my phone' button."""
+    person = {"first_name": (staff["name"] or "").split(" ")[0], "cell_phone": ""}
+    if staff["contact_id"]:
+        c = conn.execute("SELECT first_name, cell_phone FROM contacts WHERE id = ?", (staff["contact_id"],)).fetchone()
+        if c:
+            person = {"first_name": c["first_name"] or person["first_name"], "cell_phone": c["cell_phone"] or ""}
+    return person
+
+
 @crm.route("/staff/<int:staff_id>/reset-password", methods=["POST"])
 @owner_required
 def staff_reset_password(staff_id):
@@ -816,7 +828,19 @@ def staff_reset_password(staff_id):
             (generate_password_hash(temp_password), 0 if staff_id == session.get("staff_id") else 1, staff_id),
         )
         conn.commit()
-        flash(f"New password for {staff['name']} ({staff['email']}): {temp_password}")
+        if staff_id == session.get("staff_id"):
+            flash(f"New password for {staff['name']} ({staff['email']}): {temp_password}")
+        else:
+            person = _staff_person(conn, staff)
+            conn.close()
+            email_sent, email_error, sms_body = _email_team_login(
+                person["first_name"], staff["name"], staff["email"], staff["role"], temp_password,
+                "Your password was reset for the")
+            return render_template(
+                "staff_new_done.html", heading=f"New password set for {staff['name']}",
+                person=person, email=staff["email"], temp_password=temp_password,
+                email_sent=email_sent, email_error=email_error, sms_body=sms_body,
+            )
     conn.close()
     return redirect(url_for(".staff_list"))
 
@@ -992,6 +1016,37 @@ def staff_new_search():
     return render_template("staff_new_search.html", q=q, contacts=contacts)
 
 
+def _email_team_login(first, full_name, email, role, temp_password, intro):
+    """Emails a team member their login link + temporary password. Returns
+    (email_sent, error_text, sms_body); the sms_body is the same message in short form for the
+    'Text it from my phone' button."""
+    login_url = url_for(".login", _external=True)
+    first = (first or full_name or "").strip() or "there"
+    subject = f"Your {PROGRAM_NAME} team login"
+    text_content = (
+        f"Hi {first},\n\n{intro} {PROGRAM_NAME} team site as {role_label(role)}.\n\n"
+        f"Log in here: {login_url}\nEmail: {email}\nTemporary password: {temp_password}\n\n"
+        "You'll be asked to choose your own password the first time you log in. "
+        "Please delete this message once you have.\n"
+    )
+    html_content = (
+        f"<p>Hi {_html.escape(first)},</p><p>{_html.escape(intro)} {_html.escape(PROGRAM_NAME)} team site as "
+        f"<strong>{_html.escape(role_label(role))}</strong>.</p>"
+        f"<p><a href=\"{login_url}\">Log in here</a><br>Email: <strong>{_html.escape(email)}</strong><br>"
+        f"Temporary password: <strong>{_html.escape(temp_password)}</strong></p>"
+        "<p>You'll be asked to choose your own password the first time you log in. "
+        "Please delete this message once you have.</p>"
+    )
+    sms_body = (f"Hi {first}, {intro} {PROGRAM_NAME} team site. Log in at {login_url} "
+                f"with {email} and temporary password {temp_password} (you'll choose your own after logging in).")
+    try:
+        send_email(to_email=email, to_name=full_name, subject=subject,
+                   html_content=html_content, text_content=text_content)
+        return True, "", sms_body
+    except EmailSendError as e:
+        return False, str(e), sms_body
+
+
 @crm.route("/staff/new/contact/<int:contact_id>", methods=["GET", "POST"])
 @owner_required
 def staff_new_for_contact(contact_id):
@@ -1025,16 +1080,20 @@ def staff_new_for_contact(contact_id):
                 (contact["full_name"], email, generate_password_hash(temp_password), role, contact_id),
             )
             conn.commit()
-            flash(
-                f"Added {contact['full_name']} as {role_label(role)}. Give them this email ({email}) "
-                f"and this temporary password: {temp_password}"
-            )
-            conn.close()
-            return redirect(url_for(".staff_list"))
         except Exception:
             flash("Couldn't add that account -- that email may already be in use by another team login.")
             conn.close()
             return render_template("staff_new_confirm.html", contact=contact)
+        conn.close()
+        # Account created. Email the new team member their login details automatically.
+        email_sent, email_error, sms_body = _email_team_login(
+            contact["first_name"], contact["full_name"], email, role, temp_password,
+            "You've been added to the")
+        return render_template(
+            "staff_new_done.html", heading=f"{contact['full_name']} was added as {role_label(role)}",
+            person=contact, email=email, temp_password=temp_password,
+            email_sent=email_sent, email_error=email_error, sms_body=sms_body,
+        )
 
     conn.close()
     return render_template("staff_new_confirm.html", contact=contact)
@@ -1162,11 +1221,29 @@ def staff_reactivate(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
     conn = get_db()
-    conn.execute("UPDATE staff SET active = 1 WHERE id = ?", (staff_id,))
+    staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if not staff:
+        conn.close()
+        flash("Couldn't find that account.")
+        return redirect(url_for(".staff_list"))
+    # Give them a fresh temporary password (the old one stops working) and email it.
+    temp_password = secrets.token_urlsafe(9)
+    _ensure_must_change()
+    conn.execute(
+        "UPDATE staff SET active = 1, password_hash = ?, must_change_password = 1 WHERE id = ?",
+        (generate_password_hash(temp_password), staff_id),
+    )
     conn.commit()
+    person = _staff_person(conn, staff)
     conn.close()
-    flash("Account reactivated.")
-    return redirect(url_for(".staff_list"))
+    email_sent, email_error, sms_body = _email_team_login(
+        person["first_name"], staff["name"], staff["email"], staff["role"], temp_password,
+        "Your access has been restored to the")
+    return render_template(
+        "staff_new_done.html", heading=f"{staff['name']}'s access was restored",
+        person=person, email=staff["email"], temp_password=temp_password,
+        email_sent=email_sent, email_error=email_error, sms_body=sms_body,
+    )
 
 
 @crm.route("/staff/<int:staff_id>/accounting-door", methods=["POST"])
