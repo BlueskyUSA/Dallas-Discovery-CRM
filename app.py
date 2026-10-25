@@ -772,7 +772,7 @@ def change_password():
 
 
 @crm.route("/staff")
-@owner_required
+@leadership_required
 def staff_list():
     conn = get_db()
     rows = conn.execute("SELECT * FROM staff ORDER BY name").fetchall()
@@ -795,6 +795,18 @@ def staff_list():
     )
 
 
+def _team_manage_blocked(staff_row):
+    """Leadership may add, deactivate, reactivate and reset passwords for plain Team accounts only.
+    Owner accounts, other Leadership accounts and Accounting & Legal logins stay with the Owner.
+    Returns True (after flashing why) when this person may not manage that account."""
+    if session.get("is_owner"):
+        return False
+    if (not staff_row) or staff_row["is_owner"] or staff_row["role"] != "Team":
+        flash("Leadership can manage Team accounts only. Ask the Owner to change that account.")
+        return True
+    return False
+
+
 def _staff_person(conn, staff):
     """A small dict (first_name, cell_phone) for a team member, taken from their linked Contact
     record when there is one -- used for the 'Text it from my phone' button."""
@@ -807,7 +819,7 @@ def _staff_person(conn, staff):
 
 
 @crm.route("/staff/<int:staff_id>/reset-password", methods=["POST"])
-@owner_required
+@leadership_required
 def staff_reset_password(staff_id):
     """Generates a fresh temporary password for this account and shows it
     once. The CRM never stores a readable password -- only a one-way hash --
@@ -815,6 +827,9 @@ def staff_reset_password(staff_id):
     account's first creation."""
     conn = get_db()
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if staff and _team_manage_blocked(staff):
+        conn.close()
+        return redirect(url_for(".staff_list"))
     if staff:
         typed = (request.form.get("new_password") or "").strip()
         if typed and len(typed) < 8:
@@ -981,7 +996,7 @@ def staff_access(staff_id):
 
 
 @crm.route("/staff/new")
-@owner_required
+@leadership_required
 def staff_new_search():
     """Adding a team member starts here: find their Contact record first,
     so every team member's name/address/emergency contact/etc lives in one
@@ -1048,7 +1063,7 @@ def _email_team_login(first, full_name, email, role, temp_password, intro):
 
 
 @crm.route("/staff/new/contact/<int:contact_id>", methods=["GET", "POST"])
-@owner_required
+@leadership_required
 def staff_new_for_contact(contact_id):
     conn = get_db()
     contact = conn.execute(
@@ -1063,6 +1078,8 @@ def staff_new_for_contact(contact_id):
         email = request.form.get("email", "").strip().lower()
         role = request.form.get("role") or "Team"
         if role not in ROLE_LABELS:
+            role = "Team"
+        if not session.get("is_owner"):
             role = "Team"
         if role == ACCOUNTING_ROLE and not session.get("is_owner"):
             flash("Only the Owner can create Accounting & Legal logins. Nothing was added.")
@@ -1191,7 +1208,7 @@ def staff_edit(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/deactivate", methods=["POST"])
-@owner_required
+@leadership_required
 def staff_deactivate(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -1200,6 +1217,9 @@ def staff_deactivate(staff_id):
         return redirect(url_for(".staff_list"))
     conn = get_db()
     target = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if _team_manage_blocked(target):
+        conn.close()
+        return redirect(url_for(".staff_list"))
     if target and target["is_owner"]:
         remaining_active_owners = conn.execute(
             "SELECT COUNT(*) c FROM staff WHERE is_owner = 1 AND active = 1"
@@ -1216,7 +1236,7 @@ def staff_deactivate(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/reactivate", methods=["POST"])
-@owner_required
+@leadership_required
 def staff_reactivate(staff_id):
     if _accounting_target_blocked(staff_id):
         return redirect(url_for(".staff_list"))
@@ -1225,6 +1245,9 @@ def staff_reactivate(staff_id):
     if not staff:
         conn.close()
         flash("Couldn't find that account.")
+        return redirect(url_for(".staff_list"))
+    if _team_manage_blocked(staff):
+        conn.close()
         return redirect(url_for(".staff_list"))
     # Give them a fresh temporary password (the old one stops working) and email it.
     temp_password = secrets.token_urlsafe(9)
