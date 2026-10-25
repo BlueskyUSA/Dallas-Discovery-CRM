@@ -1386,12 +1386,8 @@ def staff_grant_full_access(staff_id):
         ).fetchone()
         if existing:
             continue
-        count = conn.execute(
-            "SELECT COUNT(*) c FROM access_grants WHERE area_key = ?", (area_key,)
-        ).fetchone()["c"]
-        if count >= ACCESS_AREA_MAX_GRANTS and area_key not in UNCAPPED_AREAS:
-            skipped_full.append(area_key)
-            continue
+        # Full access is the Owner's deliberate "everything" button, so it is not held to the
+        # 4-person limit that applies when ticking areas one at a time.
         conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (area_key, staff_id))
         granted.append(area_key)
     conn.commit()
