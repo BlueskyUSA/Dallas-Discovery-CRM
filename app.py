@@ -976,6 +976,19 @@ def staff_new_search():
             _search_params,
         ).fetchall()
     conn.close()
+    if q and not contacts:
+        # Nobody matched: go straight to the Add Contact form (name or email pre-filled) so the
+        # person can be added as a contact first, then finish their team login.
+        flash(f"No contact matched \u201c{q}\u201d. Add them here, then you'll finish their team login.")
+        prefill = {}
+        if "@" in q:
+            prefill["email"] = q
+        else:
+            parts = q.split()
+            prefill["first_name"] = " ".join(parts[:-1]) if len(parts) > 1 else parts[0]
+            if len(parts) > 1:
+                prefill["last_name"] = parts[-1]
+        return redirect(url_for(".contact_new", for_team_login=1, **prefill))
     return render_template("staff_new_search.html", q=q, contacts=contacts)
 
 
@@ -1743,6 +1756,7 @@ def contact_new():
         "contact_form.html",
         for_team_login=request.args.get("for_team_login"),
         link_staff_id=request.args.get("link_staff_id"),
+        prefill={k: (request.args.get(k) or "").strip() for k in ("first_name", "last_name", "email")},
         sponsor_choices=choices,
     )
 
