@@ -36,9 +36,14 @@
 .aou-nav.aou-wrap{padding:16px 14px 4px!important}
 }
 .nav-sub{color:#b9f0cc!important}
+.team-login{position:absolute;top:14px;right:22px;z-index:9;font-size:clamp(12px,1vw,14px);font-weight:700;letter-spacing:.04em;text-decoration:none;opacity:.9;white-space:nowrap}
+.team-login:hover{text-decoration:underline;opacity:1}
+@media(max-width:760px){.team-login{top:6px;right:12px;font-size:12px}}
+.team-login{color:#fff!important}
+section.pg-hero{position:relative}
 </style>
 <div class="pg">
-<section class="pg-hero"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Wherever You Go,<br>There You Are</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register', program=p.code) }}#interested">Register</a></nav><a class="pg-brand" href="{{ url_for('public_home') }}">Discovery<em>!</em></a><div class="k">{{ p.num }}</div><h1>{{ p.title }}</h1><p>{{ p.tagline }}</p></section>
+<section class="pg-hero"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Wherever You Go,<br>There You Are</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register', program=p.code) }}#interested">Register</a></nav><a class="team-login" href="{{ url_for('crm.dashboard') }}">Team Login</a><a class="pg-brand" href="{{ url_for('public_home') }}">Discovery<em>!</em></a><div class="k">{{ p.num }}</div><h1>{{ p.title }}</h1><p>{{ p.tagline }}</p></section>
 <section class="pg-body">
   <p>{{ p.intro }}</p>
   {% if p.points %}<div class="pg-pts">{% for t, d in p.points %}<div class="pg-pt"><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div>{% endif %}
