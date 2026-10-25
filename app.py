@@ -1410,8 +1410,10 @@ def _contact_search_clause(q):
     words = q.split() or [q]
     parts, params = [], []
     for w in words:
-        parts.append("(first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
-        params += [f"%{w}%", f"%{w}%", f"%{w}%"]
+        # LOWER() on both sides: Postgres LIKE is case-sensitive, so "smith" used to miss "Smith"
+        # (emails are stored lowercase, which is why only email searches seemed to work).
+        parts.append("(LOWER(first_name) LIKE ? OR LOWER(COALESCE(last_name, '')) LIKE ? OR LOWER(COALESCE(email, '')) LIKE ?)")
+        params += [f"%{w.lower()}%", f"%{w.lower()}%", f"%{w.lower()}%"]
     return " AND ".join(parts), params
 
 
