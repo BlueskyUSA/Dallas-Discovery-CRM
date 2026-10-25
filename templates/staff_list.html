@@ -45,26 +45,11 @@
           {% set granted_keys = granted_keys_by_staff.get(s.id, []) %}
           <details style="margin-top:4px;">
             <summary style="cursor:pointer; font-size:0.9rem;">Access &#9662;</summary>
-            <div style="margin-top:8px; min-width:260px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
-              {% if s.role != 'Accounting' %}
-              <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
-                    onsubmit="return confirm('Give {{ s.name }} full access to everything except Accounting, Donations, Contracts and Marketing? You can turn those on separately.');" style="margin-bottom:10px;">
-                <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
-                <span class="muted" style="display:block; font-size:.8rem; margin-top:4px">Excludes Accounting, Donations, Contracts &amp; Marketing &mdash; tick those below if needed.</span>
-              </form>
-              {% endif %}
-              {% if s.role == 'Leadership' %}
-              <form method="post" action="{{ url_for('.staff_accounting_door', staff_id=s.id) }}" style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #ddd">
-                <label style="display:flex; gap:6px; align-items:center; margin:0; font-size:0.88rem">
-                  <input type="checkbox" name="allow" value="1" {% if s.id in door_staff_ids %}checked{% endif %}>
-                  May sign in at the Accounting &amp; Legal Login
-                </label>
-                <button class="btn secondary" type="submit" style="width:100%; margin-top:6px">Save login permission</button>
-              </form>
-              {% endif %}
+            <div style="margin-top:8px; min-width:280px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
+              {% if s.role == 'Accounting' %}
               <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
                 <input type="hidden" name="redirect_to" value="staff_list">
-                {% for area_key, label in (accounting_areas if s.role == 'Accounting' else all_areas) %}
+                {% for area_key, label in accounting_areas %}
                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
                   <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
                          {% if area_key in granted_keys %}checked{% endif %}>
@@ -73,6 +58,50 @@
                 {% endfor %}
                 <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
               </form>
+              {% else %}
+              <div style="font-weight:700; margin-bottom:6px; color:var(--navy)">Ownership access</div>
+              <p class="muted" style="font-size:.8rem; margin:0 0 8px">Money, legal and marketing. Only you, the Owner, can turn these on.</p>
+              {% if s.role == 'Leadership' %}
+              <form method="post" action="{{ url_for('.staff_accounting_door', staff_id=s.id) }}" style="margin-bottom:8px">
+                <label style="display:flex; gap:6px; align-items:center; margin:0; font-size:0.88rem">
+                  <input type="checkbox" name="allow" value="1" {% if s.id in door_staff_ids %}checked{% endif %}>
+                  May sign in at the Accounting &amp; Legal Login
+                </label>
+                <button class="btn secondary" type="submit" style="width:100%; margin-top:6px">Save login permission</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}" style="padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid #ddd">
+                <input type="hidden" name="redirect_to" value="staff_list">
+                <input type="hidden" name="scope" value="ownership">
+                {% for area_key, label in ownership_areas %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="own_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="own_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
+                <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save ownership access</button>
+              </form>
+
+              <div style="font-weight:700; margin-bottom:6px; color:var(--navy)">Grant full access</div>
+              <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
+                    onsubmit="return confirm('Give {{ s.name }} full access to everything except Accounting, Donations, Legal and Marketing? Those stay under Ownership access.');" style="margin-bottom:6px;">
+                <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
+                <span class="muted" style="display:block; font-size:.8rem; margin-top:4px">Everything below, except Ownership access.</span>
+              </form>
+              <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
+                <input type="hidden" name="redirect_to" value="staff_list">
+                <input type="hidden" name="scope" value="general">
+                {% for area_key, label in general_areas %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="area_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
+                <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
+              </form>
+              {% endif %}
             </div>
           </details>
           {% else %}
