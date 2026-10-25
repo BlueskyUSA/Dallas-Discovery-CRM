@@ -1,0 +1,197 @@
+{% extends "crm_base.html" %}
+{% block title %}Site Access — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Site Access</h1>
+<p class="muted">
+  The Owner and Leadership see this page. It controls who can log in{% if session.is_owner %} and what each person can open{% else %}. Leadership can add, deactivate, reactivate and reset passwords for Team accounts; the Owner handles everything else{% endif %}.
+  Leadership accounts see confidential areas (Contacts, Donations, Contracts, program materials) only once you authorize them here.
+  <strong>Accounting &amp; Legal</strong> logins (accountant, bookkeeper, attorney) are view-only and can only be given Accounting,
+  Donations, Contracts, or Contacts. Deactivating an account blocks it from logging in and removes it from this list; the person stays in Contacts, and adding them again turns their account back on.
+</p>
+
+<div style="position:sticky; top:56px; z-index:40; background:var(--bg, #f5f1e8); padding:8px 0; margin-bottom:8px">
+  <a class="btn" href="{{ url_for('.staff_new_search') }}">+ Add a team account</a>
+  <span class="muted" style="margin-left:10px; font-size:.9rem">Find them in Contacts (or add them as a contact) first.</span>
+</div>
+<div class="card" style="margin-bottom:12px; padding:12px 16px">
+  <label for="staffPick"><strong>Find a person:</strong></label>
+  <select id="staffPick" style="font-size:1.05rem; padding:6px 10px; min-width:280px; margin-left:6px">
+    <option value="">Everyone ({{ staff|selectattr("active")|list|length }})</option>
+    {% for s in staff if s.active %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+  </select>
+</div>
+<div class="card">
+  <table id="staffTable">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr>
+    {% for s in staff if s.active %}
+    <tr data-staff="{{ s.id }}">
+      <td>
+        {{ s.name }}{% if s.is_owner %} <span class="badge good">Owner</span>{% endif %}
+        <br>
+        {% if s.contact_id %}
+        <a href="{{ url_for('.contact_detail', contact_id=s.contact_id) }}" style="font-size:0.82rem">View contact profile</a>
+        {% else %}
+        <a href="{{ url_for('.staff_link_contact_search', staff_id=s.id) }}" style="font-size:0.82rem">Link to contact</a>
+        {% endif %}
+      </td>
+      <td>{{ s.email }}</td>
+      <td>{{ role_label(s.role) }}</td>
+      <td>{% if s.active %}<span class="badge good">Active</span>{% else %}<span class="badge">Deactivated</span>{% endif %}</td>
+      <td>
+        {% if s.is_owner %}
+        <span class="muted">Everything (Owner)</span>
+        {% else %}
+          {% if session.is_owner %}
+          {% set granted_keys = granted_keys_by_staff.get(s.id, []) %}
+          <details style="margin-top:4px;">
+            <summary style="cursor:pointer; font-size:0.9rem;">Access &#9662;</summary>
+            <div style="margin-top:8px; min-width:280px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
+              {% if s.role == 'Accounting' %}
+              <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
+                <input type="hidden" name="redirect_to" value="staff_list">
+                {% for area_key, label in accounting_areas %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="area_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
+                <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
+              </form>
+              {% else %}
+              <div style="font-weight:700; margin-bottom:6px; color:var(--navy)">Ownership access</div>
+              <p class="muted" style="font-size:.8rem; margin:0 0 8px">Money, legal and marketing. Only you, the Owner, can turn these on.</p>
+              <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}" style="padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid #ddd">
+                <input type="hidden" name="redirect_to" value="staff_list">
+                <input type="hidden" name="scope" value="ownership">
+                {% for area_key, label in ownership_areas %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="own_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="own_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
+                <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save ownership access</button>
+              </form>
+
+              <div style="font-weight:700; margin-bottom:6px; color:var(--navy)">Grant full access</div>
+              <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
+                    onsubmit="return confirm('Give {{ s.name }} full access to everything except Accounting, Donations, Legal and Marketing? Those stay under Ownership access.');" style="margin-bottom:6px;">
+                <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
+                <span class="muted" style="display:block; font-size:.8rem; margin-top:4px">Everything below, except Ownership access.</span>
+              </form>
+              {% if s.role == 'Leadership' and not s.is_owner %}
+              <form method="post" action="{{ url_for('.staff_remove_full_access', staff_id=s.id) }}"
+                    onsubmit="return confirm('Remove full access from {{ s.name }}? They go back to a regular Team account and lose the general access below. Ownership access is not changed.');" style="margin-bottom:8px;">
+                <button class="btn danger" type="submit" style="width:100%">Remove full access</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
+                <input type="hidden" name="redirect_to" value="staff_list">
+                <input type="hidden" name="scope" value="general">
+                {% for area_key, label in general_areas %}
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <input type="checkbox" id="area_{{ s.id }}_{{ area_key }}" name="area_key" value="{{ area_key }}"
+                         {% if area_key in granted_keys %}checked{% endif %}>
+                  <label for="area_{{ s.id }}_{{ area_key }}" style="margin:0; font-size:0.88rem;">{{ label }}</label>
+                </div>
+                {% endfor %}
+                <button class="btn" type="submit" style="width:100%; margin-top:6px;">Save access</button>
+              </form>
+              {% endif %}
+            </div>
+          </details>
+          {% else %}
+          <span class="muted" style="font-size:0.88rem">{{ (access_by_staff.get(s.id, [])|join(', ')) or 'None granted' }}</span>
+          {% endif %}
+        {% endif %}
+      </td>
+      <td style="white-space:nowrap">
+        {% set is_self_owner_row = (s.id == session.staff_id and s.is_owner) %}
+        {% if session.is_owner %}
+        <details style="display:inline-block; vertical-align:middle;">
+          <summary class="btn secondary" style="display:inline-block; cursor:pointer;">Edit</summary>
+          <form method="post" action="{{ url_for('.staff_edit', staff_id=s.id) }}" style="margin-top:8px; min-width:220px;">
+            <div class="field"><label>Name</label><input name="name" value="{{ s.name }}" required {% if s.contact_id %}readonly{% endif %}></div>
+            {% if s.contact_id %}
+            <p class="muted" style="font-size:0.82rem; margin:2px 0 8px">Name comes from their linked contact record.</p>
+            {% endif %}
+            <div class="field"><label>Email</label><input type="email" name="email" value="{{ s.email }}" required></div>
+            <button class="btn" type="submit" style="width:100%">Save</button>
+          </form>
+          {% if s.contact_id %}
+          <form method="post" action="{{ url_for('.staff_unlink_contact', staff_id=s.id) }}"
+                onsubmit="return confirm('Unlink {{ s.name }} from their contact record?');" style="margin-top:6px;">
+            <button class="btn secondary" type="submit" style="width:100%">Unlink from contact</button>
+          </form>
+          {% endif %}
+        </details>
+        {% endif %}
+        {% if not is_self_owner_row and (session.is_owner or (s.role == 'Team' and not s.is_owner)) %}
+          {% if s.active %}
+          <form method="post" action="{{ url_for('.staff_deactivate', staff_id=s.id) }}" style="display:inline">
+            <button class="btn secondary" type="submit">Deactivate</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('.staff_reactivate', staff_id=s.id) }}" style="display:inline">
+            <button class="btn secondary" type="submit">Reactivate</button>
+          </form>
+          {% endif %}
+          {% if True %}
+          <details style="display:inline-block; vertical-align:top">
+            <summary class="btn secondary" style="display:inline-block; cursor:pointer">Reset password</summary>
+            <form method="post" action="{{ url_for('.staff_reset_password', staff_id=s.id) }}" style="margin-top:6px"
+                  onsubmit="return confirm('Set a new password for {{ s.name }}? They\'ll need it to log in.');">
+              <input type="text" name="new_password" placeholder="Type a password (8+ characters), or leave blank for a random one" autocomplete="off" style="width:260px">
+              <button class="btn" type="submit">Save new password</button>
+            </form>
+          </details>
+          {% endif %}
+        {% endif %}
+        {% if session.is_owner and not is_self_owner_row and s.is_owner %}
+          <form method="post" action="{{ url_for('.staff_remove_owner', staff_id=s.id) }}"
+                onsubmit="return confirm('Remove Owner status from {{ s.name }}?');" style="display:inline">
+            <button class="btn danger" type="submit">Remove owner</button>
+          </form>
+        {% endif %}
+        {% if is_self_owner_row %}
+        <details style="display:inline-block; vertical-align:middle;">
+          <summary class="btn danger" style="display:inline-block; cursor:pointer;">Change ownership</summary>
+          <form method="post" action="{{ url_for('.change_ownership') }}" style="margin-top:8px; min-width:260px;">
+            <div class="field">
+              <label>Also make an Owner:</label>
+              <select name="new_owner_id" required>
+                <option value="">— choose an active account —</option>
+                {% for other in staff if other.id != s.id and other.active %}
+                <option value="{{ other.id }}">{{ other.name }}{% if other.is_owner %} (already an Owner){% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Your password, to confirm:</label>
+              <input type="password" name="password" required autocomplete="current-password">
+            </div>
+            <button class="btn danger" type="submit"
+                    onclick="return confirm('Give this account full Owner access, same as you? You will stay an Owner too.');">
+              Confirm
+            </button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script>
+(function(){
+  var pick=document.getElementById('staffPick');
+  if(!pick) return;
+  pick.addEventListener('change', function(){
+    var v=pick.value, rows=document.querySelectorAll('#staffTable tr[data-staff]');
+    rows.forEach(function(r){ r.style.display = (!v || r.getAttribute('data-staff')===v) ? '' : 'none'; });
+  });
+})();
+</script>
+{% endblock %}
