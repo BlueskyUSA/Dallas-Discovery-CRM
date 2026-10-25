@@ -188,9 +188,25 @@
 (function(){
   var pick=document.getElementById('staffPick');
   if(!pick) return;
-  pick.addEventListener('change', function(){
-    var v=pick.value, rows=document.querySelectorAll('#staffTable tr[data-staff]');
-    rows.forEach(function(r){ r.style.display = (!v || r.getAttribute('data-staff')===v) ? '' : 'none'; });
+  function show(v){
+    document.querySelectorAll('#staffTable tr[data-staff]').forEach(function(r){
+      r.style.display = (!v || r.getAttribute('data-staff')===v) ? '' : 'none';
+    });
+  }
+  pick.addEventListener('change', function(){ show(pick.value); });
+  // Opening someone's Access box shows only that person; closing it brings everyone back.
+  document.querySelectorAll('#staffTable tr[data-staff] details').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      var row = d.closest('tr[data-staff]'), id = row.getAttribute('data-staff');
+      if (d.open) {
+        document.querySelectorAll('#staffTable tr[data-staff] details[open]').forEach(function(o){ if (o !== d && o.closest('tr') !== row) o.open = false; });
+        pick.value = id; show(id);
+        row.scrollIntoView({block:'start'});
+        window.scrollBy(0, -130);
+      } else if (!row.querySelector('details[open]')) {
+        pick.value = ''; show('');
+      }
+    });
   });
 })();
 </script>
