@@ -17,8 +17,8 @@
 
     <h3>Basics</h3>
     <div class="grid2">
-      <div class="field"><label>First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
-      <div class="field"><label>Last name</label><input name="last_name" autocomplete="off" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
+      <div class="field"><label>First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else (prefill.first_name if prefill else '') }}"></div>
+      <div class="field"><label>Last name</label><input name="last_name" autocomplete="off" value="{{ contact.last_name if contact and contact.last_name else (prefill.last_name if prefill else '') }}"></div>
       <div class="field"><label>Status</label>
         <select name="status">
           <option {% if contact and contact.status == 'Interested Party' %}selected{% endif %}>Interested Party</option>
@@ -36,7 +36,7 @@
     </div>
 
     <div class="grid2">
-      <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
+      <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else (prefill.email if prefill else '') }}"></div>
       <div class="field"><label>Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
       <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
       <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
