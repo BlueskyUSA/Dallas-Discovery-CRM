@@ -792,9 +792,16 @@ def staff_list():
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
+        ownership_areas=[("accounting", "Accounting"), ("donations", "Donations"),
+                         ("contracts", "Legal (Contracts & business plan)"), ("marketing", "Marketing")],
+        general_areas=[a for a in all_areas if a[0] not in FULL_ACCESS_EXCLUDED_AREAS],
         fixed_areas=FIXED_ACCESS_AREAS, program_groups=program_groups,
         door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
     )
+
+
+def scope_is_general_or_all(scope):
+    return scope != "ownership"
 
 
 def _team_manage_blocked(staff_row):
@@ -941,7 +948,7 @@ def staff_access(staff_id):
     if request.method == "POST":
         selected = set(request.form.getlist("area_key"))
         auto_contacts = False
-        if selected & set(SESSION_VIEW_AREAS) and "contacts" not in selected:
+        if scope_is_general_or_all(request.form.get("scope")) and selected & set(SESSION_VIEW_AREAS) and "contacts" not in selected:
             selected.add("contacts")          # the session boxes bring Contacts with them
             auto_contacts = True
         current_grants = {
@@ -951,7 +958,12 @@ def staff_access(staff_id):
             ).fetchall()
         }
         added, removed, skipped_full = [], [], []
+        scope = request.form.get("scope")   # "ownership" or "general" saves just that section of the Access box
         for area_key, label in all_areas:
+            if scope == "ownership" and area_key not in FULL_ACCESS_EXCLUDED_AREAS:
+                continue
+            if scope == "general" and area_key in FULL_ACCESS_EXCLUDED_AREAS:
+                continue
             currently_has = area_key in current_grants
             wants = area_key in selected
             if wants and not currently_has:
@@ -1386,7 +1398,7 @@ def staff_grant_full_access(staff_id):
     conn.close()
 
     msg = (f"{staff['name']} is now Leadership with access to everything except Accounting, Donations, "
-           "Contracts & business plan, and Marketing. Turn any of those on under Access if they need it.")
+           "Contracts & business plan, and Marketing. Those are under Ownership access if they need them.")
     if skipped_full:
         msg += f" ({', '.join(skipped_full)} already had 4 authorized users -- remove one there if they need it too.)"
     flash(msg)
