@@ -1092,18 +1092,44 @@ def staff_new_for_contact(contact_id):
             return render_template("staff_new_confirm.html", contact=contact)
         _ensure_must_change()
         existing = conn.execute(
-            "SELECT id, name, active, role FROM staff WHERE LOWER(email) = ? OR contact_id = ? ORDER BY active DESC LIMIT 1",
+            "SELECT * FROM staff WHERE LOWER(email) = ? OR contact_id = ? ORDER BY active DESC LIMIT 1",
             (email, contact_id),
         ).fetchone()
         if existing:
             if existing["active"]:
                 flash(f"{existing['name']} already has an active team login. Nothing was added.")
-            else:
-                flash(f"{existing['name']} already has a team account that was deactivated. "
-                      "Open \u201cDeactivated accounts\u201d at the bottom of Site Access and click Reactivate "
-                      "\u2014 they'll get a new temporary password by email.")
+                conn.close()
+                return redirect(url_for(".staff_list"))
+            if _team_manage_blocked(existing):
+                conn.close()
+                return redirect(url_for(".staff_list"))
+            # They were deactivated earlier: "adding" them again simply turns the old account back on
+            # with the role and email entered here and a fresh temporary password.
+            try:
+                conn.execute(
+                    "UPDATE staff SET active = 1, name = ?, email = ?, role = ?, contact_id = ?, "
+                    "password_hash = ?, must_change_password = 1 WHERE id = ?",
+                    (contact["full_name"], email, role, contact_id, generate_password_hash(temp_password), existing["id"]),
+                )
+                conn.commit()
+            except Exception as e:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                print(f"staff re-add failed: {e!r}", flush=True)
+                flash(f"Couldn't add that account. ({type(e).__name__}: {str(e).splitlines()[0][:200] if str(e) else 'no details'})")
+                conn.close()
+                return render_template("staff_new_confirm.html", contact=contact)
             conn.close()
-            return redirect(url_for(".staff_list"))
+            email_sent, email_error, sms_body = _email_team_login(
+                contact["first_name"], contact["full_name"], email, role, temp_password,
+                "You've been added back to the")
+            return render_template(
+                "staff_new_done.html", heading=f"{contact['full_name']} was added as {role_label(role)}",
+                person=contact, email=email, temp_password=temp_password,
+                email_sent=email_sent, email_error=email_error, sms_body=sms_body,
+            )
         try:
             conn.execute(
                 "INSERT INTO staff (name, email, password_hash, role, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, 1)",
