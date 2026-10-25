@@ -317,6 +317,7 @@ ACCESS_AREA_MAX_GRANTS = 4
 FIXED_ACCESS_AREAS = [
     ("accounting", "Accounting"),
     ("marketing", "Marketing"),
+    ("correspondence", "Correspondence"),
     ("contacts", "Contacts"),
     ("donations", "Donations"),
     ("contracts", "Contracts & business plan"),
@@ -327,7 +328,7 @@ FIXED_ACCESS_AREAS = [
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
-FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing")
+FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence")
 UNCAPPED_AREAS = set(SESSION_VIEW_AREAS)
 
 
@@ -793,7 +794,8 @@ def staff_list():
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
         ownership_areas=[("accounting", "Accounting"), ("donations", "Donations"),
-                         ("contracts", "Legal (Contracts & business plan)"), ("marketing", "Marketing")],
+                         ("contracts", "Legal (Contracts & business plan)"), ("marketing", "Marketing"),
+                         ("correspondence", "Correspondence")],
         general_areas=[a for a in all_areas if a[0] not in FULL_ACCESS_EXCLUDED_AREAS],
         fixed_areas=FIXED_ACCESS_AREAS, program_groups=program_groups,
         door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
@@ -6570,13 +6572,15 @@ def public_feedback(token):
 def inject_area_access():
     if not session.get("staff_id"):
         return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False,
-                "has_contracts_access": False, "has_accounting_access": False}
+                "has_contracts_access": False, "has_accounting_access": False,
+                "has_correspondence_access": False}
     return {
         "has_contacts_access": _has_area_access("contacts"),
         "has_program_access": _has_any_program_access(),
         "has_donations_access": _has_area_access("donations"),
         "has_contracts_access": _has_area_access("contracts"),
         "has_accounting_access": _has_area_access("accounting"),
+        "has_correspondence_access": _has_area_access("correspondence"),
     }
 
 
@@ -6838,7 +6842,19 @@ def chat_room_delete(msg_id):
 
 
 import blasts
-blasts.register(app, crm, owner_required, get_db)
+def correspondence_access(view):
+    """Correspondence is an Ownership-access area: the Owner always, anyone else only when the
+    Owner has ticked Correspondence for them under Site Access."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if _has_area_access("correspondence"):
+            return view(*args, **kwargs)
+        flash("Correspondence is restricted. Ask the Owner to give you access.")
+        return redirect(url_for(".dashboard"))
+    return wrapped
+
+
+blasts.register(app, crm, correspondence_access, get_db)
 import dbmap
 dbmap.register(app, crm, owner_required, get_db)
 app.register_blueprint(crm)
