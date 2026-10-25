@@ -12,14 +12,14 @@
 <div class="card" style="margin-bottom:12px; padding:12px 16px">
   <label for="staffPick"><strong>Find a person:</strong></label>
   <select id="staffPick" style="font-size:1.05rem; padding:6px 10px; min-width:280px; margin-left:6px">
-    <option value="">Everyone ({{ staff|length }})</option>
+    <option value="">Everyone ({{ staff|selectattr("active")|list|length }})</option>
     {% for s in staff if s.active %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
   </select>
 </div>
 <div class="card">
   <table id="staffTable">
     <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr>
-    {% for s in staff %}
+    {% for s in staff if s.active %}
     <tr data-staff="{{ s.id }}">
       <td>
         {{ s.name }}{% if s.is_owner %} <span class="badge good">Owner</span>{% endif %}
@@ -152,6 +152,29 @@
     {% endfor %}
   </table>
 </div>
+
+{% set inactive_staff = staff|rejectattr("active")|list %}
+{% if inactive_staff %}
+<details class="card" style="margin-top:16px">
+  <summary style="cursor:pointer"><strong>Deactivated accounts ({{ inactive_staff|length }})</strong> <span class="muted">&mdash; kept for history; they can't log in</span></summary>
+  <table style="margin-top:10px">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
+    {% for s in inactive_staff %}
+    <tr>
+      <td>{{ s.name }}</td><td>{{ s.email }}</td><td>{{ role_label(s.role) }}</td>
+      <td>
+        {% if session.is_owner or (s.role == 'Team' and not s.is_owner) %}
+        <form method="post" action="{{ url_for('.staff_reactivate', staff_id=s.id) }}" style="display:inline"
+              onsubmit="return confirm('Reactivate {{ s.name }}? They will get a new temporary password by email.');">
+          <button class="btn secondary" type="submit">Reactivate</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</details>
+{% endif %}
 
 <h2>Add a team account</h2>
 <div class="card">
