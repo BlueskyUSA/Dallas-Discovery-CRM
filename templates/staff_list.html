@@ -194,6 +194,12 @@
     });
   }
   pick.addEventListener('change', function(){ show(pick.value); });
+  // After saving, come back to the same person's open Access box so the checkmarks can be checked.
+  var want = new URLSearchParams(location.search).get('open');
+  if (want) {
+    var wr = document.querySelector('#staffTable tr[data-staff="' + want + '"] details');
+    if (wr) { wr.open = true; }
+  }
   // Opening someone's Access box shows only that person; closing it brings everyone back.
   document.querySelectorAll('#staffTable tr[data-staff] details').forEach(function(d){
     d.addEventListener('toggle', function(){
