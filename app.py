@@ -326,6 +326,8 @@ FIXED_ACCESS_AREAS = [
 # Ticking either session box also gives Contacts automatically, since the session pages
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
+# "Grant full access" does not include these; only the Owner switches them on, person by person.
+FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing")
 UNCAPPED_AREAS = set(SESSION_VIEW_AREAS)
 
 
@@ -1358,7 +1360,9 @@ def staff_grant_full_access(staff_id):
         return redirect(url_for(".staff_list"))
     conn.execute("UPDATE staff SET role = 'Leadership' WHERE id = ?", (staff_id,))
 
-    all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS] + [
+    # "Full access" leaves out the four money/legal/marketing areas. The Owner turns those on, one at a
+    # time, from the Access box (existing grants are never removed here).
+    all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS if key not in FULL_ACCESS_EXCLUDED_AREAS] + [
         program_heading_key(row["code"], h)
         for row in conn.execute("SELECT code FROM programs").fetchall()
         for h in MATERIAL_CATEGORIES
@@ -1381,7 +1385,8 @@ def staff_grant_full_access(staff_id):
     conn.commit()
     conn.close()
 
-    msg = f"{staff['name']} is now Leadership with access to every area."
+    msg = (f"{staff['name']} is now Leadership with access to everything except Accounting, Donations, "
+           "Contracts & business plan, and Marketing. Turn any of those on under Access if they need it.")
     if skipped_full:
         msg += f" ({', '.join(skipped_full)} already had 4 authorized users -- remove one there if they need it too.)"
     flash(msg)
