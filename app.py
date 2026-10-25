@@ -993,7 +993,7 @@ def staff_access(staff_id):
         flash(" | ".join(msg_parts) if msg_parts else "No changes made.")
         redirect_to = request.form.get("redirect_to")
         if redirect_to == "staff_list":
-            return redirect(url_for(".staff_list"))
+            return redirect(url_for(".staff_list", open=staff_id))
         return redirect(url_for(".staff_access", staff_id=staff_id))
 
     current_grants = {
@@ -1398,7 +1398,7 @@ def staff_grant_full_access(staff_id):
     if skipped_full:
         msg += f" ({', '.join(skipped_full)} already had 4 authorized users -- remove one there if they need it too.)"
     flash(msg)
-    return redirect(url_for(".staff_list"))
+    return redirect(url_for(".staff_list", open=staff_id))
 
 
 @crm.route("/staff/<int:staff_id>/remove-full-access", methods=["POST"])
@@ -1428,7 +1428,7 @@ def staff_remove_full_access(staff_id):
     conn.commit()
     conn.close()
     flash(f"{staff['name']} is back to a regular Team account. Full access removed; any Ownership access was left as it was.")
-    return redirect(url_for(".staff_list"))
+    return redirect(url_for(".staff_list", open=staff_id))
 
 
 @crm.route("/staff/<int:staff_id>/make-owner", methods=["POST"])
