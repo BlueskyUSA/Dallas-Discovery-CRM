@@ -1091,14 +1091,32 @@ def staff_new_for_contact(contact_id):
             conn.close()
             return render_template("staff_new_confirm.html", contact=contact)
         _ensure_must_change()
+        existing = conn.execute(
+            "SELECT id, name, active, role FROM staff WHERE LOWER(email) = ? OR contact_id = ? ORDER BY active DESC LIMIT 1",
+            (email, contact_id),
+        ).fetchone()
+        if existing:
+            if existing["active"]:
+                flash(f"{existing['name']} already has an active team login. Nothing was added.")
+            else:
+                flash(f"{existing['name']} already has a team account that was deactivated. "
+                      "Open \u201cDeactivated accounts\u201d at the bottom of Site Access and click Reactivate "
+                      "\u2014 they'll get a new temporary password by email.")
+            conn.close()
+            return redirect(url_for(".staff_list"))
         try:
             conn.execute(
                 "INSERT INTO staff (name, email, password_hash, role, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, 1)",
                 (contact["full_name"], email, generate_password_hash(temp_password), role, contact_id),
             )
             conn.commit()
-        except Exception:
-            flash("Couldn't add that account -- that email may already be in use by another team login.")
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            print(f"staff insert failed: {e!r}", flush=True)
+            flash(f"Couldn't add that account. ({type(e).__name__}: {str(e).splitlines()[0][:200] if str(e) else 'no details'})")
             conn.close()
             return render_template("staff_new_confirm.html", contact=contact)
         conn.close()
