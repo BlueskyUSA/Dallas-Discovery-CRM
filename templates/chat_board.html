@@ -1,0 +1,29 @@
+{% extends "crm_base.html" %}
+{% block title %}Volunteer Chat — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Volunteer Chat</h1>
+{% set chat_tab = 'board' %}
+{% include "_chat_tabs.html" %}
+<p class="muted">A place for volunteers to ask questions, share ideas and help each other. No emails are sent &mdash; check back here for new posts. Please don't post private information about trainees or participants.</p>
+
+<details class="card" style="margin-bottom:14px" {% if not topics %}open{% endif %}>
+  <summary style="cursor:pointer; font-weight:bold">+ Start a new topic</summary>
+  <form method="post" action="{{ url_for('.chat_new_topic') }}" style="margin-top:10px">
+    <label>Title<br><input type="text" name="title" maxlength="150" required style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></label>
+    <label style="display:block; margin-top:8px">Message<br><textarea name="body" rows="5" maxlength="5000" required style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></textarea></label>
+    <button class="btn" type="submit" style="margin-top:8px">Post topic</button>
+  </form>
+</details>
+
+<div class="card">
+  {% for t in topics %}
+  <div style="padding:10px 0; {% if not loop.last %}border-bottom:1px solid #ddd{% endif %}">
+    <a href="{{ url_for('.chat_topic', topic_id=t.id) }}" style="font-weight:bold; font-size:1.1rem">{{ t.title }}</a>
+    {% if last_seen and t.last_activity > last_seen %}<span class="badge good">new</span>{% endif %}
+    <div class="muted" style="font-size:.9rem">Started by {{ t.author_name }} &middot; {{ t.created_at[:16] }} &middot; {{ t.reply_count }} repl{{ 'y' if t.reply_count == 1 else 'ies' }} &middot; last activity {{ t.last_activity[:16] }}</div>
+  </div>
+  {% else %}
+  <p class="muted">No topics yet. Be the first to start one.</p>
+  {% endfor %}
+</div>
+{% endblock %}

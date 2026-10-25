@@ -1,0 +1,32 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ topic.title }} — Volunteer Chat{% endblock %}
+{% block content %}
+{% set chat_tab = 'board' %}
+{% include "_chat_tabs.html" %}
+<p><a href="{{ url_for('.chat_home') }}">&larr; All topics</a></p>
+<h1>{{ topic.title }}</h1>
+<div class="card" style="margin-bottom:12px">
+  <div class="muted" style="font-size:.9rem">{{ topic.author_name }} &middot; {{ topic.created_at[:16] }}</div>
+  <div style="white-space:pre-wrap; margin-top:6px; overflow-wrap:anywhere">{{ topic.body }}</div>
+  {% if can_moderate or topic.author_id == my_id %}
+  <form method="post" action="{{ url_for('.chat_delete_topic', topic_id=topic.id) }}" onsubmit="return confirm('Delete this whole topic and all its replies?')" style="margin-top:8px">
+    <button class="btn secondary" type="submit" style="font-size:.85rem">Delete topic</button>
+  </form>
+  {% endif %}
+</div>
+{% for r in replies %}
+<div class="card" style="margin-bottom:10px; margin-left:18px">
+  <div class="muted" style="font-size:.9rem">{{ r.author_name }} &middot; {{ r.created_at[:16] }}</div>
+  <div style="white-space:pre-wrap; margin-top:6px; overflow-wrap:anywhere">{{ r.body }}</div>
+  {% if can_moderate or r.author_id == my_id %}
+  <form method="post" action="{{ url_for('.chat_delete_reply', reply_id=r.id) }}" onsubmit="return confirm('Delete this reply?')" style="margin-top:6px">
+    <button class="btn secondary" type="submit" style="font-size:.8rem">Delete</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+<form class="card" method="post" action="{{ url_for('.chat_reply', topic_id=topic.id) }}" id="bottom">
+  <label><strong>Reply</strong><br><textarea name="body" rows="4" maxlength="5000" required style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></textarea></label>
+  <button class="btn" type="submit" style="margin-top:8px">Post reply</button>
+</form>
+{% endblock %}
