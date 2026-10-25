@@ -1405,6 +1405,36 @@ def staff_grant_full_access(staff_id):
     return redirect(url_for(".staff_list"))
 
 
+@crm.route("/staff/<int:staff_id>/remove-full-access", methods=["POST"])
+@owner_required
+def staff_remove_full_access(staff_id):
+    """Undo "Grant full access": back to a Team account, with every general area and program
+    grant removed. Ownership access (Accounting, Donations, Legal, Marketing) is left as it is --
+    the Owner changes those separately."""
+    conn = get_db()
+    staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if not staff:
+        conn.close()
+        flash("Couldn't find that account.")
+        return redirect(url_for(".staff_list"))
+    if staff["is_owner"]:
+        conn.close()
+        flash("An Owner's access can't be removed here.")
+        return redirect(url_for(".staff_list"))
+    if staff["role"] == ACCOUNTING_ROLE:
+        conn.close()
+        flash("Accounting & Legal logins don't have full access. Change their areas under Access.")
+        return redirect(url_for(".staff_list"))
+    keep = list(FULL_ACCESS_EXCLUDED_AREAS) + [ACCOUNTING_LOGIN_GRANT]
+    marks = ",".join("?" for _ in keep)
+    conn.execute(f"DELETE FROM access_grants WHERE staff_id = ? AND area_key NOT IN ({marks})", [staff_id] + keep)
+    conn.execute("UPDATE staff SET role = 'Team' WHERE id = ?", (staff_id,))
+    conn.commit()
+    conn.close()
+    flash(f"{staff['name']} is back to a regular Team account. Full access removed; any Ownership access was left as it was.")
+    return redirect(url_for(".staff_list"))
+
+
 @crm.route("/staff/<int:staff_id>/make-owner", methods=["POST"])
 @owner_required
 def staff_make_owner(staff_id):
