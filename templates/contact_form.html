@@ -322,4 +322,10 @@
 </div>
 <p style="margin-top:14px"><a href="{{ url_for('.contact_detail', contact_id=contact.id) }}">&larr; Back to {{ contact.full_name }}</a></p>
 {% endif %}
+<style>
+  .save-float { position: fixed; right: 24px; bottom: 22px; z-index: 90; }
+  .save-float .btn { font-size: 1.05rem; padding: 12px 26px; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
+  @media (max-width: 640px) { .save-float { left: 12px; right: 12px; bottom: 12px; } .save-float .btn { width: 100%; } }
+</style>
+<div class="save-float"><button class="btn" type="submit" form="contact-form">Save contact</button></div>
 {% endblock %}
