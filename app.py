@@ -6556,6 +6556,261 @@ def inject_area_access():
 
 app.jinja_env.globals["role_label"] = role_label
 call_flow.register(app, crm, leadership_required, get_db)
+
+# ---------- volunteer chat: discussion board + live chat room ----------
+# Internal only. Open to every Team / Leadership / Owner login; Accounting & Legal
+# logins (outside professionals) are kept out. No emails are ever sent from here.
+
+_chat_tables_ready = False
+CHAT_NOW = "to_char(now() AT TIME ZONE 'America/Chicago', 'YYYY-MM-DD HH24:MI:SS')"
+
+
+def _ensure_chat_tables(conn):
+    global _chat_tables_ready
+    if _chat_tables_ready:
+        return
+    conn.execute(f"""CREATE TABLE IF NOT EXISTS chat_topics (
+        id SERIAL PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL,
+        author_id INTEGER, author_name TEXT,
+        created_at TEXT NOT NULL DEFAULT {CHAT_NOW},
+        last_activity TEXT NOT NULL DEFAULT {CHAT_NOW})""")
+    conn.execute(f"""CREATE TABLE IF NOT EXISTS chat_replies (
+        id SERIAL PRIMARY KEY, topic_id INTEGER NOT NULL, body TEXT NOT NULL,
+        author_id INTEGER, author_name TEXT,
+        created_at TEXT NOT NULL DEFAULT {CHAT_NOW})""")
+    conn.execute(f"""CREATE TABLE IF NOT EXISTS chat_messages (
+        id SERIAL PRIMARY KEY, body TEXT NOT NULL,
+        author_id INTEGER, author_name TEXT,
+        created_at TEXT NOT NULL DEFAULT {CHAT_NOW})""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS chat_seen (
+        staff_id INTEGER PRIMARY KEY, board_seen TEXT NOT NULL DEFAULT '',
+        room_seen_id INTEGER NOT NULL DEFAULT 0)""")
+    conn.commit()
+    _chat_tables_ready = True
+
+
+def chat_required(view):
+    @wraps(view)
+    def wrapper(*a, **kw):
+        if not session.get("staff_id"):
+            return redirect(url_for(".login", next=request.path))
+        if session.get("staff_role") == ACCOUNTING_ROLE and not session.get("is_owner"):
+            flash("The volunteer chat is for the volunteer team.")
+            return redirect(url_for(".dashboard"))
+        return view(*a, **kw)
+    return wrapper
+
+
+def _chat_can_moderate():
+    return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
+
+
+def _chat_clean(text, limit):
+    return (text or "").replace("\r\n", "\n").strip()[:limit]
+
+
+def _chat_mark_seen(conn, board=False, room=False):
+    sid = session["staff_id"]
+    conn.execute("INSERT INTO chat_seen (staff_id) VALUES (?) ON CONFLICT (staff_id) DO NOTHING", (sid,))
+    if board:
+        conn.execute(f"UPDATE chat_seen SET board_seen = {CHAT_NOW} WHERE staff_id = ?", (sid,))
+    if room:
+        row = conn.execute("SELECT COALESCE(MAX(id),0) AS m FROM chat_messages").fetchone()
+        conn.execute("UPDATE chat_seen SET room_seen_id = ? WHERE staff_id = ?", (row["m"], sid))
+    conn.commit()
+
+
+@crm.context_processor
+def _inject_chat_flags():
+    """Small 'new' dots on the menu link. Never allowed to break a page."""
+    out = {"chat_new_board": False, "chat_new_room": False, "chat_ok": False}
+    try:
+        if not session.get("staff_id"):
+            return out
+        if session.get("staff_role") == ACCOUNTING_ROLE and not session.get("is_owner"):
+            return out
+        out["chat_ok"] = True
+        if request.endpoint and request.endpoint.startswith("crm.chat_"):
+            return out
+        conn = get_db()
+        try:
+            _ensure_chat_tables(conn)
+            sid = session["staff_id"]
+            seen = conn.execute("SELECT * FROM chat_seen WHERE staff_id = ?", (sid,)).fetchone()
+            if not seen:
+                return out  # never opened it yet; no dot until they've visited once
+            b = conn.execute(
+                "SELECT (SELECT COUNT(*) FROM chat_topics WHERE created_at > ? AND author_id <> ?) + "
+                "(SELECT COUNT(*) FROM chat_replies WHERE created_at > ? AND author_id <> ?) AS n",
+                (seen["board_seen"], sid, seen["board_seen"], sid)).fetchone()
+            r = conn.execute("SELECT COUNT(*) AS n FROM chat_messages WHERE id > ? AND author_id <> ?",
+                             (seen["room_seen_id"], sid)).fetchone()
+            out["chat_new_board"] = b["n"] > 0
+            out["chat_new_room"] = r["n"] > 0
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    return out
+
+
+@crm.route("/chat")
+@chat_required
+def chat_home():
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    seen = conn.execute("SELECT * FROM chat_seen WHERE staff_id = ?", (session["staff_id"],)).fetchone()
+    topics = conn.execute(
+        "SELECT t.*, (SELECT COUNT(*) FROM chat_replies r WHERE r.topic_id = t.id) AS reply_count "
+        "FROM chat_topics t ORDER BY t.last_activity DESC LIMIT 200").fetchall()
+    last_seen = seen["board_seen"] if seen else ""
+    _chat_mark_seen(conn, board=True)
+    conn.close()
+    return render_template("chat_board.html", topics=topics, last_seen=last_seen, my_id=session["staff_id"])
+
+
+@crm.route("/chat/new", methods=["POST"])
+@chat_required
+def chat_new_topic():
+    title = _chat_clean(request.form.get("title"), 150)
+    body = _chat_clean(request.form.get("body"), 5000)
+    if not title or not body:
+        flash("A topic needs both a title and a message.")
+        return redirect(url_for(".chat_home"))
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    cur = conn.execute("INSERT INTO chat_topics (title, body, author_id, author_name) VALUES (?, ?, ?, ?)",
+                       (title, body, session["staff_id"], session.get("staff_name")))
+    tid = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return redirect(url_for(".chat_topic", topic_id=tid))
+
+
+@crm.route("/chat/topic/<int:topic_id>")
+@chat_required
+def chat_topic(topic_id):
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    topic = conn.execute("SELECT * FROM chat_topics WHERE id = ?", (topic_id,)).fetchone()
+    if not topic:
+        conn.close()
+        abort(404)
+    replies = conn.execute("SELECT * FROM chat_replies WHERE topic_id = ? ORDER BY id", (topic_id,)).fetchall()
+    _chat_mark_seen(conn, board=True)
+    conn.close()
+    return render_template("chat_topic.html", topic=topic, replies=replies, my_id=session["staff_id"],
+                           can_moderate=_chat_can_moderate())
+
+
+@crm.route("/chat/topic/<int:topic_id>/reply", methods=["POST"])
+@chat_required
+def chat_reply(topic_id):
+    body = _chat_clean(request.form.get("body"), 5000)
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    if not conn.execute("SELECT 1 FROM chat_topics WHERE id = ?", (topic_id,)).fetchone():
+        conn.close()
+        abort(404)
+    if body:
+        conn.execute("INSERT INTO chat_replies (topic_id, body, author_id, author_name) VALUES (?, ?, ?, ?)",
+                     (topic_id, body, session["staff_id"], session.get("staff_name")))
+        conn.execute(f"UPDATE chat_topics SET last_activity = {CHAT_NOW} WHERE id = ?", (topic_id,))
+        conn.commit()
+    conn.close()
+    return redirect(url_for(".chat_topic", topic_id=topic_id) + "#bottom")
+
+
+@crm.route("/chat/topic/<int:topic_id>/delete", methods=["POST"])
+@chat_required
+def chat_delete_topic(topic_id):
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    t = conn.execute("SELECT author_id FROM chat_topics WHERE id = ?", (topic_id,)).fetchone()
+    if t and (_chat_can_moderate() or t["author_id"] == session["staff_id"]):
+        conn.execute("DELETE FROM chat_replies WHERE topic_id = ?", (topic_id,))
+        conn.execute("DELETE FROM chat_topics WHERE id = ?", (topic_id,))
+        conn.commit()
+        flash("Topic deleted.")
+    conn.close()
+    return redirect(url_for(".chat_home"))
+
+
+@crm.route("/chat/reply/<int:reply_id>/delete", methods=["POST"])
+@chat_required
+def chat_delete_reply(reply_id):
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    r = conn.execute("SELECT topic_id, author_id FROM chat_replies WHERE id = ?", (reply_id,)).fetchone()
+    if not r:
+        conn.close()
+        abort(404)
+    if _chat_can_moderate() or r["author_id"] == session["staff_id"]:
+        conn.execute("DELETE FROM chat_replies WHERE id = ?", (reply_id,))
+        conn.commit()
+    conn.close()
+    return redirect(url_for(".chat_topic", topic_id=r["topic_id"]))
+
+
+@crm.route("/chat/room")
+@chat_required
+def chat_room():
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    msgs = conn.execute("SELECT * FROM (SELECT * FROM chat_messages ORDER BY id DESC LIMIT 100) x ORDER BY id").fetchall()
+    _chat_mark_seen(conn, room=True)
+    conn.close()
+    return render_template("chat_room.html", msgs=msgs, my_id=session["staff_id"], can_moderate=_chat_can_moderate())
+
+
+def _chat_msg_json(m):
+    return {"id": m["id"], "body": m["body"], "author": m["author_name"], "author_id": m["author_id"],
+            "at": m["created_at"]}
+
+
+@crm.route("/chat/room/poll")
+@chat_required
+def chat_room_poll():
+    from flask import jsonify
+    after = request.args.get("after", type=int) or 0
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    rows = conn.execute("SELECT * FROM chat_messages WHERE id > ? ORDER BY id LIMIT 200", (after,)).fetchall()
+    if rows:
+        _chat_mark_seen(conn, room=True)
+    conn.close()
+    return jsonify([_chat_msg_json(m) for m in rows])
+
+
+@crm.route("/chat/room/send", methods=["POST"])
+@chat_required
+def chat_room_send():
+    from flask import jsonify
+    body = _chat_clean(request.form.get("body"), 1000)
+    if not body:
+        return jsonify({"ok": False}), 400
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    conn.execute("INSERT INTO chat_messages (body, author_id, author_name) VALUES (?, ?, ?)",
+                 (body, session["staff_id"], session.get("staff_name")))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@crm.route("/chat/room/<int:msg_id>/delete", methods=["POST"])
+@chat_required
+def chat_room_delete(msg_id):
+    conn = get_db()
+    _ensure_chat_tables(conn)
+    m = conn.execute("SELECT author_id FROM chat_messages WHERE id = ?", (msg_id,)).fetchone()
+    if m and (_chat_can_moderate() or m["author_id"] == session["staff_id"]):
+        conn.execute("DELETE FROM chat_messages WHERE id = ?", (msg_id,))
+        conn.commit()
+    conn.close()
+    return redirect(url_for(".chat_room"))
+
+
 import blasts
 blasts.register(app, crm, owner_required, get_db)
 import dbmap
