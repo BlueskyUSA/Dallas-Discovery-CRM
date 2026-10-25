@@ -13,7 +13,7 @@
   <label for="staffPick"><strong>Find a person:</strong></label>
   <select id="staffPick" style="font-size:1.05rem; padding:6px 10px; min-width:280px; margin-left:6px">
     <option value="">Everyone ({{ staff|length }})</option>
-    {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}{% if not s.active %} (deactivated){% endif %}</option>{% endfor %}
+    {% for s in staff if s.active %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
   </select>
 </div>
 <div class="card">
