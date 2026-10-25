@@ -193,7 +193,13 @@
       r.style.display = (!v || r.getAttribute('data-staff')===v) ? '' : 'none';
     });
   }
-  pick.addEventListener('change', function(){ show(pick.value); });
+  pick.addEventListener('change', function(){
+    // Picking "Everyone" (or another person) closes any Access box that is open for someone else.
+    document.querySelectorAll('#staffTable tr[data-staff] details[open]').forEach(function(d){
+      if (!pick.value || d.closest('tr[data-staff]').getAttribute('data-staff') !== pick.value) d.open = false;
+    });
+    show(pick.value);
+  });
   // After saving, come back to the same person's open Access box so the checkmarks can be checked.
   var want = new URLSearchParams(location.search).get('open');
   if (want) {
