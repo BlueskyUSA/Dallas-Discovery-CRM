@@ -28,6 +28,7 @@ PROGRAM_PAGES = {
                 ("Is this a lecture-based seminar?", "No. The approach is experiential, with interactive exercises, opportunities for reflection, and conversations with others."),
                 ("Do I have to take another Discovery! program first?", "No. The Beginning is the first step in the personal-growth sequence, with no prerequisites."),
                 ("When can I register?", "Right now. Reserve your spot and we'll contact you with dates and next steps.")],
+        "when": "Friday 10:00 am through Sunday 3:00 pm",
         "fit": "The Beginning is the first step in the three-part personal-growth sequence. It has no prior Discovery! seminar requirement. Completing it prepares you to participate in Awakening, followed by Vision.",
         "schedule": "Planned for April, with additional sessions alongside Awakening in May and alongside Awakening and Vision in June.",
     },
