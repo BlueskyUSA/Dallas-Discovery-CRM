@@ -6146,7 +6146,7 @@ def public_d1_preview():
 
 # Meet-the-Team photos come from the contact records (the photo uploaded on each person's contact page),
 # so changing a contact's photo changes the website. Only the people listed here are ever served publicly.
-TEAM_PHOTO_PEOPLE = {"pamela": ("pamela", "hafemann"), "max": ("max", "thompson")}
+TEAM_PHOTO_PEOPLE = {"kent": ("kent", "hafemann"), "pamela": ("pamela", "hafemann"), "max": ("max", "thompson")}
 
 
 @app.route("/team-photo/<slug>")
@@ -6163,10 +6163,15 @@ def public_team_photo(slug):
     conn.close()
     if not row:
         abort(404)
-    resp = make_response(bytes(row["data"]))
+    import hashlib
+    data = bytes(row["data"])
+    resp = make_response(data)
     resp.headers["Content-Type"] = row["content_type"] or "image/jpeg"
-    resp.headers["Cache-Control"] = "public, max-age=600"
-    return resp
+    # The browser re-checks every time, so a new contact photo shows on the website right away
+    # (and costs almost nothing when the photo hasn't changed).
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.set_etag(hashlib.md5(data).hexdigest())
+    return resp.make_conditional(request)
 
 
 @app.route("/our-story")
