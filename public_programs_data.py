@@ -53,7 +53,7 @@ PROGRAM_PAGES = {
         "points": [],
                 "banner": "The future you imagine shapes the choices you make today.",
         "closing": ["What you picture, you begin to pursue.", "What you never imagine, you never build."],
-        "isthis": ["If you've completed The Beginning and Awakening and you're ready to clarify what matters most, Vision invites you to imagine what's possible and begin shaping a future that reflects your values.",
+        "isthis": ["You've completed The Beginning and Awakening, and you're ready to clarify what matters most. Vision invites you to imagine what's possible and begin shaping a future that reflects your values.",
                    "Come with your dreams, including the ones you set aside."],
         "faq": [("Do I need to complete the other seminars first?", "Yes. Vision follows The Beginning and Awakening, so completing both first is required."),
                 ("Is this a lecture-based seminar?", "No. The approach is experiential, with interactive exercises, opportunities for reflection, and conversations with others."),
