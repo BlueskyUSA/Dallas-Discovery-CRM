@@ -62,7 +62,7 @@
     <div style="display:grid; gap:18px; max-width:760px">
 
       <div class="team-card">
-        <img class="team-photo" src="{{ url_for('static', filename='team-kent.jpg') }}" alt="Kent Hafemann">
+        <img class="team-photo" src="{{ url_for('public_team_photo', slug='kent') }}" alt="Kent Hafemann" onerror="this.onerror=null;this.src='{{ url_for('static', filename='team-kent.jpg') }}'">
         <div>
           <h3>Kent Hafemann</h3>
           <p class="team-role">Co-Founder &amp; Coach</p>
