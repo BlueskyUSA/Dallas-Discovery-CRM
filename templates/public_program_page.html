@@ -63,6 +63,7 @@ section.pg-hero{position:relative}
   <p><a class="btn alt" href="{{ url_for('public_programs') }}">ALL PROGRAMS</a>
      <a class="btn alt" href="{{ url_for('public_home') }}">HOME</a></p>
 </section>
-{% if p.banner %}{% include '_program_ending.html' %}{% endif %}
+{% if p.banner %}<section style="background:linear-gradient(135deg,#0a3150,#006c86);padding:72px 24px 80px" id="whats-included">{% include '_program_included.html' %}</section>
+{% if p.banner %}{% include '_program_ending.html' %}{% endif %}{% endif %}
 </div>
 {% endblock %}

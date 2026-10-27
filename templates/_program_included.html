@@ -1,0 +1,33 @@
+<style>
+.pi{color:#fff;text-align:center}.end .pi{margin-top:38px}
+.pi .pi-title{font:700 clamp(2.4rem,5vw,3.6rem)/1.1 Georgia,serif!important;color:#fff!important;margin:0 0 6px!important;border:0!important}
+.pi .pi-sub{font:italic clamp(1.5rem,3vw,2.2rem)/1.2 Georgia,serif!important;color:#fff!important;margin:6px 0 10px!important}
+.pi .pi-lead{font-size:clamp(1.05rem,1.5vw,1.3rem)!important;color:#e6f4f7!important;max-width:760px;margin:0 auto 28px!important}
+.pi-days{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1100px;margin:0 auto 30px;text-align:left}
+.pi-day{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:16px;padding:22px 24px}
+.pi-day .d{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;font-weight:800;color:#b9e7e9}
+.pi-day h3{font:700 1.5rem/1.2 Georgia,serif!important;color:#fff!important;margin:6px 0 8px!important}
+.pi-day p{font-size:1.02rem!important;line-height:1.55!important;color:#fff!important;margin:0!important}
+.pi-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;margin:0 auto;text-align:left}
+.pi-card{background:#f1f7fb;color:#183b45;border-radius:16px;overflow:hidden}
+.pi-card img{width:100%;height:220px;object-fit:cover;display:block}
+.pi-card .in{padding:20px 24px 24px}
+.pi-card ul{margin:0;padding-left:20px}.pi-card li{margin:0 0 10px;font-size:1.02rem;line-height:1.5;color:#183b45}
+.pi-card h3{font:600 1.6rem/1.2 Georgia,serif!important;color:#0c6b80!important;margin:0 0 8px!important}
+.pi-card p{color:#183b45!important;font-size:1.02rem!important;margin:0 0 10px!important;line-height:1.5!important}
+@media(max-width:820px){.pi-days,.pi-grid{grid-template-columns:1fr}}
+</style>
+<div class="pi">
+<h2 class="pi-title">What&rsquo;s Included</h2>
+<p class="pi-sub">Less lecture. More living.</p>
+<p class="pi-lead">You&rsquo;ll be invited to participate, reflect, laugh, experiment, and connect.</p>
+<div class="pi-days">
+<div class="pi-day"><div class="d">Day 1</div><h3>Get Curious</h3><p>Notice the habits, stories, and communication patterns that shape how you relate&mdash;and begin seeing yourself and others in fresh ways.</p></div>
+<div class="pi-day"><div class="d">Day 2</div><h3>Get the Tools</h3><p>Learn practical tools for communicating, navigating differences, and creating closeness.</p></div>
+<div class="pi-day"><div class="d">Day 3</div><h3>Get Creative</h3><p>Bring your discoveries together and consider how to carry more understanding, energy, and intention into everyday life.</p></div>
+</div>
+<div class="pi-grid">
+<section class="pi-card"><img src="{{ url_for('static', filename='hotel-room.png') }}" alt="A comfortable hotel room" loading="lazy"><div class="in"><ul><li>Two nights in the hotel</li><li>All sessions and program materials</li><li>Snacks, coffee, tea and water throughout the program</li><li>Breakfast, lunch, and dinner are self serve at the hotel or the many nearby local restaurants</li></ul></div></section>
+<section class="pi-card"><img src="{{ url_for('static', filename='hotel-exterior.png') }}" alt="The Four Points by Sheraton Dallas Fort Worth Airport North at dusk" loading="lazy"><div class="in"><h3>Where we&rsquo;ll be</h3><p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>Coppell, Texas, about six miles from DFW Airport.</p><ul><li>{{ p.when or 'Three days (start and end times to be announced)' }}</li><li>Modern rooms with free Wi-Fi, outdoor pool, 24-hour fitness center, and on-site restaurant and bar</li><li>Free parking for guests</li><li>Free hourly hotel shuttle from DFW Airport (from Love Field, take Uber or a taxi)</li></ul></div></section>
+</div>
+</div>
