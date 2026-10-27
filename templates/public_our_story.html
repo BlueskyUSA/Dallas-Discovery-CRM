@@ -74,7 +74,7 @@
       </div>
 
       <div class="team-card">
-        <div class="team-photo-placeholder">Photo coming soon</div>
+        <img class="team-photo" src="{{ url_for('public_team_photo', slug='pamela') }}" alt="Pamela Hafemann" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
         <div>
           <h3>Pamela Hafemann, MA, LPC, LCDC</h3>
           <p class="team-role">Co-Founder &amp; Coach</p>
@@ -86,7 +86,7 @@
       </div>
 
       <div class="team-card">
-        <div class="team-photo-placeholder">Photo coming soon</div>
+        <img class="team-photo" src="{{ url_for('public_team_photo', slug='max') }}" alt="Max Thompson" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
         <div>
           <h3>Max Thompson</h3>
           <p class="team-role">Co-Founder &amp; Coach</p>
