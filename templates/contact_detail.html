@@ -2,12 +2,15 @@
 {% block title %}{{ contact.full_name }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <div style="display:flex; gap:18px; align-items:flex-start">
+<div id="photoDrop" title="Drag a photo here, or click to choose one" style="position:relative; flex-shrink:0; cursor:pointer; border-radius:16px">
   {% if contact.photo_filename %}
   <img src="{{ url_for('.contact_photo_file', contact_id=contact.id, v=contact.photo_filename) }}" alt="{{ contact.full_name }}"
        style="width:280px; height:280px; border-radius:16px; object-fit:cover; flex-shrink:0">
   {% else %}
   <div style="width:280px; height:280px; border-radius:16px; flex-shrink:0; background:#f1f4f7; border:1px dashed #c7d0d9; display:flex; align-items:center; justify-content:center; color:#8a97a6; font-size:0.9rem; text-align:center; padding:4px;">No photo yet</div>
   {% endif %}
+  <div id="photoDropHint" style="display:none; position:absolute; inset:0; border-radius:16px; background:rgba(44,107,133,.78); color:#fff; align-items:center; justify-content:center; text-align:center; font-weight:700; padding:12px">Drop the photo here</div>
+</div>
   <div style="flex:1">
     <h1 style="margin-top:0">{{ contact.full_name }}
       <a href="{{ url_for('.contact_edit', contact_id=contact.id) }}" class="btn secondary" style="font-size:0.8rem; vertical-align:middle; margin-left:8px">Edit contact</a>
@@ -15,10 +18,11 @@
       <a href="{{ url_for('.contact_delete_confirm', contact_id=contact.id) }}" class="btn secondary" style="font-size:0.8rem; vertical-align:middle; margin-left:4px; color:#c0392b; border-color:#c0392b">Delete contact</a>
       {% endif %}
     </h1>
-    <form method="post" action="{{ url_for('.contact_photo_upload', contact_id=contact.id) }}" enctype="multipart/form-data" class="inline" style="margin:0 0 8px">
-      <input type="file" name="photo" accept="image/*" required>
+    <form method="post" action="{{ url_for('.contact_photo_upload', contact_id=contact.id) }}" enctype="multipart/form-data" class="inline" id="photoForm" style="margin:0 0 8px">
+      <input type="file" name="photo" id="photoInput" accept="image/*" required>
       <button class="btn secondary" type="submit">{{ 'Replace photo' if contact.photo_filename else 'Upload photo' }}</button>
     </form>
+    <p class="muted" style="margin:0 0 8px; font-size:.85rem">You can also drag a photo onto the picture, or click the picture to choose one.</p>
   </div>
 </div>
 {% if contact.contact_requested_at %}
@@ -133,4 +137,18 @@
 </div>
 {% endif %}
 
+
+<script>
+(function(){
+  var box=document.getElementById('photoDrop'), hint=document.getElementById('photoDropHint'),
+      input=document.getElementById('photoInput'), form=document.getElementById('photoForm');
+  if(!box||!input||!form) return;
+  function send(files){ if(!files||!files.length) return; try{ input.files=files; }catch(e){ return; } form.submit(); }
+  ['dragenter','dragover'].forEach(function(ev){ box.addEventListener(ev,function(e){ e.preventDefault(); hint.style.display='flex'; }); });
+  ['dragleave','drop'].forEach(function(ev){ box.addEventListener(ev,function(e){ e.preventDefault(); hint.style.display='none'; }); });
+  box.addEventListener('drop',function(e){ send(e.dataTransfer && e.dataTransfer.files); });
+  box.addEventListener('click',function(){ input.click(); });
+  input.addEventListener('change',function(){ if(input.files && input.files.length) form.submit(); });
+})();
+</script>
 {% endblock %}
