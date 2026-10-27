@@ -60,9 +60,9 @@ section.pg-hero{position:relative}
   {% if p.points %}<div class="pg-pts">{% for t, d in p.points %}<div class="pg-pt"><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div>{% endif %}
   <div class="pg-box"><strong>Where this fits.</strong> {{ p.fit }}</div>
   <div class="pg-box"><strong>Tentative schedule.</strong> {{ p.schedule }} Exact dates and registration details will be announced.</div>
-  <p><a class="btn" href="{{ url_for('public_register', program=p.code) }}#interested">RESERVE YOUR SPOT</a> <a class="btn" href="{{ url_for('public_register') }}#interested">BE THE FIRST TO HEAR</a>
-     <a class="btn alt" href="{{ url_for('public_programs') }}">ALL PROGRAMS</a>
+  <p><a class="btn alt" href="{{ url_for('public_programs') }}">ALL PROGRAMS</a>
      <a class="btn alt" href="{{ url_for('public_home') }}">HOME</a></p>
 </section>
+{% if p.banner %}{% include '_program_ending.html' %}{% endif %}
 </div>
 {% endblock %}
