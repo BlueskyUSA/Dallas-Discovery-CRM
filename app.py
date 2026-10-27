@@ -6144,6 +6144,31 @@ def public_d1_preview():
     return resp
 
 
+# Meet-the-Team photos come from the contact records (the photo uploaded on each person's contact page),
+# so changing a contact's photo changes the website. Only the people listed here are ever served publicly.
+TEAM_PHOTO_PEOPLE = {"pamela": ("pamela", "hafemann"), "max": ("max", "thompson")}
+
+
+@app.route("/team-photo/<slug>")
+def public_team_photo(slug):
+    person = TEAM_PHOTO_PEOPLE.get(slug)
+    if not person:
+        abort(404)
+    conn = get_db()
+    row = conn.execute(
+        "SELECT p.data, p.content_type FROM contacts c JOIN contact_photos p ON p.contact_id = c.id "
+        "WHERE LOWER(c.first_name) = ? AND LOWER(COALESCE(c.last_name, '')) = ? ORDER BY c.id LIMIT 1",
+        person,
+    ).fetchone()
+    conn.close()
+    if not row:
+        abort(404)
+    resp = make_response(bytes(row["data"]))
+    resp.headers["Content-Type"] = row["content_type"] or "image/jpeg"
+    resp.headers["Cache-Control"] = "public, max-age=600"
+    return resp
+
+
 @app.route("/our-story")
 def public_our_story():
     return render_template("public_our_story.html")
