@@ -39,7 +39,7 @@ PROGRAM_PAGES = {
                 "banner": "You can't change what you haven't noticed.",
         "closing": ["Awareness doesn't ask you to be different. It shows you what's already there.", "Once you see it, you get to choose."],
         "isthis": ["If you've completed The Beginning and you're ready to bring greater awareness to your thoughts, emotions, relationships, and choices, Awakening is your next step.",
-                   "Come to notice what really drives your responses, and where you get stuck. Discover new ways of meeting life today!"],
+                   "Come to notice what really drives your responses, and where you get stuck. Discover new ways of living life today!"],
         "faq": [("Do I need to complete The Beginning first?", "Yes. Awakening builds on the insights of The Beginning, so completing it first is required."),
                 ("Is this a lecture-based seminar?", "No. The approach is experiential, with interactive exercises, opportunities for reflection, and conversations with others."),
                 ("When can I register?", "Right now. Reserve your spot and we'll contact you with dates and next steps.")],
