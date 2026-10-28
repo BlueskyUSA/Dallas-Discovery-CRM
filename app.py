@@ -6179,6 +6179,11 @@ def public_our_story():
     return render_template("public_our_story.html")
 
 
+@app.route("/meet-the-team")
+def public_meet_team():
+    return render_template("public_meet_team.html")
+
+
 @app.route("/about-the-program")
 def public_about_program():
     return render_template("public_about_program.html")
