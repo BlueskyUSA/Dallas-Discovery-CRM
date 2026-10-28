@@ -20,7 +20,7 @@ PROGRAM_PAGES = {
                    ("Beliefs and patterns", "Notice assumptions and familiar responses that may influence your choices and relationships."),
                    ("Awareness and perspective", "Consider new ways of understanding your experiences and the meaning you've given them."),
                    ("Strength and possibility", "Recognize inner resources and explore more intentional ways of moving forward.")],
-                "banner_lines": ["Find your focus.", "Discover your strength.", "Embrace your grace."],
+                "banner_lines": ["Find Your Focus!"],
         "banner_question": "Where do grace and power come from?",
         "banner_paras": ['There is something within each of us that calls us to look deeper—to question who we are, what we believe, and what we are capable of becoming.', 'We were created with the capacity for strength and courage, for compassion and grace, and for meaningful connection with ourselves and others.', 'Yet somewhere along the way, we may lose sight of these qualities. Life’s experiences can shape how we see ourselves, sometimes causing us to underestimate our own strength, question our worth, or forget what is possible.', 'Perhaps the journey begins by becoming curious about ourselves again—discovering the strength we already possess, learning to extend grace to ourselves and others, and recognizing that the way we understand ourselves influences the way we live.'],
         "banner": "Understanding where you started can change where you go.",
