@@ -54,7 +54,7 @@ section.pg-hero{position:relative}
 </style>
 <style>
 .pg{background:#fff}.pg-hero .pg-nav{margin-bottom:22px!important}
-.ab-intro{background:linear-gradient(#fff,#f1f8f9);text-align:center;padding:64px 24px 56px;font-family:Georgia,'Times New Roman',serif}
+.ab-intro{background:#fff;text-align:center;padding:64px 24px 56px;font-family:Georgia,'Times New Roman',serif}
 .ab-intro h1{margin:0 auto 22px;max-width:1000px;font:italic 400 clamp(2.1rem,4.4vw,3.6rem)/1.15 Georgia,'Times New Roman',serif;color:#006c86;border:0!important;text-wrap:balance}
 .ab-intro p{max-width:820px;margin:0 auto 28px;font-size:clamp(1.15rem,1.8vw,1.4rem);line-height:1.7;color:#1d3d4d}
 .ab-btns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
@@ -66,16 +66,16 @@ section.pg-hero{position:relative}
 </style>
 <div class="pg">
 <section class="pg-hero" style="padding-bottom:18px!important;min-height:0"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Awareness Is<br>Where Change Begins</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register') }}#interested">Register</a></nav><a class="team-login" href="{{ url_for('crm.dashboard') }}">Team Login</a></section>
-<section class="ab-intro">
-  <h1>Examine your past. Live your present. Build your future.</h1>
-  <p>{{ public_brand }} offers life-changing personal training and relationship training designed to help you understand yourself, strengthen your relationships, and move forward with purpose.</p>
-  <div class="ab-btns"><a class="btn" href="{{ url_for('public_register') }}">SEE UPCOMING SESSIONS</a><a class="btn alt" href="{{ url_for('public_programs') }}">EXPLORE THE PROGRAMS</a></div>
-</section>
 <section class="ab-about">
   <h2>About {{ public_brand }}</h2>
   <p>{{ public_brand }} was founded by Coach Kent Hafemann, his wife Pamela Hafemann (MA, LPC, LCDC), and Coach Max Thompson with a vision to give people a guided, safe, and honest space to look at their lives &mdash; where they&rsquo;ve been, where they are, and where they&rsquo;re headed &mdash; and to help couples build stronger, healthier long term-relationships. Our trainings are experiential, small-group based, and led by a seasoned team of trained facilitators and assistants who&rsquo;ve walked the path themselves.</p>
   <p>Our personal-growth seminars move through three stages &mdash; The Beginning, Awakening, and Vision &mdash; each a three-day experience that builds on the one before and is taken in sequence. The Art of Us is a fun, challenging three-day seminar for couples (or committed relationships) and stands on its own, open to anyone. There is no prerequisite for The Art of Us or The Beginning, though many people who attend The Art of Us want additional opportunities to explore the mastery of successful relationships.</p>
   <div class="ab-btns"><a class="btn" href="{{ url_for('public_meet_team') }}">MEET THE TEAM</a></div>
+</section>
+<section class="ab-intro">
+  <h1>Examine your past. Live your present. Build your future.</h1>
+  <p>{{ public_brand }} offers life-changing personal training and relationship training designed to help you understand yourself, strengthen your relationships, and move forward with purpose.</p>
+  <div class="ab-btns"><a class="btn" href="{{ url_for('public_register') }}">SEE UPCOMING SESSIONS</a><a class="btn alt" href="{{ url_for('public_programs') }}">EXPLORE THE PROGRAMS</a></div>
 </section>
 </div>
 {% endblock %}
