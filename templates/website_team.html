@@ -1,0 +1,45 @@
+{% extends "crm_base.html" %}
+{% block title %}Website Team — {{ program_name }}{% endblock %}
+{% block content %}
+<h1>Website Team</h1>
+<p class="muted">These are the coaches and leaders shown on the public <b>Meet the Team</b> page. Each person is linked to a contact record, and their website photo is the photo on that contact &mdash; change it there and the website updates. In a bio you can type <code>{brand}</code> where the program name should appear.</p>
+
+<div class="card" style="margin-bottom:16px">
+  <h2 style="margin-top:0">Add a coach or leader</h2>
+  <form method="post" action="{{ url_for('.website_team_add') }}">
+    <label>Person (from Contacts)<br>
+      <select name="contact_id" required style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px">
+        <option value="">Choose a contact&hellip;</option>
+        {% for c in people %}<option value="{{ c.id }}">{{ c.first_name }} {{ c.last_name or '' }}</option>{% endfor %}
+      </select></label>
+    <label style="display:block; margin-top:8px">Name as shown (optional &mdash; add credentials here)<br><input type="text" name="display_name" maxlength="150" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></label>
+    <label style="display:block; margin-top:8px">Title (for example Co-Founder &amp; Coach, Assistant Trainer)<br><input type="text" name="title" maxlength="150" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></label>
+    <label style="display:block; margin-top:8px">Short bio<br><textarea name="bio" rows="4" maxlength="3000" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></textarea></label>
+    <button class="btn" type="submit" style="margin-top:8px">Add to website</button>
+  </form>
+</div>
+
+{% for m in members %}
+<div class="card" style="margin-bottom:12px">
+  <form method="post" action="{{ url_for('.website_team_save', wid=m.id) }}">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px">
+      <b>{{ m.first_name }} {{ m.last_name or '' }}</b>
+      <span class="muted">{% if m.has_photo %}Photo on contact &#10003;{% else %}<span style="color:#b45309">No photo on the contact yet &mdash; add one on their contact page</span>{% endif %}</span>
+    </div>
+    <label style="display:block; margin-top:8px">Name as shown<br><input type="text" name="display_name" value="{{ m.display_name }}" maxlength="150" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></label>
+    <label style="display:block; margin-top:8px">Title<br><input type="text" name="title" value="{{ m.title or '' }}" maxlength="150" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px"></label>
+    <label style="display:block; margin-top:8px">Short bio<br><textarea name="bio" rows="4" maxlength="3000" style="width:100%; box-sizing:border-box; font-size:1rem; padding:8px">{{ m.bio or '' }}</textarea></label>
+    <div style="margin-top:8px; display:flex; gap:18px; align-items:center; flex-wrap:wrap">
+      <label>Order <input type="number" name="sort_order" value="{{ m.sort_order }}" style="width:80px; font-size:1rem; padding:6px"></label>
+      <label><input type="checkbox" name="active" value="1" {% if m.active %}checked{% endif %}> Show on website</label>
+      <button class="btn" type="submit">Save</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('.website_team_remove', wid=m.id) }}" onsubmit="return confirm('Remove this person from the website team? The contact is not deleted.')" style="margin-top:8px">
+    <button class="btn" type="submit" style="background:#fff; color:#b42318; border:1px solid #b42318">Remove from website</button>
+  </form>
+</div>
+{% else %}
+<div class="card muted">No one is set up yet, so the website shows the original three. Add people above.</div>
+{% endfor %}
+{% endblock %}

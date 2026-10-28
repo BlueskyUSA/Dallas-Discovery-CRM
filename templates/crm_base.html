@@ -25,6 +25,7 @@
       {% if chat_ok %}<a href="{{ url_for('.chat_home') }}">Chat Room{% if chat_new_board or chat_new_room %} <span title="New posts" style="color:#e8554e">&#9679;</span>{% endif %}</a>{% endif %}
       {% if session.is_owner or session.staff_role == 'Leadership' %}
       <a href="{{ url_for('.staff_list') }}">Site Access</a>
+      <a href="{{ url_for('.website_team') }}">Website Team</a>
       {% endif %}
       {% set is_lead = session.staff_role == 'Leadership' %}
       {% set show_contacts = is_lead or has_contacts_access %}

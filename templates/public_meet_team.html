@@ -71,7 +71,7 @@ section.pg-hero{position:relative}
 .mt-wrap .mt-lead{max-width:760px;margin:0 auto 44px;text-align:center;font-size:clamp(1.15rem,1.8vw,1.4rem);line-height:1.6;color:#1d3d4d}
 .mt-grid{display:grid;gap:22px;max-width:900px;margin:0 auto}
 .mt-wrap .team-card{display:flex;gap:28px;align-items:flex-start;background:#fff;border:1px solid #d6e9ee;border-radius:14px;padding:24px 26px;text-align:left}
-.mt-wrap .team-photo,.mt-wrap .team-photo-placeholder{flex:0 0 170px;width:170px;height:170px;border-radius:50%;object-fit:cover;background:#eaf5f7;display:flex;align-items:center;justify-content:center;color:#5a7a86;font-size:.9rem;text-align:center}
+.mt-wrap .team-card img.team-photo,.mt-wrap .team-card .team-photo-placeholder{flex:0 0 170px;width:170px!important;height:170px!important;min-width:170px;aspect-ratio:1/1;border-radius:50%!important;object-fit:cover;object-position:center 25%;background:#eaf5f7;display:flex;align-items:center;justify-content:center;color:#5a7a86;font-size:.9rem;text-align:center}
 .mt-wrap .team-card h3{margin:0 0 4px;font:500 1.5rem/1.2 Georgia,serif;color:#0c4561;border:0}
 .mt-wrap .team-role{margin:0 0 10px;font:700 .8rem/1 Inter,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#007b8b}
 .mt-wrap .team-card p{margin:0 0 10px;font-size:1.08rem;line-height:1.65;color:#1d3d4d}
@@ -81,18 +81,10 @@ section.pg-hero{position:relative}
 <section class="pg-hero" style="padding-bottom:18px!important;min-height:0"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Awareness Is<br>Where Change Begins</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register') }}#interested">Register</a></nav><a class="team-login" href="{{ url_for('crm.dashboard') }}">Team Login</a></section>
 <section class="mt-wrap"><h1>Meet the Team</h1><p class="mt-lead">The coaches and leaders behind {{ public_brand }}</p>
 <div class="mt-grid">
-<div class="team-card">
-<img class="team-photo" src="{{ url_for('public_team_photo', slug='kent') }}" alt="Kent Hafemann" onerror="this.onerror=null;this.src='{{ url_for('static', filename='team-kent.jpg') }}'">
-<div><h3>Kent Hafemann</h3><p class="team-role">Co-Founder &amp; Coach</p><p>Kent spent years as a VP in commercial real estate investment before he and Pamela discovered the training that changed the course of their marriage and their lives. Today he coaches couples and individuals through {{ public_brand }}&rsquo;s trainings, drawing on decades of hard-earned, hands-on experience.</p></div>
-</div>
-<div class="team-card">
-<img class="team-photo" src="{{ url_for('public_team_photo', slug='pamela') }}" alt="Pamela Hafemann" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
-<div><h3>Pamela Hafemann, MA, LPC, LCDC</h3><p class="team-role">Co-Founder &amp; Coach</p><p>Pamela is a Licensed Professional Counselor and Licensed Chemical Dependency Counselor. Alongside Kent, she has spent years guiding couples and individuals toward healthier, more honest relationships, bringing both clinical training and lived experience to every training.</p></div>
-</div>
-<div class="team-card">
-<img class="team-photo" src="{{ url_for('public_team_photo', slug='max') }}" alt="Max Thompson" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
-<div><h3>Max Thompson</h3><p class="team-role">Co-Founder &amp; Coach</p><p>Max went through that same life training alongside Kent and Pamela in 1996 and has been a trusted coaching partner ever since, helping shape our trainings from the very beginning.</p></div>
-</div>
+{% for m in team %}<div class="team-card">
+<img class="team-photo" src="{{ m.photo }}" alt="{{ m.name }}" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
+<div><h3>{{ m.name }}</h3>{% if m.title %}<p class="team-role">{{ m.title }}</p>{% endif %}{% if m.bio %}<p>{{ m.bio.replace('{brand}', public_brand) }}</p>{% endif %}</div>
+</div>{% endfor %}
 </div></section>
 </div>
 {% endblock %}
