@@ -1,46 +1,81 @@
 {% extends "base.html" %}
 {% block title %}About the Program — {{ public_brand }}{% endblock %}
+{% block site_header %}{% endblock %}
 {% block content %}
-<section class="pub-section">
-  <div class="pub-container" style="max-width:760px">
-    <h1>Examine your past. Live your present. Build your future.</h1>
-    <p class="lead">
-      {{ public_brand }} offers life-changing personal training and relationship
-      training designed to help you understand yourself, strengthen your
-      relationships, and move forward with purpose.
-    </p>
-    <div class="btn-row" style="justify-content:flex-start; margin-top:8px">
-      <a class="pub-btn" href="{{ url_for('public_register') }}">See upcoming sessions</a>
-      <a class="pub-btn secondary" href="{{ url_for('public_programs') }}">Explore the programs</a>
-    </div>
-  </div>
+<style>
+.pg{color:#183b45;line-height:1.7}.pg h1,.pg h2,.pg h3{font-family:Georgia,'Times New Roman',serif;font-weight:500;border:0!important;color:#123e54}
+.pg-hero{background:linear-gradient(135deg,#0a3150,#006c86);color:#fff;padding:64px 24px;text-align:center}
+.pg-hero .k{font-size:.75rem;letter-spacing:.18em;font-weight:700;color:#bfe3ea}
+.pg-hero h1{color:#fff;font-size:clamp(2.2rem,5vw,3.4rem);margin:10px 0 8px}.pg-hero p{max-width:720px;margin:0 auto;font-size:1.1rem}
+.pg-body{max-width:860px;margin:0 auto;padding:40px 24px}
+.pg-body p{font-size:1.05rem}.pg-pts{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:24px 0}
+.pg-pt{background:#f2f9f8;border-radius:12px;padding:18px 20px}.pg-pt h3{margin:0 0 6px;font-size:1.15rem}.pg-pt p{margin:0;font-size:.97rem}
+.pg-box{background:#edf7f7;border-radius:12px;padding:18px 22px;margin:18px 0}
+.pg .btn{display:inline-block;background:#006d86;color:#fff!important;text-decoration:none;border-radius:40px;padding:13px 28px;font-weight:700;font-size:.85rem;letter-spacing:.05em;margin:6px 8px 0 0}
+.pg .btn.alt{background:transparent;color:#006d86!important;border:1px solid #006d86}
+.pg-hero{padding-top:26px}
+.pg-nav{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:8px 22px;margin-bottom:clamp(30px,4vw,56px)}
+.pg-nav a{color:#fff!important;text-decoration:none;font-weight:700;font-size:clamp(13px,1.3vw,18px);text-align:center}
+.pg-nav a.reg{background:#fff;color:#06405c!important;padding:.4em 1.1em;border-radius:40px}
+.pg-nav .nav-sub{display:block;font-size:max(13px,.8em);font-weight:400;margin-top:3px;line-height:1.2;opacity:.95}
+.pg-brand{display:block;font-family:Georgia,serif;font-size:clamp(28px,3vw,44px);color:#fff!important;text-decoration:none;margin-bottom:18px}
+.pg-brand em{font-size:.7em}
+@media(max-width:680px){.pg-pts{grid-template-columns:1fr}}
+@media(max-width:760px){
+.dd .hx-nav,.aou-nav .aou-links,.pg-nav,.wi-nav{display:grid!important;grid-template-columns:repeat(6,1fr)!important;gap:14px 6px!important;width:100%!important;max-width:420px;margin-left:auto!important;margin-right:auto!important;align-items:start!important;justify-items:center;text-align:center;transform:none!important;position:static!important}
+.dd .hx-nav>a,.aou-nav .aou-links>a,.pg-nav>a,.wi-nav>a{font-size:15px!important;line-height:1.2;white-space:normal!important}
+.dd .hx-nav>a:nth-child(1),.aou-links>a:nth-child(1),.pg-nav>a:nth-child(1),.wi-nav>a:nth-child(1){grid-column:1/3;grid-row:1;align-self:center}
+.dd .hx-nav>a:nth-child(6),.aou-links>a:nth-child(6),.pg-nav>a:nth-child(6),.wi-nav>a:nth-child(6){grid-column:3/5;grid-row:1;align-self:center}
+.dd .hx-nav>a:nth-child(7),.aou-links>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){grid-column:5/7;grid-row:1;font-size:14px!important;padding:.45em 1.2em!important}
+.dd .hx-nav>a:nth-child(2),.aou-links>a:nth-child(2),.pg-nav>a:nth-child(2),.wi-nav>a:nth-child(2){grid-column:1/4;grid-row:2}
+.dd .hx-nav>a:nth-child(3),.aou-links>a:nth-child(3),.pg-nav>a:nth-child(3),.wi-nav>a:nth-child(3){grid-column:4/7;grid-row:2}
+.dd .hx-nav>a:nth-child(4),.aou-links>a:nth-child(4),.pg-nav>a:nth-child(4),.wi-nav>a:nth-child(4){grid-column:1/4;grid-row:3}
+.dd .hx-nav>a:nth-child(5),.aou-links>a:nth-child(5),.pg-nav>a:nth-child(5),.wi-nav>a:nth-child(5){grid-column:4/7;grid-row:3}
+.nav-sub{font-size:13px!important;margin-top:3px}
+.aou-nav.aou-wrap{padding:16px 14px 4px!important}
+}
+.nav-sub{color:#b9f0cc!important}
+.team-login{position:absolute;top:14px;right:22px;z-index:9;font-size:clamp(12px,1vw,14px);font-weight:700;letter-spacing:.04em;text-decoration:none;opacity:.9;white-space:nowrap}
+.team-login:hover{text-decoration:underline;opacity:1}
+@media(max-width:760px){.team-login{top:6px;right:12px;font-size:12px}}
+.team-login{color:#fff!important}
+section.pg-hero{position:relative}
+@media(max-width:760px){
+.dd .hx-nav>a:nth-child(1),.aou-links>a:nth-child(1),.pg-nav>a:nth-child(1),.wi-nav>a:nth-child(1){grid-column:1/4!important;grid-row:1!important;justify-self:center}
+.dd .hx-nav>a:nth-child(6),.aou-links>a:nth-child(6),.pg-nav>a:nth-child(6),.wi-nav>a:nth-child(6){grid-column:4/7!important;grid-row:1!important;justify-self:center}
+.dd .hx-nav>a:nth-child(7),.aou-links>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){grid-column:2/6!important;grid-row:4!important;justify-self:center;font-size:16px!important;padding:.55em 2.2em!important;margin-top:4px}
+.dd .hx-nav{padding-top:40px!important}.aou-nav.aou-wrap{padding-top:40px!important}.wi-hero,.pg-hero{padding-top:42px!important}
+}
+@media(max-width:760px){
+.dd .hx-nav>a:nth-child(7),.aou-links>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){font-size:14px!important;font-weight:600!important;padding:.4em 1.6em!important;background:transparent!important;border:1px solid currentColor;box-shadow:none!important;text-shadow:none!important;margin-top:0}
+.dd .hx-nav>a:nth-child(7),.pg-nav>a:nth-child(7),.wi-nav>a:nth-child(7){color:#fff!important}
+.aou-links>a:nth-child(7){color:#103d59!important}
+}
+</style>
+<style>
+.pg{background:#fff}.pg-hero .pg-nav{margin-bottom:22px!important}
+.ab-intro{background:linear-gradient(#fff,#f1f8f9);text-align:center;padding:64px 24px 56px;font-family:Georgia,'Times New Roman',serif}
+.ab-intro h1{margin:0 auto 22px;max-width:1000px;font:italic 400 clamp(2.1rem,4.4vw,3.6rem)/1.15 Georgia,'Times New Roman',serif;color:#006c86;border:0!important;text-wrap:balance}
+.ab-intro p{max-width:820px;margin:0 auto 28px;font-size:clamp(1.15rem,1.8vw,1.4rem);line-height:1.7;color:#1d3d4d}
+.ab-btns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.pg .ab-btns .btn{margin:0}
+.ab-about{background:#eaf5f7;padding:64px 24px 60px;font-family:Georgia,'Times New Roman',serif;text-align:center}
+.ab-about h2{margin:0 0 24px;font:400 clamp(1.9rem,3.6vw,3rem)/1.15 Georgia,'Times New Roman',serif;color:#0c4561;border:0!important}
+.ab-about p{max-width:820px;margin:0 auto 22px;font-size:clamp(1.1rem,1.6vw,1.3rem);line-height:1.75;color:#1d3d4d}
+.ab-about .ab-btns{margin-top:34px}
+</style>
+<div class="pg">
+<section class="pg-hero" style="padding-bottom:18px!important;min-height:0"><nav class="pg-nav" aria-label="Main navigation"><a href="{{ url_for('public_home') }}">Home</a><a href="{{ url_for('public_program_page', slug='the-art-of-us') }}">The Art of Us<span class="nav-sub">For Committed<br>Relationships</span></a><a href="{{ url_for('public_program_page', slug='the-beginning') }}">The Beginning<span class="nav-sub">A Personal Journey,<br>Just for You</span></a><a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening<span class="nav-sub">Awareness Is<br>Where Change Begins</span></a><a href="{{ url_for('public_program_page', slug='vision') }}">Vision<span class="nav-sub">Dreams Worth<br>Pursuing</span></a><a href="{{ url_for('public_about_program') }}">About</a><a class="reg" href="{{ url_for('public_register') }}#interested">Register</a></nav><a class="team-login" href="{{ url_for('crm.dashboard') }}">Team Login</a></section>
+<section class="ab-intro">
+  <h1>Examine your past. Live your present. Build your future.</h1>
+  <p>{{ public_brand }} offers life-changing personal training and relationship training designed to help you understand yourself, strengthen your relationships, and move forward with purpose.</p>
+  <div class="ab-btns"><a class="btn" href="{{ url_for('public_register') }}">SEE UPCOMING SESSIONS</a><a class="btn alt" href="{{ url_for('public_programs') }}">EXPLORE THE PROGRAMS</a></div>
 </section>
-
-<section class="pub-section alt">
-  <div class="pub-container" style="max-width:760px">
-    <h2>About {{ public_brand }}</h2>
-    <p class="lead">
-      {{ public_brand }} was founded by Coach Kent Hafemann, his wife Pamela
-      Hafemann (MA, LPC, LCDC), and Coach Max Thompson with a vision to give
-      people a guided, safe, and honest space to look at their lives — where
-      they've been, where they are, and where they're headed — and to help
-      couples build stronger, healthier long term-relationships. Our trainings
-      are experiential, small-group based, and led by a seasoned team of
-      trained facilitators and assistants who've walked the path themselves.
-    </p>
-    <p class="lead" style="margin-bottom:0">
-      Our personal-growth seminars move through three stages &mdash; The Beginning,
-      Awakening, and Vision &mdash; each a three-day experience that builds on the
-      one before and is taken in sequence. The Art of Us is a fun, challenging
-      three-day seminar for couples (or committed relationships) and stands on its
-      own, open to anyone. There is no prerequisite for The Art of Us or The
-      Beginning,
-      though many people who attend The Art of Us want additional
-      opportunities to explore the mastery of successful relationships.
-    </p>
-    <p class="lead" style="margin-bottom:0; margin-top:20px">
-      <a href="{{ url_for('public_our_story') }}">Read our story &rarr;</a>
-    </p>
-  </div>
+<section class="ab-about">
+  <h2>About {{ public_brand }}</h2>
+  <p>{{ public_brand }} was founded by Coach Kent Hafemann, his wife Pamela Hafemann (MA, LPC, LCDC), and Coach Max Thompson with a vision to give people a guided, safe, and honest space to look at their lives &mdash; where they&rsquo;ve been, where they are, and where they&rsquo;re headed &mdash; and to help couples build stronger, healthier long term-relationships. Our trainings are experiential, small-group based, and led by a seasoned team of trained facilitators and assistants who&rsquo;ve walked the path themselves.</p>
+  <p>Our personal-growth seminars move through three stages &mdash; The Beginning, Awakening, and Vision &mdash; each a three-day experience that builds on the one before and is taken in sequence. The Art of Us is a fun, challenging three-day seminar for couples (or committed relationships) and stands on its own, open to anyone. There is no prerequisite for The Art of Us or The Beginning, though many people who attend The Art of Us want additional opportunities to explore the mastery of successful relationships.</p>
+  <div class="ab-btns"><a class="btn" href="{{ url_for('public_our_story') }}">MEET THE TEAM</a></div>
 </section>
+</div>
 {% endblock %}
