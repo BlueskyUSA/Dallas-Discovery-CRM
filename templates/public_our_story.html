@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}About the Team — {{ public_brand }}{% endblock %}
+{% block title %}Our Story — {{ public_brand }}{% endblock %}
 {% block meta_description %}The story behind {{ public_brand }} — how Kent and Pamela Hafemann's own marriage and a life-changing training became a mission to help other relationships thrive.{% endblock %}
 {% block content %}
 <section class="pub-section">
@@ -52,51 +52,6 @@
       home and in the workplace, and with this new-found knowledge, we found common ground to heal our hearts, our
       home, and to grow individually.
     </p>
-  </div>
-</section>
-
-<section class="pub-section">
-  <div class="pub-container">
-    <h2>Meet the Team</h2>
-    <p class="lead">The coaches and leaders behind {{ public_brand }}.</p>
-    <div style="display:grid; gap:18px; max-width:760px">
-
-      <div class="team-card">
-        <img class="team-photo" src="{{ url_for('public_team_photo', slug='kent') }}" alt="Kent Hafemann" onerror="this.onerror=null;this.src='{{ url_for('static', filename='team-kent.jpg') }}'">
-        <div>
-          <h3>Kent Hafemann</h3>
-          <p class="team-role">Co-Founder &amp; Coach</p>
-          <p>Kent spent years as a VP in commercial real estate investment before he and Pamela
-            discovered the training that changed the course of their marriage and their lives.
-            Today he coaches couples and individuals through {{ public_brand }}'s trainings, drawing on
-            decades of hard-earned, hands-on experience.</p>
-        </div>
-      </div>
-
-      <div class="team-card">
-        <img class="team-photo" src="{{ url_for('public_team_photo', slug='pamela') }}" alt="Pamela Hafemann" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
-        <div>
-          <h3>Pamela Hafemann, MA, LPC, LCDC</h3>
-          <p class="team-role">Co-Founder &amp; Coach</p>
-          <p>Pamela is a Licensed Professional Counselor and Licensed Chemical Dependency
-            Counselor. Alongside Kent, she has spent years guiding couples and individuals
-            toward healthier, more honest relationships, bringing both clinical training and
-            lived experience to every training.</p>
-        </div>
-      </div>
-
-      <div class="team-card">
-        <img class="team-photo" src="{{ url_for('public_team_photo', slug='max') }}" alt="Max Thompson" onerror="var d=document.createElement('div');d.className='team-photo-placeholder';d.textContent='Photo coming soon';this.replaceWith(d)">
-        <div>
-          <h3>Max Thompson</h3>
-          <p class="team-role">Co-Founder &amp; Coach</p>
-          <p>Max went through that same life training alongside Kent and Pamela in 1996 and
-            has been a trusted coaching partner ever since, helping shape our
-            trainings from the very beginning.</p>
-        </div>
-      </div>
-
-    </div>
   </div>
 </section>
 

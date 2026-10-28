@@ -96,6 +96,6 @@ header.wi-hero{position:relative}
 <section class="wi-end"><h2>Ready to take the next step?</h2>
 <a class="wi-btn" href="{{ url_for('public_register') }}#interested">BE THE FIRST TO HEAR</a>
 <a class="wi-btn alt" href="{{ url_for('public_program_page', slug=w.slug) }}">BACK TO {{ w.name|upper }}</a></section>
-<div class="wi-links"><a href="{{ url_for('public_our_story') }}">About the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div>
+<div class="wi-links"><a href="{{ url_for('public_meet_team') }}">Meet the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div>
 </div>
 {% endblock %}
