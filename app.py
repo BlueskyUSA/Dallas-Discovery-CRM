@@ -6144,22 +6144,76 @@ def public_d1_preview():
     return resp
 
 
-# Meet-the-Team photos come from the contact records (the photo uploaded on each person's contact page),
-# so changing a contact's photo changes the website. Only the people listed here are ever served publicly.
-TEAM_PHOTO_PEOPLE = {"kent": ("kent", "hafemann"), "pamela": ("pamela", "hafemann"), "max": ("max", "thompson")}
+# Meet-the-Team: the people shown on the website are chosen on the CRM "Website Team" page
+# (each one is linked to a contact record, and the photo comes from that contact's photo, so
+# changing the contact photo changes the website). Only people on that list are ever served publicly.
+_LEGACY_TEAM = [
+    ("kent", "hafemann", "Kent Hafemann", "Co-Founder & Coach",
+     "Kent spent years as a VP in commercial real estate investment before he and Pamela discovered the training that changed the course of their marriage and their lives. Today he coaches couples and individuals through {brand}'s trainings, drawing on decades of hard-earned, hands-on experience."),
+    ("pamela", "hafemann", "Pamela Hafemann, MA, LPC, LCDC", "Co-Founder & Coach",
+     "Pamela is a Licensed Professional Counselor and Licensed Chemical Dependency Counselor. Alongside Kent, she has spent years guiding couples and individuals toward healthier, more honest relationships, bringing both clinical training and lived experience to every training."),
+    ("max", "thompson", "Max Thompson", "Co-Founder & Coach",
+     "Max went through that same life training alongside Kent and Pamela in 1996 and has been a trusted coaching partner ever since, helping shape our trainings from the very beginning."),
+]
+_website_team_ready = False
+
+
+def _ensure_website_team(conn):
+    """Creates the website_team table on first use and, the first time, fills it with the
+    three original team members (matched to their contact records by name)."""
+    global _website_team_ready
+    if _website_team_ready:
+        return
+    conn.execute("""CREATE TABLE IF NOT EXISTS website_team (
+        id SERIAL PRIMARY KEY, contact_id INTEGER NOT NULL UNIQUE,
+        display_name TEXT NOT NULL, title TEXT, bio TEXT,
+        sort_order INTEGER NOT NULL DEFAULT 100, active INTEGER NOT NULL DEFAULT 1)""")
+    n = conn.execute("SELECT COUNT(*) AS n FROM website_team").fetchone()["n"]
+    if n == 0:
+        for order, (fn, ln, name, title, bio) in enumerate(_LEGACY_TEAM, start=1):
+            c = conn.execute(
+                "SELECT id FROM contacts WHERE LOWER(first_name) = ? AND LOWER(COALESCE(last_name, '')) = ? ORDER BY id LIMIT 1",
+                (fn, ln)).fetchone()
+            if c:
+                conn.execute(
+                    "INSERT INTO website_team (contact_id, display_name, title, bio, sort_order) VALUES (?, ?, ?, ?, ?)",
+                    (c["id"], name, title, bio, order))
+        conn.commit()
+    _website_team_ready = True
+
+
+def _public_team_members():
+    conn = get_db()
+    try:
+        _ensure_website_team(conn)
+        rows = conn.execute(
+            "SELECT contact_id, display_name, title, bio FROM website_team WHERE active = 1 ORDER BY sort_order, id").fetchall()
+    finally:
+        conn.close()
+    members = [{"name": r["display_name"], "title": r["title"] or "", "bio": r["bio"] or "",
+                "photo": url_for("public_team_photo", slug=str(r["contact_id"]))} for r in rows]
+    if not members:  # nothing set up yet: show the original three exactly as before
+        members = [{"name": nm, "title": t, "bio": b, "photo": url_for("public_team_photo", slug=slug)}
+                   for slug, _ln, nm, t, b in _LEGACY_TEAM]
+    return members
 
 
 @app.route("/team-photo/<slug>")
 def public_team_photo(slug):
-    person = TEAM_PHOTO_PEOPLE.get(slug)
-    if not person:
-        abort(404)
     conn = get_db()
-    row = conn.execute(
-        "SELECT p.data, p.content_type FROM contacts c JOIN contact_photos p ON p.contact_id = c.id "
-        "WHERE LOWER(c.first_name) = ? AND LOWER(COALESCE(c.last_name, '')) = ? ORDER BY c.id LIMIT 1",
-        person,
-    ).fetchone()
+    row = None
+    if slug.isdigit():
+        _ensure_website_team(conn)
+        row = conn.execute(
+            "SELECT p.data, p.content_type FROM website_team w JOIN contact_photos p ON p.contact_id = w.contact_id "
+            "WHERE w.contact_id = ? AND w.active = 1", (int(slug),)).fetchone()
+    else:  # original name-based links (kept so nothing breaks before the list is set up)
+        person = next(((fn, ln) for s, ln, _n, _t, _b in _LEGACY_TEAM for fn in [s] if s == slug), None)
+        if person:
+            row = conn.execute(
+                "SELECT p.data, p.content_type FROM contacts c JOIN contact_photos p ON p.contact_id = c.id "
+                "WHERE LOWER(c.first_name) = ? AND LOWER(COALESCE(c.last_name, '')) = ? ORDER BY c.id LIMIT 1",
+                person).fetchone()
     conn.close()
     if not row:
         abort(404)
@@ -6181,7 +6235,7 @@ def public_our_story():
 
 @app.route("/meet-the-team")
 def public_meet_team():
-    return render_template("public_meet_team.html")
+    return render_template("public_meet_team.html", team=_public_team_members())
 
 
 @app.route("/about-the-program")
@@ -6899,6 +6953,86 @@ def chat_room_delete(msg_id):
         conn.commit()
     conn.close()
     return redirect(url_for(".chat_room"))
+
+
+# ---------- Website Team: who appears on the public Meet the Team page ----------
+
+@crm.route("/website-team")
+@leadership_required
+def website_team():
+    conn = get_db()
+    _ensure_website_team(conn)
+    members = conn.execute(
+        "SELECT w.*, c.first_name, c.last_name, "
+        "(SELECT COUNT(*) FROM contact_photos p WHERE p.contact_id = w.contact_id) AS has_photo "
+        "FROM website_team w LEFT JOIN contacts c ON c.id = w.contact_id ORDER BY w.sort_order, w.id").fetchall()
+    taken = {m["contact_id"] for m in members}
+    people = [c for c in conn.execute(
+        "SELECT id, first_name, last_name FROM contacts ORDER BY LOWER(first_name), LOWER(COALESCE(last_name, ''))").fetchall()
+        if c["id"] not in taken]
+    conn.close()
+    return render_template("website_team.html", members=members, people=people)
+
+
+@crm.route("/website-team/add", methods=["POST"])
+@leadership_required
+def website_team_add():
+    try:
+        cid = int(request.form.get("contact_id") or 0)
+    except ValueError:
+        cid = 0
+    conn = get_db()
+    _ensure_website_team(conn)
+    c = conn.execute("SELECT id, first_name, last_name FROM contacts WHERE id = ?", (cid,)).fetchone() if cid else None
+    if not c:
+        conn.close()
+        flash("Pick a person from the list.")
+        return redirect(url_for(".website_team"))
+    name = (request.form.get("display_name") or "").strip() or f"{c['first_name']} {c['last_name'] or ''}".strip()
+    top = conn.execute("SELECT COALESCE(MAX(sort_order), 0) AS m FROM website_team").fetchone()["m"]
+    try:
+        conn.execute(
+            "INSERT INTO website_team (contact_id, display_name, title, bio, sort_order) VALUES (?, ?, ?, ?, ?)",
+            (cid, name[:150], (request.form.get("title") or "").strip()[:150],
+             (request.form.get("bio") or "").strip()[:3000], top + 1))
+        conn.commit()
+        flash(f"{name} added to the website team.")
+    except Exception:
+        conn.rollback()
+        flash("That person is already on the website team.")
+    conn.close()
+    return redirect(url_for(".website_team"))
+
+
+@crm.route("/website-team/<int:wid>/save", methods=["POST"])
+@leadership_required
+def website_team_save(wid):
+    try:
+        order = int(request.form.get("sort_order") or 100)
+    except ValueError:
+        order = 100
+    conn = get_db()
+    conn.execute(
+        "UPDATE website_team SET display_name = ?, title = ?, bio = ?, sort_order = ?, active = ? WHERE id = ?",
+        ((request.form.get("display_name") or "").strip()[:150] or "Team member",
+         (request.form.get("title") or "").strip()[:150],
+         (request.form.get("bio") or "").strip()[:3000], order,
+         1 if request.form.get("active") else 0, wid))
+    conn.commit()
+    conn.close()
+    flash("Saved.")
+    return redirect(url_for(".website_team"))
+
+
+@crm.route("/website-team/<int:wid>/remove", methods=["POST"])
+@leadership_required
+def website_team_remove(wid):
+    conn = get_db()
+    conn.execute("DELETE FROM website_team WHERE id = ?", (wid,))
+    conn.commit()
+    conn.close()
+    flash("Removed from the website team. (The contact itself is untouched.)")
+    return redirect(url_for(".website_team"))
 
 
 import blasts
