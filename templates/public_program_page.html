@@ -63,6 +63,7 @@ section.pg-hero{position:relative}
   <p><a class="btn alt" href="{{ url_for('public_programs') }}">ALL PROGRAMS</a>
      <a class="btn alt" href="{{ url_for('public_home') }}">HOME</a></p>
 </section>
+{% if p.code == 'D2' %}{% include '_awakening_quote.html' %}{% endif %}
 {% if p.banner %}{% include '_program_ending.html' %}{% endif %}
 </div>
 {% endblock %}
