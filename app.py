@@ -1622,6 +1622,16 @@ def date_span(row):
     return f"{fdate_text(start)} to {fdate_text(end)}" if end and end != start else fdate_text(start)
 
 
+PROGRAM_LABELS = {"D1": "The Beginning", "D2": "Awakening", "D3": "Vision", "D4": "The Art of Us",
+                  "D5": "Renew", "D6": "Spiritual"}
+
+
+@app.template_filter("prog_label")
+def prog_label(code):
+    """Calendar labels: show the program's name instead of its code (D4 -> The Art of Us)."""
+    return PROGRAM_LABELS.get(code, code)
+
+
 @app.context_processor
 def inject_program_name():
     """Makes {{ program_name }} available in every template (see config.py)."""
@@ -5606,6 +5616,8 @@ def _calendar_data(year, public=False):
         (f"{year}-12-31", f"{year}-01-01"),
     ).fetchall()]
     conn.close()
+    # Awakening (D2) and Vision (D3) always meet the same weekend as The Beginning (D1), so the calendar shows D1 only.
+    rows = [r for r in rows if r["code"] not in ("D2", "D3")]
     if public:
         rows = [r for r in rows if r["status"] != "Cancelled"]
     for r in rows:
