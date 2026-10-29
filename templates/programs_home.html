@@ -45,6 +45,15 @@
             <input type="date" name="end_date" value="{{ c.end_date or '' }}">
             <button class="btn secondary" type="submit">Save dates</button>
           </form>
+          <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px"
+                onsubmit="return confirm('Cancel this session? It comes off the website and this list, but its history is kept.');">
+            <input type="hidden" name="back" value="programs">
+            <input type="hidden" name="session_date" value="{{ c.session_date }}">
+            <input type="hidden" name="end_date" value="{{ c.end_date or '' }}">
+            <input type="hidden" name="status" value="Cancelled">
+            <button class="btn secondary" type="submit">Cancel this session</button>
+            <span class="muted">(use this if Delete says people or staff are attached)</span>
+          </form>
           <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
                 onsubmit='return confirm({{ ("Delete " ~ c.program_name ~ " (" ~ (c|date_span) ~ ")? A session with enrolled people or staff can\'t be deleted; set it to Cancelled instead.")|tojson }});'>
             <input type="hidden" name="back" value="programs">
