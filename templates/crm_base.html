@@ -23,20 +23,20 @@
       <a href="{{ url_for('.dashboard') }}">Dashboard</a>
       <a href="{{ url_for('.mission_page') }}">Mission</a>
       {% if chat_ok %}<a href="{{ url_for('.chat_home') }}">Chat Room{% if chat_new_board or chat_new_room %} <span title="New posts" style="color:#e8554e">&#9679;</span>{% endif %}</a>{% endif %}
-      {% if session.is_owner or session.staff_role == 'Leadership' %}
-      <a href="{{ url_for('.staff_list') }}">Site Access</a>
-      <a href="{{ url_for('.website_team') }}">Website Team</a>
-      {% endif %}
       {% set is_lead = session.staff_role == 'Leadership' %}
       {% set show_contacts = is_lead or has_contacts_access %}
       {% set show_donations = is_lead or has_donations_access %}
       {% set show_finance = session.is_owner or has_accounting_access %}
-      {% if show_contacts or show_donations or show_finance or is_lead or has_correspondence_access %}
+      {% if show_contacts %}<a href="{{ url_for('.contacts_list') }}">Contacts</a>{% endif %}
+      {% if session.is_owner or session.staff_role == 'Leadership' %}
+      <a href="{{ url_for('.staff_list') }}">Site Access</a>
+      {% endif %}
+      {% if show_contacts or show_donations or show_finance or is_lead or session.is_owner or has_correspondence_access %}
       <details class="navmenu">
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
+          {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Leadership (Website)</a>{% endif %}
           {% if show_contacts %}
-          <a href="{{ url_for('.contacts_list') }}">Contacts</a>
           {% if is_lead %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
