@@ -3290,7 +3290,7 @@ def programs_list():
     sessions = conn.execute(
         """SELECT c.*, p.code, p.name AS program_name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
-           WHERE COALESCE(c.end_date, c.session_date) >= date('now')
+           WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'
            ORDER BY c.session_date ASC, p.id ASC"""
     ).fetchall()
     conn.close()
