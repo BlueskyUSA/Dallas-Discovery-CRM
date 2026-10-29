@@ -11,11 +11,11 @@
 {% if is_lead %}
 <div class="card" style="background:#f1f6ef; border:1px solid #b9cfb4">
   <h3 style="margin-top:0">Quick Schedule</h3>
-  <p class="muted" style="margin-top:0">Pick the program and the first day (a Friday). The three days, Friday to Sunday, are filled in for you and it shows on the website right away. Scheduling The Beginning also schedules Awakening, Vision and Refocus for the same weekend.</p>
+  <p class="muted" style="margin-top:0">Pick the program and the first day (a Friday; Renew starts on Saturday). The end date is filled in for you and it shows on the website right away. Scheduling The Beginning also schedules Awakening, Vision and Refocus for the same weekend.</p>
   <form class="inline" method="post" action="{{ url_for('.quick_schedule') }}" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
     <select name="program_id" required style="font-size:1.05rem">
       <option value="">Choose a program&hellip;</option>
-      {% for p in programs if p.code in ['D4','D1'] %}<option value="{{ p.id }}">{{ 'The Beginning, Awakening &amp; Vision weekend'|safe if p.code == 'D1' else p.name }}</option>{% endfor %}
+      {% for p in programs if p.code in ['D1','D4','D5','D6'] %}<option value="{{ p.id }}" data-days="{{ 2 if p.code == 'D5' else 3 }}">{{ 'The Beginning, Awakening &amp; Vision weekend'|safe if p.code == 'D1' else p.name }}</option>{% endfor %}
     </select>
     <input type="date" name="session_date" id="qs-date" required style="font-size:1.05rem">
     <button class="btn" type="submit" style="font-size:1.05rem">Save</button>
@@ -25,9 +25,10 @@
 {% endif %}
 <script>
 (function(){var d=document.getElementById('qs-date'),r=document.getElementById('qs-range');if(!d||!r)return;
-d.addEventListener('change',function(){if(!d.value){r.textContent='';return;}
-var a=new Date(d.value+'T12:00:00'),b=new Date(a.getTime()+2*86400000),o={weekday:'short',month:'short',day:'numeric'};
-r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('en-US',o);});})();
+function upd(){if(!d.value){r.textContent='';return;}
+var sel=d.form.program_id,n=parseInt((sel.options[sel.selectedIndex]||{}).dataset?(sel.options[sel.selectedIndex].dataset.days||3):3,10),a=new Date(d.value+'T12:00:00'),b=new Date(a.getTime()+(n-1)*86400000),o={weekday:'short',month:'short',day:'numeric'};
+r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('en-US',o);}
+d.addEventListener('change',upd);d.form.program_id.addEventListener('change',upd);})();
 </script>
 {% if sessions %}
 <div class="card">
