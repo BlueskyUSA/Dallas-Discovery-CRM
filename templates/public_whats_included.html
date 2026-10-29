@@ -32,7 +32,7 @@
 .wi-end h2{font-size:clamp(2rem,3.4vw,3rem);margin-bottom:18px!important}
 .wi-btn{display:inline-block;background:#fff;color:#06405c!important;text-decoration:none;font-weight:700;letter-spacing:.05em;border-radius:40px;padding:14px 28px;margin:6px;font-size:.9rem}
 .wi-btn.alt{background:transparent;border:1px solid #fff;color:#fff!important}
-.wi-links{text-align:center;padding:14px;font-size:.85rem;background:#f5f9f9}.wi-links a{margin:0 10px;color:#176878}
+.wi-links{text-align:center;padding:34px 14px;font-size:1.2rem;font-weight:600;line-height:2.2;background:#f5f9f9}.wi-links a{margin:0 16px;color:#176878;white-space:nowrap}
 @media(max-width:760px){.wi-grid{grid-template-columns:1fr}}
 
 .nav-sub{display:block;font-size:.66em;font-weight:400;letter-spacing:.01em;margin-top:3px;line-height:1.2;text-align:center;text-decoration:none!important;opacity:.95}
@@ -96,6 +96,6 @@ header.wi-hero{position:relative}
 <section class="wi-end"><h2>Ready to take the next step?</h2>
 <a class="wi-btn" href="{{ url_for('public_register') }}#interested">BE THE FIRST TO HEAR</a>
 <a class="wi-btn alt" href="{{ url_for('public_program_page', slug=w.slug) }}">BACK TO {{ w.name|upper }}</a></section>
-<div class="wi-links"><a href="{{ url_for('public_meet_team') }}">Meet the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div>
+
 </div>
 {% endblock %}

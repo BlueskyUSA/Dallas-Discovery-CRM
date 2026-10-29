@@ -56,14 +56,7 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
-{% block site_footer %}
-  <footer class="pub-footer">
-    <div class="pub-container">
-      <p>&copy; 2026 {{ public_brand }} All rights reserved.</p>
-      <p class="muted">Team: <a href="{{ url_for('crm.dashboard') }}">Team login &rarr;</a></p>
-    </div>
-  </footer>
-{% endblock %}
+{% block site_footer %}{% include '_public_footer.html' %}{% endblock %}
   <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
 </body>
 </html>

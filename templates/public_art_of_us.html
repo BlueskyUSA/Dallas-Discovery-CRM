@@ -2,7 +2,7 @@
 {% block title %}The Art of Us — Discovery!{% endblock %}
 {% block meta_description %}The Art of Us: a playful, adventurous, and meaningful three-day experiential seminar for married and committed couples from Discovery!{% endblock %}
 {% block site_header %}{% endblock %}
-{% block site_footer %}{% endblock %}
+{% block site_footer %}{% include '_public_footer.html' %}{% endblock %}
 {% block content %}
 <style>
 .aou{--navy:#103d59;--teal:#00768a;--light:#edf8f8;--ink:#153d50;--gold:#e7a45d}
@@ -227,7 +227,7 @@
 .aou-two>div:first-child p{font-size:clamp(1.25rem,1.9vw,1.65rem)!important;line-height:1.6!important}
 .aou-faq summary{font-size:clamp(1.25rem,1.9vw,1.6rem)!important;line-height:1.35}
 .aou-faq details p{font-size:clamp(1.15rem,1.65vw,1.4rem)!important;line-height:1.6!important}
-.aou-dlinks{text-align:center;padding:14px;font-size:.85rem;background:#f5f9f9}.aou-dlinks a{margin:0 10px;color:#176878}
+.aou-dlinks{text-align:center;padding:34px 14px;font-size:1.2rem;font-weight:600;line-height:2.2;background:#f5f9f9}.aou-dlinks a{margin:0 16px;color:#176878;white-space:nowrap}
 
 .nav-sub{display:block;font-size:.66em;font-weight:400;letter-spacing:.01em;margin-top:3px;line-height:1.2;text-align:center;text-decoration:none!important;opacity:.95}
 .hx-nav,.wi-nav,.aou-links{align-items:flex-start!important}
@@ -289,6 +289,6 @@ header.aou-hero{position:relative}
 
 
 {% set cf_page='program' %}{% set cf_program='D4' %}{% include '_call_form.html' %}
-<div class="aou-dlinks"><a href="{{ url_for('public_meet_team') }}">Meet the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div>
+
 </div>
 {% endblock %}

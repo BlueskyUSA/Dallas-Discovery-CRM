@@ -41,7 +41,7 @@ html{scroll-behavior:smooth}.dd *{box-sizing:border-box}.dd{color:var(--ink);fon
 .end{background:linear-gradient(135deg,#0a3150,#006c86);text-align:center;color:#fff;padding:24px 20px 31px}
 .dd .end h2{color:#fff;font-size:clamp(2rem,3vw,2.7rem);margin:0 0 4px}.end p{margin:0 0 12px}
 .end .dd a.button,.dd .button{background:white;color:#06405c;margin:0}
-.dd-links{text-align:center;padding:14px;font-size:.85rem;background:#f5f9f9}.dd-links a{margin:0 10px;color:#176878}.note{text-align:center;padding:15px;font-size:.72rem;color:#526b79;background:#f5f9f9}
+.dd-links{text-align:center;padding:34px 14px;font-size:1.2rem;font-weight:600;line-height:2.2;background:#f5f9f9}.dd-links a{margin:0 16px;color:#176878;white-space:nowrap}.note{text-align:center;padding:15px;font-size:.72rem;color:#526b79;background:#f5f9f9}
 @media(max-width:760px){.pillar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.connection{grid-template-columns:1fr}.connection img{height:300px}.days{grid-template-columns:1fr;max-width:550px}.day img{width:35%}}
 @media(max-width:430px){.pillar-grid{grid-template-columns:1fr}.pillar{min-height:0}.dhero .dhero-link{top:76%}.intro{padding-top:24px}}
 
@@ -176,6 +176,6 @@ header.hx{position:relative}
 {% set after_focus %}<section class="experience" id="experience"><h2>The first step of the journey.</h2><p>The Beginning is an immersive, three-day experiential seminar that invites you to explore those early influences with curiosity and compassion. The goal is not to remain in the past, but to better understand it, and discover possibilities for how you live today.</p></section>{% endset %}
 <span id="register"></span>
 {% include '_program_ending.html' %}
-<div class="dd-links"><a href="{{ url_for('public_meet_team') }}">Meet the Team</a><a href="{{ url_for('public_contact') }}">Contact</a><a href="{{ url_for('public_donate') }}">Donate</a><a href="{{ url_for('crm.dashboard') }}">Team Login</a></div></main></div>
+</main></div>
 {% set cf_page='program' %}{% set cf_program='D1' %}{% include '_call_form.html' %}
 {% endblock %}
