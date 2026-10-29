@@ -6,19 +6,19 @@
 .ud-list{list-style:none;margin:22px auto 26px;padding:0;display:grid;gap:12px}
 .ud-list li{background:#fff;border:1px solid #bddde3;padding:16px 20px;font-size:clamp(1.15rem,1.8vw,1.4rem);color:#0c4561}
 .ud-btns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px}
-.ud-btns a{display:inline-block;background:#006d86;color:#fff!important;text-decoration:none;border-radius:40px;padding:13px 28px;font:700 .85rem Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.ud.ud-inline{background:none;padding:0;margin-top:46px}.ud-btns a{display:inline-block;background:#006d86;color:#fff!important;text-decoration:none;border-radius:40px;padding:13px 28px;font:700 .85rem Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase}
 .ud-btns a.alt{background:transparent;color:#006d86!important;border:1px solid #006d86}
 @media(max-width:760px){.ud{padding:44px 20px 40px}}
 </style>
-<section class="ud" id="upcoming-dates"><div class="ud-in">
+{% if ud_inline %}<div class="ud ud-inline" id="upcoming-dates"><div class="ud-in">{% else %}<section class="ud" id="upcoming-dates"><div class="ud-in">{% endif %}
   <h2>Upcoming Dates</h2>
   {% if dates %}
   <p>Our next scheduled dates:</p>
   <ul class="ud-list">{% for d in dates %}<li>{{ d|date_span }}</li>{% endfor %}</ul>
   <p>Don&rsquo;t see a date that works? Let us know and we&rsquo;ll follow up.</p>
-  <div class="ud-btns"><a href="{{ url_for('public_register', program=p.code) }}#interested">Register</a><a class="alt" href="{{ url_for('public_register') }}#calendar">See the full calendar</a></div>
+  <div class="ud-btns"><a href="{{ url_for('public_register', program=p.code) }}#interested">Reserve Your Spot</a><a class="alt" href="{{ url_for('public_register') }}#calendar">See the full calendar</a></div>
   {% else %}
   <p>Dates are coming soon. Tell us you&rsquo;re interested and we&rsquo;ll let you know as soon as they&rsquo;re announced.</p>
-  <div class="ud-btns"><a href="{{ url_for('public_register', program=p.code) }}#interested">Notify me</a><a class="alt" href="{{ url_for('public_register') }}#calendar">See the full calendar</a></div>
+  <div class="ud-btns"><a href="{{ url_for('public_register', program=p.code) }}#interested">Reserve Your Spot</a><a class="alt" href="{{ url_for('public_register') }}#calendar">See the full calendar</a></div>
   {% endif %}
-</div></section>
+{% if ud_inline %}</div></div>{% else %}</div></section>{% endif %}
