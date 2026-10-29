@@ -52,10 +52,10 @@
             <input type="hidden" name="end_date" value="{{ c.end_date or '' }}">
             <input type="hidden" name="status" value="Cancelled">
             <button class="btn secondary" type="submit">Cancel this session</button>
-            <span class="muted">(use this if Delete says people or staff are attached)</span>
+            <span class="muted">(use this if Delete says people are enrolled)</span>
           </form>
           <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
-                onsubmit='return confirm({{ ("Delete " ~ c.program_name ~ " (" ~ (c|date_span) ~ ")? A session with enrolled people or staff can\'t be deleted; set it to Cancelled instead.")|tojson }});'>
+                onsubmit='return confirm({{ ("Delete " ~ c.program_name ~ " (" ~ (c|date_span) ~ ")? A session with enrolled people can\'t be deleted; set it to Cancelled instead. Any staff assignments are removed with it.")|tojson }});'>
             <input type="hidden" name="back" value="programs">
             <button class="btn danger" type="submit">Delete this session</button>
           </form>
