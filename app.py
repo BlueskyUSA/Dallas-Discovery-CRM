@@ -6404,6 +6404,9 @@ def public_questionnaire(token):
                            done=done, saved=(request.method == "POST" and not done))
 
 
+PUBLIC_CALENDAR_START_YEAR = 2027  # first year the public Register calendar opens on
+
+
 @app.route("/register", methods=["GET", "POST"])
 def public_register():
     conn = get_db()
@@ -6433,11 +6436,14 @@ def public_register():
     if not year:
         # default to this year, or -- if nothing is scheduled yet this year --
         # the year of the next upcoming session
-        year = date.today().year
+        # No trainings are planned for 2026, so the public calendar opens on 2027
+        # (and on the current year once that is later than 2027).
+        year = max(date.today().year, PUBLIC_CALENDAR_START_YEAR)
         if upcoming:
             first_year = int(str(upcoming[0]["session_date"])[:4])
             if first_year > year:
                 year = first_year
+    default_year = max(date.today().year, PUBLIC_CALENDAR_START_YEAR)
     year = max(2000, min(2100, year))
     cal = _calendar_data(year, public=True)
     return render_template(
@@ -6446,6 +6452,7 @@ def public_register():
         prev_url=url_for("public_register", year=year - 1) + "#calendar",
         next_url=url_for("public_register", year=year + 1) + "#calendar",
         today_url=url_for("public_register") + "#calendar",
+        today_label=("This year" if default_year == date.today().year else str(default_year)),
     )
 
 
