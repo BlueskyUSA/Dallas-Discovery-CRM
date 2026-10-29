@@ -4296,10 +4296,6 @@ def cohort_delete(cohort_id):
     label = f"{cohort['code']} #{cohort['session_number']}"
     checks = [
         ("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", "{n} enrolled trainee(s)"),
-        ("SELECT COUNT(*) AS n FROM cohort_staffing WHERE cohort_id = ?", "{n} staff assignment(s)"),
-        ("""SELECT COUNT(*) AS n FROM small_group_staffing sgs
-            JOIN small_groups sg ON sg.id = sgs.small_group_id WHERE sg.cohort_id = ?""",
-         "{n} small-group staff assignment(s)"),
         ("SELECT COUNT(*) AS n FROM contracts WHERE originating_cohort_id = ?", "{n} contract(s) started in it"),
     ]
     blockers = []
@@ -4314,6 +4310,10 @@ def cohort_delete(cohort_id):
             f"To take it off the calendar without losing that history, change its status to Cancelled instead."
         )
         return redirect(url_for(".programs_list"))
+    # Staff assignments are only a plan for the session, so they go with it. Only enrolled people
+    # (and contracts) protect a session from being deleted.
+    conn.execute("DELETE FROM small_group_staffing WHERE small_group_id IN (SELECT id FROM small_groups WHERE cohort_id = ?)", (cohort_id,))
+    conn.execute("DELETE FROM cohort_staffing WHERE cohort_id = ?", (cohort_id,))
     conn.execute("DELETE FROM small_groups WHERE cohort_id = ?", (cohort_id,))
     conn.execute("DELETE FROM cohorts WHERE id = ?", (cohort_id,))
     conn.commit()
