@@ -3301,7 +3301,7 @@ def programs_list():
 @leadership_required
 def quick_schedule():
     """Simple scheduling: pick a program and the first day; the session runs three days
-    (Friday-Sunday). Schedules only that one program -- nothing else is added with it."""
+    (Friday-Sunday). Scheduling D1 also schedules D2, D3 and Refocus for that weekend."""
     try:
         pid = int(request.form.get("program_id") or 0)
         start = date.fromisoformat((request.form.get("session_date") or "").strip())
@@ -3315,19 +3315,33 @@ def quick_schedule():
         flash("Please pick a program. Nothing was saved.")
         return redirect(url_for(".programs_list"))
     end = start + timedelta(days=DEFAULT_SESSION_DAYS_OTHER - 1)
-    if conn.execute("SELECT 1 FROM cohorts WHERE program_id = ? AND session_date = ?", (pid, start.isoformat())).fetchone():
-        conn.close()
-        flash(f"{prog['name']} already has a session starting {fdate_text(start.isoformat())}. Nothing was added.")
-        return redirect(url_for(".programs_list"))
-    num = conn.execute("SELECT COALESCE(MAX(session_number), 0) + 1 AS n FROM cohorts WHERE program_id = ?", (pid,)).fetchone()["n"]
-    conn.execute(
-        "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
-        (pid, num, start.isoformat(), end.isoformat()),
-    )
+    # D1, D2 and D3 are always the same weekend (plus Refocus on Saturday-Sunday), so scheduling D1 schedules them all.
+    jobs = [(prog["id"], prog["code"], prog["name"], start, end)]
+    if prog["code"] == "D1":
+        for r in conn.execute("SELECT id, code, name FROM programs WHERE code IN ('D2','D3','D5') ORDER BY id").fetchall():
+            if r["code"] == "D5":
+                jobs.append((r["id"], r["code"], r["name"], start + timedelta(days=1), end))
+            else:
+                jobs.append((r["id"], r["code"], r["name"], start, end))
+    made, skipped = [], []
+    for jpid, jcode, jname, s, e in jobs:
+        if conn.execute("SELECT 1 FROM cohorts WHERE program_id = ? AND session_date = ?", (jpid, s.isoformat())).fetchone():
+            skipped.append(jname)
+            continue
+        num = conn.execute("SELECT COALESCE(MAX(session_number), 0) + 1 AS n FROM cohorts WHERE program_id = ?", (jpid,)).fetchone()["n"]
+        conn.execute(
+            "INSERT INTO cohorts (program_id, session_number, session_date, end_date) VALUES (?, ?, ?, ?)",
+            (jpid, num, s.isoformat(), e.isoformat()),
+        )
+        made.append(jname)
     conn.commit()
     conn.close()
+    if not made:
+        flash(f"{prog['name']} already has a session starting {fdate_text(start.isoformat())}. Nothing was added.")
+        return redirect(url_for(".programs_list"))
     note = "" if start.weekday() == 4 else f" (Heads up: {start.strftime('%A')} is not a Friday.)"
-    flash(f"Scheduled {prog['name']}: {_short_span(start, end)}, {end.year}. It now shows on the website.{note}")
+    which = ", ".join(made)
+    flash(f"Scheduled {_short_span(start, end)}, {end.year}: {which}. It now shows on the website.{note}")
     return redirect(url_for(".programs_list"))
 
 
