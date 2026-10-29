@@ -2111,6 +2111,92 @@ def contact_send_excitement_email(contact_id):
     return redirect(url_for(".contact_detail", contact_id=contact_id))
 
 
+# ---------- Video calls (Google Meet) ----------
+# One saved Google Meet link, kept in a tiny key/value table. Each contact's page
+# shows a "Join" button and can email the link (optionally with the agreed time).
+
+_app_settings_ready = False
+
+
+def _ensure_app_settings(conn):
+    global _app_settings_ready
+    if _app_settings_ready:
+        return
+    conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)")
+    conn.commit()
+    _app_settings_ready = True
+
+
+def _get_setting(key, default=""):
+    try:
+        conn = get_db()
+        _ensure_app_settings(conn)
+        row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (key,)).fetchone()
+        conn.close()
+        return (row["value"] if row and row["value"] else default)
+    except Exception as e:
+        print(f"Couldn't read setting {key}: {e}", flush=True)
+        return default
+
+
+def _set_setting(key, value):
+    conn = get_db()
+    _ensure_app_settings(conn)
+    conn.execute("DELETE FROM app_settings WHERE key = ?", (key,))
+    conn.execute("INSERT INTO app_settings (key, value) VALUES (?, ?)", (key, value))
+    conn.commit()
+    conn.close()
+
+
+@crm.route("/video-call/link", methods=["POST"])
+@leadership_required
+def video_call_link_save():
+    link = (request.form.get("meet_link") or "").strip()
+    back = request.form.get("back") or url_for(".dashboard")
+    if link and not re.match(r"^https://meet\.google\.com/[A-Za-z0-9\-_/?=&.]+$", link):
+        flash("That doesn't look like a Google Meet link. It should start with https://meet.google.com/")
+        return redirect(back)
+    _set_setting("meet_link", link)
+    flash("Google Meet link saved." if link else "Google Meet link cleared.")
+    return redirect(back)
+
+
+@crm.route("/contacts/<int:contact_id>/video-call/send", methods=["POST"])
+@area_required("contacts")
+def contact_send_video_link(contact_id):
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    link = _get_setting("meet_link")
+    back = url_for(".contact_detail", contact_id=contact_id)
+    if not link:
+        flash("Save your Google Meet link first.")
+        return redirect(back)
+    if not contact["email"]:
+        flash("Can't send -- this contact has no email address on file.")
+        return redirect(back)
+    when = (request.form.get("when") or "").strip()[:120]
+    first = contact["first_name"] or "there"
+    when_text = f" on {when}" if when else ""
+    text = (f"Hi {first},\n\nHere is the link for our video call{when_text}:\n{link}\n\n"
+            "Just click the link a few minutes before we start. It works in your web browser on a computer, "
+            "phone or tablet -- nothing to install.\n\nLooking forward to seeing you,\nKent\n")
+    esc = _html.escape
+    html = (f"<p>Hi {esc(first)},</p><p>Here is the link for our video call{esc(when_text)}:</p>"
+            f'<p><a href="{esc(link)}">{esc(link)}</a></p>'
+            "<p>Just click the link a few minutes before we start. It works in your web browser on a computer, "
+            "phone or tablet &mdash; nothing to install.</p><p>Looking forward to seeing you,<br>Kent</p>")
+    try:
+        send_email(to_email=contact["email"], to_name=contact["first_name"],
+                   subject="Our video call", html_content=html, text_content=text)
+        flash(f"Video call link emailed to {contact['first_name']} ({contact['email']}).")
+    except EmailSendError as e:
+        flash(f"Couldn't send the email: {e}")
+    return redirect(back)
+
+
 def _mark_business_plan_sent(contact_id):
     """Records today's date as the last time the Preliminary Business Plan
     went out to this contact. Date only -- the plan changes over time, so we
@@ -2650,6 +2736,7 @@ def contact_detail(contact_id):
     conn.close()
     return render_template(
         "contact_detail.html",
+        meet_link=_get_setting("meet_link"),
         letters_sent=letters_sent, auto_letters_on=bool(_auto_letters_start()),
         member_lists=member_lists, linked_sponsors=linked_sponsors, sponsor_choices=sponsor_choices, sponsor_link=sponsor_link,
         addable_lists=addable_lists,
