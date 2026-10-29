@@ -78,6 +78,40 @@
 </div>
 
 <div class="card">
+  <h3 style="margin-top:0">Video call</h3>
+  {% if meet_link %}
+  <p style="margin-top:0">
+    <a class="btn" target="_blank" rel="noopener" href="{{ meet_link }}">Start / join video call</a>
+    {% if contact.cell_phone %}
+    <a class="btn secondary" style="margin-left:8px" href="sms:{{ contact.cell_phone }}?&body={{ ('Hi ' ~ (contact.first_name or 'there') ~ ', here is the link for our video call: ' ~ meet_link)|urlencode }}">Text the link</a>
+    {% endif %}
+  </p>
+  {% if contact.email %}
+  <form method="post" action="{{ url_for('.contact_send_video_link', contact_id=contact.id) }}" style="margin:0">
+    <label class="muted" style="font-size:0.85rem">When (optional, e.g. "Thursday at 2:00 pm")</label><br>
+    <input type="text" name="when" maxlength="120" style="width:min(340px,100%)">
+    <button class="btn secondary" type="submit">Email the link to {{ contact.first_name or 'contact' }}</button>
+  </form>
+  {% else %}
+  <p class="muted" style="margin:0">No email on file for this contact.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted" style="margin-top:0">No Google Meet link saved yet.</p>
+  {% endif %}
+  {% if session.is_owner or session.staff_role == 'Leadership' %}
+  <details style="margin-top:12px">
+    <summary class="muted" style="cursor:pointer;font-size:0.85rem">{{ 'Change' if meet_link else 'Add' }} Google Meet link (Leadership)</summary>
+    <form method="post" action="{{ url_for('.video_call_link_save') }}" style="margin-top:8px">
+      <input type="hidden" name="back" value="{{ url_for('.contact_detail', contact_id=contact.id) }}">
+      <input type="text" name="meet_link" value="{{ meet_link }}" placeholder="https://meet.google.com/abc-defg-hij" style="width:min(380px,100%)">
+      <button class="btn secondary" type="submit">Save link</button>
+    </form>
+    <p class="muted" style="font-size:0.8rem;margin:6px 0 0">Get one at meet.google.com: New meeting &rarr; Create a meeting for later.</p>
+  </details>
+  {% endif %}
+</div>
+
+<div class="card">
   <h3 style="margin-top:0">Excitement email</h3>
   <p class="muted" style="margin-top:0">
     Sends {{ contact.full_name }} the "Excitement Is Building" outreach email -- same copy as the
