@@ -6335,17 +6335,39 @@ def public_programs():
     return render_template("public_programs.html")
 
 
+def _program_upcoming_dates(code, limit=3):
+    """The next few scheduled (not cancelled) sessions of one program, for the
+    "Upcoming Dates" section on each public program page. Never breaks a page."""
+    try:
+        conn = get_db()
+        rows = conn.execute(
+            """SELECT c.session_date, c.end_date FROM cohorts c
+               JOIN programs p ON p.id = c.program_id
+               WHERE p.code = ?
+                 AND COALESCE(c.end_date, c.session_date) >= date('now')
+                 AND c.status != 'Cancelled'
+               ORDER BY c.session_date ASC LIMIT ?""",
+            (code, limit),
+        ).fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"Couldn't load upcoming dates for {code}: {e}", flush=True)
+        return []
+
+
 @app.route("/programs/<slug>")
 def public_program_page(slug):
     from public_programs_data import PROGRAM_PAGES
     p = PROGRAM_PAGES.get(slug)
     if not p:
         abort(404)
+    dates = _program_upcoming_dates(p["code"])
     if slug == "the-art-of-us":
-        return render_template("public_art_of_us.html", p=p)
+        return render_template("public_art_of_us.html", p=p, dates=dates)
     if slug == "the-beginning":
-        return render_template("public_the_beginning.html", p=p)
-    return render_template("public_program_page.html", p=p)
+        return render_template("public_the_beginning.html", p=p, dates=dates)
+    return render_template("public_program_page.html", p=p, dates=dates)
 
 
 @app.route("/programs/<slug>/whats-included")
