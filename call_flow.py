@@ -57,7 +57,7 @@ CONSENT_OPTIONS = [("either", "Yes, call or text is fine"), ("text", "Yes, but t
 PREF_WORD = {"either": "call or text", "text": "text", "call": "call"}
 PREF_SHORT = {"either": "Call or text", "text": "Text only", "call": "Call only", "email": "Email only"}
 LEGACY = {"yes": "either", "no": "email"}
-CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within two hours. "
+CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within a few hours. "
                 "Message and data rates may apply. Reply STOP to stop texts.")
 CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
 
@@ -267,8 +267,8 @@ def letter_curious(first, label, vol_name, vphone, pw):
     subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
     html = (f"<p>Hi {first},</p>"
             f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
-            f"<p><strong>{vol_name}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong> "
-            f"within about two hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
+            f"<p><strong>{vol_name}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong>, "
+            f"usually within a few hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
             f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
             f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
             f"excited to share how it changed their life. Ask anything you like.</p>"
@@ -278,7 +278,7 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
             f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>The Discovery Team</p>")
     text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
-            f"{vol_name}, an experienced Discovery volunteer, will {pw} you from {vphone} within about two hours. "
+            f"{vol_name}, an experienced Discovery volunteer, will {pw} you from {vphone}, usually within a few hours. "
             f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
             f"For your security, here is their name and number, so you will know it is us.\n\n"
             f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
