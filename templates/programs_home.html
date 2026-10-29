@@ -8,6 +8,56 @@
 <p><a href="{{ url_for('.calendar_view') }}" style="display:inline-block; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:6px 14px">Year calendar &rarr;</a>
   <span class="muted" style="display:block; margin-top:8px">Every session across all programs, at a glance.</span></p>
 {% endif %}
+{% if is_lead %}
+<div class="card" style="background:#f1f6ef; border:1px solid #b9cfb4">
+  <h3 style="margin-top:0">Quick Schedule</h3>
+  <p class="muted" style="margin-top:0">Pick the program and the first day (a Friday). It runs three days, Friday to Sunday, and shows on the website right away.</p>
+  <form class="inline" method="post" action="{{ url_for('.quick_schedule') }}" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+    <select name="program_id" required style="font-size:1.05rem">
+      <option value="">Choose a program&hellip;</option>
+      {% for p in programs if p.code in ['D4','D1','D2','D3'] %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+    </select>
+    <input type="date" name="session_date" required style="font-size:1.05rem">
+    <button class="btn" type="submit" style="font-size:1.05rem">Save</button>
+  </form>
+</div>
+{% endif %}
+{% if sessions %}
+<div class="card">
+  <h3 style="margin-top:0">Scheduled sessions</h3>
+  <table>
+    <tr><th>Program</th><th>Dates</th><th>Status</th><th></th></tr>
+    {% for c in sessions %}
+    <tr>
+      <td style="font-weight:600">{{ c.program_name }}</td>
+      <td style="color:#1f5fbf; font-weight:600">{{ c|date_span }}</td>
+      <td>{{ c.status }}</td>
+      <td>
+        {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}" style="font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:4px 12px; margin-right:10px">Open &rarr;</a>{% endif %}
+        {% if is_lead %}
+        <details style="display:inline-block; vertical-align:top">
+          <summary style="cursor:pointer; font-size:0.9rem; color:#c0392b; font-weight:600">Change or delete</summary>
+          <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:6px 0">
+            <input type="hidden" name="back" value="programs">
+            <input type="hidden" name="status" value="{{ c.status }}">
+            <input type="date" name="session_date" value="{{ c.session_date }}" required>
+            <span class="muted">through</span>
+            <input type="date" name="end_date" value="{{ c.end_date or '' }}">
+            <button class="btn secondary" type="submit">Save dates</button>
+          </form>
+          <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
+                onsubmit='return confirm({{ ("Delete " ~ c.program_name ~ " (" ~ (c|date_span) ~ ")? A session with enrolled people or staff can\'t be deleted; set it to Cancelled instead.")|tojson }});'>
+            <input type="hidden" name="back" value="programs">
+            <button class="btn danger" type="submit">Delete this session</button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
 <div class="card">
   <table>
     <tr><th>Program</th><th class="num">Upcoming sessions</th></tr>

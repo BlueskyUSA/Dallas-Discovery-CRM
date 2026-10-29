@@ -115,8 +115,8 @@
     <div class="sched-preview" style="margin-top:8px; font-size:0.9rem"></div>
     {% set picker = true %}
     {% set cal = pick_cal %}{% set prev_url = pick_prev %}{% set next_url = pick_next %}{% set today_url = pick_today %}
-    <details class="cal-pick" open style="margin-top:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 12px">
-      <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Calendar &mdash; click a day to add a training (holidays are marked)</summary>
+    <details class="cal-pick" style="margin-top:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 12px">
+      <summary style="cursor:pointer; font-weight:700; font-size:0.9rem">Show the full calendar (holidays are marked)</summary>
       <div style="margin-top:8px">{% include "_calendar_widget.html" %}</div>
     </details>
   </form>
