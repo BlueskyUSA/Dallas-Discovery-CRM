@@ -45,7 +45,7 @@ r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('e
         <details style="display:inline-block; vertical-align:top">
           <summary style="cursor:pointer; font-size:0.9rem; color:#c0392b; font-weight:600">Change or delete</summary>
           <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:6px 0">
-            <input type="hidden" name="back" value="programs">
+            <input type="hidden" name="back" value="programs">{% if c.code == 'D1' %}<input type="hidden" name="weekend" value="1">{% endif %}
             <input type="hidden" name="status" value="{{ c.status }}">
             <input type="date" name="session_date" value="{{ c.session_date }}" required>
             <span class="muted">through</span>
@@ -54,7 +54,7 @@ r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('e
           </form>
           <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:0 0 6px"
                 onsubmit="return confirm('Cancel this session? It comes off the website and this list, but its history is kept.');">
-            <input type="hidden" name="back" value="programs">
+            <input type="hidden" name="back" value="programs">{% if c.code == 'D1' %}<input type="hidden" name="weekend" value="1">{% endif %}
             <input type="hidden" name="session_date" value="{{ c.session_date }}">
             <input type="hidden" name="end_date" value="{{ c.end_date or '' }}">
             <input type="hidden" name="status" value="Cancelled">
@@ -63,7 +63,7 @@ r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('e
           </form>
           <form method="post" action="{{ url_for('.cohort_delete', cohort_id=c.id) }}" style="margin:0"
                 onsubmit='return confirm({{ ("Delete " ~ c.program_name ~ " (" ~ (c|date_span) ~ ")? A session with enrolled people can\'t be deleted; set it to Cancelled instead. Any staff assignments are removed with it.")|tojson }});'>
-            <input type="hidden" name="back" value="programs">
+            <input type="hidden" name="back" value="programs">{% if c.code == 'D1' %}<input type="hidden" name="weekend" value="1">{% endif %}
             <button class="btn danger" type="submit">Delete this session</button>
           </form>
         </details>
