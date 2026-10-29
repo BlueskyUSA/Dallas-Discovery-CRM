@@ -3290,7 +3290,7 @@ def programs_list():
     sessions = conn.execute(
         """SELECT c.*, p.code, p.name AS program_name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
-           WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled'
+           WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled' AND p.code NOT IN ('D2','D3')
            ORDER BY c.session_date ASC, p.id ASC"""
     ).fetchall()
     conn.close()
@@ -4221,6 +4221,23 @@ def _after_cohort_change(cohort_id):
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
+def _weekend_sisters(conn, cohort_id):
+    """For a D1 session: the D2 and D3 sessions on the same dates and the Refocus (D5) that starts the next day.
+    Returns [(id, code, session_date, end_date)]; empty for any other program."""
+    here = conn.execute(
+        "SELECT c.session_date, c.end_date, p.code FROM cohorts c JOIN programs p ON p.id = c.program_id WHERE c.id = ?",
+        (cohort_id,)).fetchone()
+    if not here or here["code"] != "D1":
+        return []
+    day2 = (datetime.strptime(str(here["session_date"])[:10], "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    rows = conn.execute(
+        """SELECT c.id, p.code, c.session_date, c.end_date FROM cohorts c JOIN programs p ON p.id = c.program_id
+           WHERE c.id != ? AND c.status != 'Completed'
+             AND ((p.code IN ('D2','D3') AND c.session_date = ?) OR (p.code = 'D5' AND c.session_date = ?))""",
+        (cohort_id, here["session_date"], day2)).fetchall()
+    return [(r["id"], r["code"], r["session_date"], r["end_date"]) for r in rows]
+
+
 @crm.route("/cohorts/<int:cohort_id>/dates", methods=["POST"])
 @area_required("contacts")
 @leadership_required
@@ -4269,6 +4286,15 @@ def cohort_update_dates(cohort_id):
             for s in sisters:
                 conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (start, end_date, s["id"]))
                 moved_with.append(s["code"])
+    if request.form.get("weekend"):
+        # Programs page: the D1 row stands for the whole weekend (D2, D3 on the same days, Refocus Sat-Sun).
+        for sid, scode, s_start, s_end in _weekend_sisters(conn, cohort_id):
+            new_start = (datetime.strptime(start, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d") if scode == "D5" else start
+            if status == "Cancelled":
+                conn.execute("UPDATE cohorts SET status = 'Cancelled' WHERE id = ?", (sid,))
+            else:
+                conn.execute("UPDATE cohorts SET session_date = ?, end_date = ? WHERE id = ?", (new_start, end_date, sid))
+            moved_with.append(scode)
     if moved_with:
         moved_note += " Also moved " + ", ".join(moved_with) + " to the same dates."
     if "location" in request.form:
@@ -4324,6 +4350,16 @@ def cohort_delete(cohort_id):
             f"To take it off the calendar without losing that history, change its status to Cancelled instead."
         )
         return redirect(url_for(".programs_list"))
+    if request.form.get("weekend"):
+        for sid, scode, _s, _e in _weekend_sisters(conn, cohort_id):
+            if conn.execute("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", (sid,)).fetchone()["n"] \
+               or conn.execute("SELECT COUNT(*) AS n FROM contracts WHERE originating_cohort_id = ?", (sid,)).fetchone()["n"]:
+                conn.execute("UPDATE cohorts SET status = 'Cancelled' WHERE id = ?", (sid,))
+                continue
+            conn.execute("DELETE FROM small_group_staffing WHERE small_group_id IN (SELECT id FROM small_groups WHERE cohort_id = ?)", (sid,))
+            conn.execute("DELETE FROM cohort_staffing WHERE cohort_id = ?", (sid,))
+            conn.execute("DELETE FROM small_groups WHERE cohort_id = ?", (sid,))
+            conn.execute("DELETE FROM cohorts WHERE id = ?", (sid,))
     # Staff assignments are only a plan for the session, so they go with it. Only enrolled people
     # (and contracts) protect a session from being deleted.
     conn.execute("DELETE FROM small_group_staffing WHERE small_group_id IN (SELECT id FROM small_groups WHERE cohort_id = ?)", (cohort_id,))
