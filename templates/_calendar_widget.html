@@ -38,7 +38,7 @@
     <a class="cal-nav" href="{{ prev_url }}">&larr; {{ cal.year - 1 }}</a>
     <span class="yr">{{ cal.year }}</span>
     <a class="cal-nav" href="{{ next_url }}">{{ cal.year + 1 }} &rarr;</a>
-    <a class="cal-nav" href="{{ today_url }}">This year</a>
+    <a class="cal-nav" href="{{ today_url }}">{{ today_label|default('This year') }}</a>
   </div>
   <div class="cal-legend">
     <span><span class="dot" style="background:#fff; border:1.5px solid #b3261e"></span>US &amp; Christian holiday</span>
