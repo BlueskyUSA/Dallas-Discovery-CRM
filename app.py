@@ -3314,7 +3314,7 @@ def quick_schedule():
         conn.close()
         flash("Please pick a program. Nothing was saved.")
         return redirect(url_for(".programs_list"))
-    end = start + timedelta(days=DEFAULT_SESSION_DAYS_OTHER - 1)
+    end = start + timedelta(days=DEFAULT_SESSION_DAYS.get(prog["code"], DEFAULT_SESSION_DAYS_OTHER) - 1)
     # D1, D2 and D3 are always the same weekend (plus Refocus on Saturday-Sunday), so scheduling D1 schedules them all.
     jobs = [(prog["id"], prog["code"], prog["name"], start, end)]
     if prog["code"] == "D1":
