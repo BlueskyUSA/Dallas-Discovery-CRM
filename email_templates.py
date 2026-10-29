@@ -1,6 +1,6 @@
 """
 Email copy for the "Excitement is Building" outreach -- the initial blast to
-past Discovery volunteers/TAs, plus its automated follow-ups. Kept separate
+past Discovery! volunteers/TAs, plus its automated follow-ups. Kept separate
 from app.py so the wording can be revised without touching route logic, and
 reused identically by the one-off test send and the eventual full blast.
 """
@@ -47,13 +47,13 @@ def excitement_blast_content(first_name, connect_url=None):
         <p>Please forgive the intrusion &mdash; this is Kent Hafemann, and you're receiving this
         email because you're someone I've known or worked with over the years, whether through
         business, family, friend, or just life.</p>
-        <p>Some of you are aware of Dallas Discovery, a powerful and life-changing
+        <p>Some of you are aware of Discovery!, a powerful and life-changing
         personal-growth and relationship training that Pamela and I have been involved with
         since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have
         expressed a strong desire to reopen the program. Nothing is official yet, but we're
         working hard to make that happen.</p>
         <p>Our hope is in the next few months we will be meeting with those who attended or
-        volunteered in the training. If you were a Discovery volunteer, or if you are interested
+        volunteered in the training. If you were a Discovery! volunteer, or if you are interested
         to know more about this program, we would love to hear from you.</p>
         <p><span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
         below and complete a brief contact form so that you will be among the first to know when
@@ -73,9 +73,9 @@ Dear {greeting},
 
 Please forgive the intrusion -- this is Kent Hafemann, and you're receiving this email because you're someone I've known or worked with over the years, whether through business, family, friend, or just life.
 
-Some of you are aware of Dallas Discovery, a powerful and life-changing personal-growth and relationship training that Pamela and I have been involved with since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
+Some of you are aware of Discovery!, a powerful and life-changing personal-growth and relationship training that Pamela and I have been involved with since 1996. Unfortunately, the program closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
 
-Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
+Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery! volunteer, or if you are interested to know more about this program, we would love to hear from you.
 
 Please open the link below and complete a brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
 
@@ -101,18 +101,18 @@ BLAST2_SUBJECT = f"{PROGRAM_NAME} Excitement is Growing"
 
 def blast2_cover_content(first_name):
     """Returns (html_content, text_content) for Email Blast #2 -- the cover
-    letter for the Dallas Discovery contact database (people who already know
+    letter for the Discovery! contact database (people who already know
     the program, so no introduction of who Kent is). Deliberately has no
     personal "reach out to me" paragraph. NOT sent automatically by anything."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
 
     html_content = f"""
         <p>Dear {greeting},</p>
-        <p>As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet
+        <p>As you know, the Discovery! training closed in 2020 because of COVID-19. Yet
         many have expressed a strong desire to reopen the program. Nothing is official yet, but
         we're working hard to make that happen.</p>
         <p>Our hope is in the next few months we will be meeting with those who attended or
-        volunteered in the training. If you were a Discovery volunteer, or if you are interested
+        volunteered in the training. If you were a Discovery! volunteer, or if you are interested
         to know more about this program, we would love to hear from you.</p>
         <p><span style="font-size:1.25em; font-weight:bold; color:#1f6fb2;">Please open the link
         below and complete a brief contact form so that you will be among the first to know when
@@ -127,9 +127,9 @@ def blast2_cover_content(first_name):
 
     text_content = f"""Dear {greeting},
 
-As you know, the Dallas Discovery training closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
+As you know, the Discovery! training closed in 2020 because of COVID-19. Yet many have expressed a strong desire to reopen the program. Nothing is official yet, but we're working hard to make that happen.
 
-Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery volunteer, or if you are interested to know more about this program, we would love to hear from you.
+Our hope is in the next few months we will be meeting with those who attended or volunteered in the training. If you were a Discovery! volunteer, or if you are interested to know more about this program, we would love to hear from you.
 
 Please open the link below and complete a brief contact form so that you will be among the first to know when a meeting date is set, or additional information is available.
 
@@ -197,7 +197,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
     """Returns (html_content, text_content) for the welcome email sent when
     someone selects "Interested Party" (rather than a past volunteer role)
     on the /discovery short form -- thanks them for their interest and
-    shares Kent and Pamela's own story with Discovery. connect_url, if
+    shares Kent and Pamela's own story with Discovery! connect_url, if
     given, is that contact's personal link to the "reach out to me" page,
     so they can ask Kent to personally follow up without just replying to
     this email."""
@@ -212,9 +212,9 @@ def interested_party_welcome_content(first_name, connect_url=None):
     html_content = f"""
         <p>Dear {greeting},</p>
         <p>Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about
-        our journey and the profound impact Discovery has had on our lives.</p>
+        our journey and the profound impact Discovery! has had on our lives.</p>
         <p>In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us
-        to attend Pathways (now Discovery) &mdash; our marriage was struggling. With three
+        to attend Pathways (now Discovery!) &mdash; our marriage was struggling. With three
         children and eighteen years of marriage behind us, we were lost and confused. We tried
         counselors, church advisors, mentors, healing prayer, anything we could think of. But we
         simply couldn't figure it out &mdash; it was like trying to hold water in our hands, our
@@ -223,7 +223,7 @@ def interested_party_welcome_content(first_name, connect_url=None):
         everything &mdash; I was at work, wondering what was happening with her in this mysterious
         training our friend had invited us to. That one phone call was a breakthrough that changed
         the course of our marriage and put us on a healing path we're still thankful for today.</p>
-        <p>Of course, wanting our marriage to work meant actually using the tools that Discovery
+        <p>Of course, wanting our marriage to work meant actually using the tools that Discovery!
         offered. We learned how our pasts had shaped our differences, and how to honor and accept
         our limitations and broken stories. We learned how to listen and walk through conflict
         without breaking the relationship. We learned about the power of forgiveness and the
@@ -231,11 +231,11 @@ def interested_party_welcome_content(first_name, connect_url=None):
         more.</p>
         <p>Since then, Pamela and I have been involved in many trainings and programs helping
         people identify and overcome what stands in the way of joy and peace. But there is nothing
-        out there that compares to the effectiveness of Discovery. The core trainings include D1,
+        out there that compares to the effectiveness of Discovery! The core trainings include D1,
         D2, D3, and Relationship Training. D1, D2, and D3 are monthly, consecutive trainings that
         build on one another &mdash; advancing from one to the next requires having completed the
         one before. The Relationship Training, on the other hand, welcomes all committed couples
-        with no prior Discovery involvement required. We find that most couples who complete it go
+        with no prior Discovery! involvement required. We find that most couples who complete it go
         on to enlist individually in D1 through D3.</p>
         <p>We welcome your interest, and we hope you'll take the risk of stepping into this
         life-changing training with us.{connect_html}</p>
@@ -244,15 +244,15 @@ def interested_party_welcome_content(first_name, connect_url=None):
 
     text_content = f"""Dear {greeting},
 
-Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about our journey and the profound impact Discovery has had on our lives.
+Thank you so much for your interest in {PROGRAM_NAME}. Let me tell you a bit about our journey and the profound impact Discovery! has had on our lives.
 
-In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us to attend Pathways (now Discovery) -- our marriage was struggling. With three children and eighteen years of marriage behind us, we were lost and confused. We tried counselors, church advisors, mentors, healing prayer, anything we could think of. But we simply couldn't figure it out -- it was like trying to hold water in our hands, our life falling apart, leaking right through our fingers.
+In 1996, my wife Pamela and I moved to Texas, and soon after, a close friend invited us to attend Pathways (now Discovery!) -- our marriage was struggling. With three children and eighteen years of marriage behind us, we were lost and confused. We tried counselors, church advisors, mentors, healing prayer, anything we could think of. But we simply couldn't figure it out -- it was like trying to hold water in our hands, our life falling apart, leaking right through our fingers.
 
 Pamela went through D1 training first. I'll never forget the phone call that changed everything -- I was at work, wondering what was happening with her in this mysterious training our friend had invited us to. That one phone call was a breakthrough that changed the course of our marriage and put us on a healing path we're still thankful for today.
 
-Of course, wanting our marriage to work meant actually using the tools that Discovery offered. We learned how our pasts had shaped our differences, and how to honor and accept our limitations and broken stories. We learned how to listen and walk through conflict without breaking the relationship. We learned about the power of forgiveness and the importance of standing up for yourself honestly in a relationship -- and so much more.
+Of course, wanting our marriage to work meant actually using the tools that Discovery! offered. We learned how our pasts had shaped our differences, and how to honor and accept our limitations and broken stories. We learned how to listen and walk through conflict without breaking the relationship. We learned about the power of forgiveness and the importance of standing up for yourself honestly in a relationship -- and so much more.
 
-Since then, Pamela and I have been involved in many trainings and programs helping people identify and overcome what stands in the way of joy and peace. But there is nothing out there that compares to the effectiveness of Discovery. The core trainings include D1, D2, D3, and Relationship Training. D1, D2, and D3 are monthly, consecutive trainings that build on one another -- advancing from one to the next requires having completed the one before. The Relationship Training, on the other hand, welcomes all committed couples with no prior Discovery involvement required. We find that most couples who complete it go on to enlist individually in D1 through D3.
+Since then, Pamela and I have been involved in many trainings and programs helping people identify and overcome what stands in the way of joy and peace. But there is nothing out there that compares to the effectiveness of Discovery! The core trainings include D1, D2, D3, and Relationship Training. D1, D2, and D3 are monthly, consecutive trainings that build on one another -- advancing from one to the next requires having completed the one before. The Relationship Training, on the other hand, welcomes all committed couples with no prior Discovery! involvement required. We find that most couples who complete it go on to enlist individually in D1 through D3.
 
 We welcome your interest, and we hope you'll take the risk of stepping into this life-changing training with us.{connect_text}
 
@@ -302,7 +302,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
     when someone clicks Submit on the public long form (complete-profile)
     -- not every autosave, just that final submit. Offers two separate
     opt-ins: plan_url is a button that sends them the (much longer)
-    Preliminary Discovery Plan email (see preliminary_plan_content below)
+    Preliminary Discovery! Plan email (see preliminary_plan_content below)
     -- it's only sent if they click through, not automatically. connect_url
     is their personal /connect link so they can ask Kent to follow up
     directly if they'd like, without needing to reply to this email."""
@@ -312,7 +312,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         <p>Dear {greeting},</p>
         <p>Thank you for taking the time to complete the &ldquo;Additional Information&rdquo;
         form &mdash; we appreciate your effort and your energy.</p>
-        <p>What you shared helps us as we work to bring Discovery back to life, and it tells me
+        <p>What you shared helps us as we work to bring Discovery! back to life, and it tells me
         you still care about what this program stands for.</p>
         <p>I've put together a preliminary outline of where things stand, including our mission
         and goals, the tasks involved with getting this training running again, and where there
@@ -321,9 +321,9 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         responsibility. If you wish, we'll send you the plan outline.</p>
         <p><a href="{plan_url}" style="display:inline-block; background:#1f6fb2; color:#ffffff;
         text-decoration:none; font-weight:700; padding:12px 22px; border-radius:8px;">Send me the
-        Preliminary Discovery Plan</a></p>
+        Preliminary Discovery! Plan</a></p>
         <p>Thanks again for all that you have done in years past, and for perhaps all that you
-        will be doing for Discovery in the future.</p>
+        will be doing for Discovery! in the future.</p>
         <p>If you'd like for me to personally reach out to you &mdash; just
         <a href="{connect_url}">click here</a> and I'll get to you as soon as I can.</p>
         <p>Thank you again for your time, your heart, and your support.</p>
@@ -334,7 +334,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         f"Dear {greeting},\n\n"
         "Thank you for taking the time to complete the \"Additional Information\" form -- we "
         "appreciate your effort and your energy.\n\n"
-        "What you shared helps us as we work to bring Discovery back to life, and it tells me "
+        "What you shared helps us as we work to bring Discovery! back to life, and it tells me "
         "you still care about what this program stands for.\n\n"
         "I've put together a preliminary outline of where things stand, including our mission "
         "and goals, the tasks involved with getting this training running again, and where "
@@ -343,7 +343,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         "responsibility. If you wish, we'll send you the plan outline:\n"
         f"{plan_url}\n\n"
         "Thanks again for all that you have done in years past, and for perhaps all that you "
-        "will be doing for Discovery in the future.\n\n"
+        "will be doing for Discovery! in the future.\n\n"
         "If you'd like for me to personally reach out to you -- just click the link below and "
         f"I'll get to you as soon as I can.\n{connect_url}\n\n"
         "Thank you again for your time, your heart, and your support.\n\n"
@@ -352,15 +352,15 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
     return html_content, text_content
 
 
-PRELIMINARY_PLAN_SUBJECT = "Preliminary business plan for Discovery"
+PRELIMINARY_PLAN_SUBJECT = "Preliminary business plan for Discovery!"
 
 
 def preliminary_plan_content(first_name):
-    """Returns (html_content, text_content) for the Preliminary Discovery
+    """Returns (html_content, text_content) for the Preliminary Discovery!
     Plan email -- sent only when staff click "Send business plan" on a contact,
-    or someone clicks the "Send me the Preliminary Discovery Plan" button in the
+    or someone clicks the "Send me the Preliminary Discovery! Plan" button in the
     long-form thank-you email, never automatically. Lays out Kent's mission and
-    goals for relaunching Discovery and the volunteer help still needed."""
+    goals for relaunching Discovery! and the volunteer help still needed."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
 
     html_content = f"""
@@ -376,32 +376,32 @@ def preliminary_plan_content(first_name):
             <li>Create an enduring ministry that outlasts any one key leader by:
                 <ol type="a">
                     <li>Operating {PROGRAM_NAME} so that revenue exceeds expenses;</li>
-                    <li>When the time is right, transfer Discovery intellectual property,
+                    <li>When the time is right, transfer Discovery! intellectual property,
                     licenses, software, and equipment to the next operating team at no cost.</li>
                 </ol>
             </li>
         </ol>
-        <p>We all believe that Discovery is a much-needed ministry in our broken world. Do you
+        <p>We all believe that Discovery! is a much-needed ministry in our broken world. Do you
         remember the cleansing of your heart, the amazing and powerful freedom, love, and
         forgiveness we each experienced in this training? Our lives were changed forever!!! I
-        thank God for Discovery, and I know you do too, otherwise you would not be reading this.
-        So, let&rsquo;s think big, and do something for Discovery that has never been done
+        thank God for Discovery!, and I know you do too, otherwise you would not be reading this.
+        So, let&rsquo;s think big, and do something for Discovery! that has never been done
         before&hellip; GIVE IT AWAY&hellip; so that for generations, by God&rsquo;s grace,
         millions of people will experience the love of God and love for themselves&hellip; and
         with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest
         commandment.</p>
-        <p>This is a monumental vision. To give Discovery away, as volunteers, it needs your
+        <p>This is a monumental vision. To give Discovery! away, as volunteers, it needs your
         prayers and your support. We need to find folks who believe in our mission and can give
         financially to the non-profit. If that might be you, or someone you know, please reach
         out to me to discuss the financial needs of the program. The program cannot open without
         financial support.</p>
         <p><strong>How will we accomplish this Mission?</strong></p>
         <ol type="a">
-            <li>First, we will begin hosting Discovery social gatherings to build vision and
+            <li>First, we will begin hosting Discovery! social gatherings to build vision and
             excitement, and renew old friendships (volunteers will be needed to organize and pull
             these events together).</li>
             <li>Hold fund-raisers to capture the financial support needed to open the program.
-            All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient
+            All donations will go to the Discovery! 501(c)(3). Our goal is to secure sufficient
             funding to pay for the acquisition cost of the program, plus we have been advised
             that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow
             reserves to ensure the program survives.</li>
@@ -441,11 +441,11 @@ def preliminary_plan_content(first_name):
             <li>We need someone to gather, organize, maintain and assemble the supplies needed
             for each training.</li>
         </ol>
-        <p>Please let me know what role you may wish to play to open Discovery. Feel free to
+        <p>Please let me know what role you may wish to play to open Discovery! Feel free to
         reach out to me with your thoughts at
         <a href="mailto:Kent@blueskyusa.net">Kent@blueskyusa.net</a>.</p>
         <p>Thank you again for your energy, your time, your heart, and your support.</p>
-        <p>Blessings on you. I look forward to meeting you at our first Discovery get-together,
+        <p>Blessings on you. I look forward to meeting you at our first Discovery! get-together,
         if not sooner.</p>
         <p>Take care,<br>Kent Hafemann</p>
     """
@@ -459,15 +459,15 @@ So, what are the goals and mission for {PROGRAM_NAME}? Perhaps you may want to w
 1. To reflect the Love of God by creating an effective, powerful and emotionally safe environment for trainees to evaluate and overcome the broken parts of their lives so that freedom, joy, peace, and love become the cornerstones of their lives.
 2. Create an enduring ministry that outlasts any one key leader by:
    a. Operating {PROGRAM_NAME} so that revenue exceeds expenses;
-   b. When the time is right, transfer Discovery intellectual property, licenses, software, and equipment to the next operating team at no cost.
+   b. When the time is right, transfer Discovery! intellectual property, licenses, software, and equipment to the next operating team at no cost.
 
-We all believe that Discovery is a much-needed ministry in our broken world. Do you remember the cleansing of your heart, the amazing and powerful freedom, love, and forgiveness we each experienced in this training? Our lives were changed forever!!! I thank God for Discovery, and I know you do too, otherwise you would not be reading this. So, let's think big, and do something for Discovery that has never been done before... GIVE IT AWAY... so that for generations, by God's grace, millions of people will experience the love of God and love for themselves... and with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest commandment.
+We all believe that Discovery! is a much-needed ministry in our broken world. Do you remember the cleansing of your heart, the amazing and powerful freedom, love, and forgiveness we each experienced in this training? Our lives were changed forever!!! I thank God for Discovery!, and I know you do too, otherwise you would not be reading this. So, let's think big, and do something for Discovery! that has never been done before... GIVE IT AWAY... so that for generations, by God's grace, millions of people will experience the love of God and love for themselves... and with this new-found power and freedom, LOVE OTHERS!!!! This is the greatest commandment.
 
-This is a monumental vision. To give Discovery away, as volunteers, it needs your prayers and your support. We need to find folks who believe in our mission and can give financially to the non-profit. If that might be you, or someone you know, please reach out to me to discuss the financial needs of the program. The program cannot open without financial support.
+This is a monumental vision. To give Discovery! away, as volunteers, it needs your prayers and your support. We need to find folks who believe in our mission and can give financially to the non-profit. If that might be you, or someone you know, please reach out to me to discuss the financial needs of the program. The program cannot open without financial support.
 
 HOW WILL WE ACCOMPLISH THIS MISSION?
-a. First, we will begin hosting Discovery social gatherings to build vision and excitement, and renew old friendships (volunteers will be needed to organize and pull these events together).
-b. Hold fund-raisers to capture the financial support needed to open the program. All donations will go to the Discovery 501(c)(3). Our goal is to secure sufficient funding to pay for the acquisition cost of the program, plus we have been advised that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow reserves to ensure the program survives.
+a. First, we will begin hosting Discovery! social gatherings to build vision and excitement, and renew old friendships (volunteers will be needed to organize and pull these events together).
+b. Hold fund-raisers to capture the financial support needed to open the program. All donations will go to the Discovery! 501(c)(3). Our goal is to secure sufficient funding to pay for the acquisition cost of the program, plus we have been advised that to responsibly host {PROGRAM_NAME} we need to raise $100,000 in cash-flow reserves to ensure the program survives.
 c. Begin the selection process for leadership teams. Previous leaders will have priority due to their experience, but the minimum expectation of all leadership is to have enrolled at least one trainee in D1, or one couple in the Relationship training. We need Facilitators for D2, D3, and Refocus. Initially, Max Thompson, Pamela Hafemann and I will be the lead facilitators in D1 and the Relationship training. But it is our desire to share this role with others who are qualified in the very near future. The Board of Directors will make final leadership selections.
 d. Begin a marketing campaign with the goal of hosting a Relationship training within the next four to six months, and to kick off D1 soon thereafter. Our goal is to have forty couples in the training room for the first Relationship training. We believe the need for relationship coaching is so significant that with the right marketing campaign, we can easily fill the seats and use the energy from that training to kick off D1.
 
@@ -482,11 +482,11 @@ c. We need someone to evaluate existing audio equipment and/or acquire additiona
 d. We need a place to store audio/video equipment and training supplies, and a means to transport this equipment if we cannot keep it at the hotel.
 e. We need someone to gather, organize, maintain and assemble the supplies needed for each training.
 
-Please let me know what role you may wish to play to open Discovery. Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
+Please let me know what role you may wish to play to open Discovery! Feel free to reach out to me with your thoughts at Kent@blueskyusa.net.
 
 Thank you again for your energy, your time, your heart, and your support.
 
-Blessings on you. I look forward to meeting you at our first Discovery get-together, if not sooner.
+Blessings on you. I look forward to meeting you at our first Discovery! get-together, if not sooner.
 
 Take care,
 Kent Hafemann
@@ -501,7 +501,7 @@ _LETTER_PARAS = (
     "Congratulations on completing your training... Woohoo!!! Let's keep going!!! "
     "From D1 through D3, what you learned in each training is the foundation for the next. "
     "All these programs are fabulous and we look forward to seeing you there. "
-    "Meanwhile, would you please help the Discovery staff by taking a few minutes to update your "
+    "Meanwhile, would you please help the Discovery! staff by taking a few minutes to update your "
     "D1 Pseudo name, Contract and as needed, other information from these programs. "
     "Our volunteers would otherwise have to type all of this into our records by hand, which "
     "takes many hours. We would be so grateful."
@@ -562,7 +562,7 @@ SESSION_LETTERS = {
         "audience": "Trainees",
         "subject": "You're confirmed for {training}",
         "paras": [
-            "We are delighted to confirm your registration for the Discovery Relationship Training, {dates}{where}.",
+            "We are delighted to confirm your registration for the Discovery! Relationship Training, {dates}{where}.",
             "This will be a powerful experience for you and your partner, and we are honored that you have chosen to be part of it.",
             "Soon you will receive a separate email with your personal link to a questionnaire we ask you to seriously ponder. Take your time to complete each question. "
             "Let your experience, heart, and mind flow into your words. Be sure not to share your answers with your partner. "
@@ -576,7 +576,7 @@ SESSION_LETTERS = {
             "We look forward to seeing you.",
         ],
         "signoff": "Warmly,",
-        "signer": "Coach Kent and the Discovery Team",
+        "signer": "Coach Kent and the Discovery! Team",
     },
     "seminar_registration": {
         "title": "Seminar registration",

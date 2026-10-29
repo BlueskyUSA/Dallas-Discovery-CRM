@@ -1,5 +1,5 @@
 """
-"Have a Discovery team member call you" -- the interested-party call flow.
+"Have a Discovery! team member call you" -- the interested-party call flow.
 
 How it works
   1. Someone fills in the short form (front page, program pages, or the Reserve form) and answers Yes/No to
@@ -62,11 +62,11 @@ CONSENT_FINE = ("We call between 8 am and 8 pm Central, usually within a few hou
 CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
 
 VOLUNTEER_CONSENT = (
-    "I give Dallas Discovery permission to share my name, my cell phone number and my email address with the people "
+    "I give Discovery! permission to share my name, my cell phone number and my email address with the people "
     "who ask to hear from the Guides, and with the Lead Guide and other Guides. This may happen in a "
     "message, an email, a letter or on a web page. I am a volunteer, and I understand that the people I speak with will "
-    "be given my name and cell phone number so they can recognize and reach me. Dallas Discovery will not sell or rent "
-    "my information. I can withdraw this permission at any time by telling my Lead Guide, and Dallas Discovery will "
+    "be given my name and cell phone number so they can recognize and reach me. Discovery! will not sell or rent "
+    "my information. I can withdraw this permission at any time by telling my Lead Guide, and Discovery! will "
     "then stop sharing my information with new people.")
 
 _ready = False
@@ -175,7 +175,7 @@ def _program_label(code):
     for c, label in POOLS:
         if c == code:
             return label
-    return {"D2": "D2 \u2013 Awakening", "D3": "D3 \u2013 Vision"}.get(code) or code or "Dallas Discovery"
+    return {"D2": "D2 \u2013 Awakening", "D3": "D3 \u2013 Vision"}.get(code) or code or "Discovery!"
 
 
 def ensure_tables(get_db):
@@ -264,10 +264,10 @@ def ensure_tables(get_db):
 # ---------------------------------------------------------------- the letters people receive (one place, so the Guides can read exactly what is sent)
 def letter_curious(first, label, vol_name, vphone, pw):
     vfirst = vol_name.split()[0]
-    subject = f"{vfirst} from Dallas Discovery will {pw} you soon"
+    subject = f"{vfirst} from Discovery! will {pw} you soon"
     html = (f"<p>Hi {first},</p>"
             f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
-            f"<p><strong>{vol_name}</strong>, an experienced Discovery volunteer, will {pw} you from <strong>{vphone}</strong>, "
+            f"<p><strong>{vol_name}</strong>, an experienced Discovery! volunteer, will {pw} you from <strong>{vphone}</strong>, "
             f"usually within a few hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
             f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
             f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
@@ -276,9 +276,9 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
             f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
             f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
-            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>The Discovery Team</p>")
+            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>The Discovery! Team</p>")
     text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
-            f"{vol_name}, an experienced Discovery volunteer, will {pw} you from {vphone}, usually within a few hours. "
+            f"{vol_name}, an experienced Discovery! volunteer, will {pw} you from {vphone}, usually within a few hours. "
             f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
             f"For your security, here is their name and number, so you will know it is us.\n\n"
             f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
@@ -287,29 +287,29 @@ def letter_curious(first, label, vol_name, vphone, pw):
             f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
             f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
             f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
-            f"We're looking forward to meeting you!\n\nWarmly,\nThe Discovery Team")
+            f"We're looking forward to meeting you!\n\nWarmly,\nThe Discovery! Team")
     return subject, html, text
 
 
 def letter_helper_welcome(first, page_link, profile_link=None, returning=False):
-    subject = "Thank you for being a Discovery volunteer"
+    subject = "Thank you for being a Discovery! volunteer"
     if returning:
-        lead = (f"<p>Hi {first},</p><p>Thank you for being a Dallas Discovery volunteer. We already have you in our records, "
+        lead = (f"<p>Hi {first},</p><p>Thank you for being a Discovery! volunteer. We already have you in our records, "
                 f"so there is no need to start over.</p>")
-        tlead = f"Hi {first},\n\nThank you for being a Dallas Discovery volunteer. We already have you in our records, so there is no need to start over.\n\n"
+        tlead = f"Hi {first},\n\nThank you for being a Discovery! volunteer. We already have you in our records, so there is no need to start over.\n\n"
     else:
-        lead = f"<p>Hi {first},</p><p>Thank you for being a Dallas Discovery volunteer, and welcome!</p>"
-        tlead = f"Hi {first},\n\nThank you for being a Dallas Discovery volunteer, and welcome!\n\n"
+        lead = f"<p>Hi {first},</p><p>Thank you for being a Discovery! volunteer, and welcome!</p>"
+        tlead = f"Hi {first},\n\nThank you for being a Discovery! volunteer, and welcome!\n\n"
     prof_h = (f"<p>Please take a few minutes to update and complete your contact information here:<br>"
               f"<a href=\"{profile_link}\">{profile_link}</a></p>") if profile_link else ""
     prof_t = f"Please take a few minutes to update and complete your contact information here:\n{profile_link}\n\n" if profile_link else ""
     html = (lead + f"<p>Here is your personal volunteer page. It is private to you, so please keep the link to yourself. "
             f"Come back to it any time:</p><p><a href=\"{page_link}\">{page_link}</a></p>" + prof_h +
-            "<p>On your page you will find a link you can text or email to another Discovery volunteer who would like to help. "
-            "Every volunteer gets their own page.</p><p>Thank you for all that you do.</p><p>Warmly,<br>The Discovery Team</p>")
+            "<p>On your page you will find a link you can text or email to another Discovery! volunteer who would like to help. "
+            "Every volunteer gets their own page.</p><p>Thank you for all that you do.</p><p>Warmly,<br>The Discovery! Team</p>")
     text = (tlead + f"Here is your personal volunteer page. It is private to you, so please keep the link to yourself. Come back to it any time:\n{page_link}\n\n"
-            + prof_t + "On your page you will find a link you can text or email to another Discovery volunteer who would like to help. "
-            "Every volunteer gets their own page.\n\nThank you for all that you do.\n\nWarmly,\nThe Discovery Team")
+            + prof_t + "On your page you will find a link you can text or email to another Discovery! volunteer who would like to help. "
+            "Every volunteer gets their own page.\n\nThank you for all that you do.\n\nWarmly,\nThe Discovery! Team")
     return subject, html, text
 
 
@@ -320,10 +320,10 @@ def letter_reserve_link(first, label, link, vol_name, vphone):
             f"<strong>{label}</strong>:</p><p><a href=\"{link}\">{link}</a></p>"
             f"<p>It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.</p>"
             f"<p>If you have any questions, reply to this email or call {vfirst} at {vphone}.</p>"
-            f"<p>Warmly,<br>{vol_name} and the Discovery Team</p>")
+            f"<p>Warmly,<br>{vol_name} and the Discovery! Team</p>")
     text = (f"Hi {first},\n\nIt was good to connect. Here is your personal link to reserve your spot in {label}:\n{link}\n\n"
             f"It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.\n\n"
-            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery Team")
+            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery! Team")
     return subject, html, text
 
 
@@ -335,10 +335,10 @@ def letter_questionnaire(first, label, link, vol_name, vphone):
             f"<p>You can close it and pick up right where you left off by opening the same link again. "
             f"This link is just for you, so please don&rsquo;t share it.</p>"
             f"<p>Questions? Reply to this email or call {vfirst} at {vphone}.</p>"
-            f"<p>Warmly,<br>{vol_name} and the Discovery Team</p>")
+            f"<p>Warmly,<br>{vol_name} and the Discovery! Team</p>")
     text = (f"Hi {first},\n\nHere is your personal link to the questionnaire for {label}. Please take your time and answer it thoughtfully.\n{link}\n\n"
             f"You can close it and pick up right where you left off by opening the same link again. This link is just for you, so please don't share it.\n\n"
-            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery Team")
+            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery! Team")
     return subject, html, text
 
 
@@ -355,11 +355,11 @@ CLIENT_LETTERS = [
 def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None, dates="[session dates]"):
     subject = "Your weekend at the Four Points by Sheraton \u2013 everything you need to know"
     html = f"""<p>Hi {first},</p>
-<p><strong>Welcome to a Fantastic and Adventure Filled Weekend!</strong> We are delighted to confirm your registration for the Discovery Relationship Training, {dates}.</p>
+<p><strong>Welcome to a Fantastic and Adventure Filled Weekend!</strong> We are delighted to confirm your registration for the Discovery! Relationship Training, {dates}.</p>
 <p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
 <h3>When</h3>
 <p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. (Hotel check-in opens at 3:00 pm.)</p>
-<p><strong>Arrival:</strong> If possible, please come rested. It is best to arrive around <strong>5:30 pm</strong> to register at the hotel, find your room, get settled, relax, grab a bite to eat, and register at the Discovery Relationship table situated in front of the training room. The training begins promptly at <strong>7:00 pm</strong>.</p>
+<p><strong>Arrival:</strong> If possible, please come rested. It is best to arrive around <strong>5:30 pm</strong> to register at the hotel, find your room, get settled, relax, grab a bite to eat, and register at the Discovery! Relationship table situated in front of the training room. The training begins promptly at <strong>7:00 pm</strong>.</p>
 <p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 3:00 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
 <h3>Where</h3>
 {('<p><img src="' + photo_url + '" alt="Four Points by Sheraton Dallas Fort Worth Airport North" width="393" style="max-width:100%;height:auto;border-radius:8px"></p>') if photo_url else ''}
@@ -381,7 +381,7 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 <li>Meals other than those listed above are on your own. The hotel restaurant is on site, and there is a convenience store in the lobby.</li>
 <li>Questions? Reply to this email or contact {vol_name} at {vphone}.</li></ul>
 <p>We can\u2019t wait to see you both.</p>
-<p>Warmly,<br>The Discovery Team</p>"""
+<p>Warmly,<br>The Discovery! Team</p>"""
     return subject, html
 
 
@@ -963,8 +963,8 @@ def _milestone_mail(vol, subject, hello, body_html):
     except Exception:
         pass
     try:
-        _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>The Discovery Team</p>",
-              f"{hello}\n\n{plain}\n\nWarmly,\nThe Discovery Team", to_name=vol["name"])
+        _send(vol["email"], subject, f"<p>{hello}</p><p>{body_html}</p><p>Warmly,<br>The Discovery! Team</p>",
+              f"{hello}\n\n{plain}\n\nWarmly,\nThe Discovery! Team", to_name=vol["name"])
     except Exception as e:
         print(f"Couldn't send a milestone note to {vol['email']}: {e}", flush=True)
 
@@ -1177,7 +1177,7 @@ def register(app, crm, leadership_required, get_db):
             joined = conn.execute("SELECT c.first_name, c.last_name, v.created_at FROM volunteer_helpers v JOIN contacts c ON c.id = v.contact_id "
                                   "WHERE v.referred_by = ? ORDER BY v.id DESC", (h["contact_id"],)).fetchall()
             share = f"{_base_url()}/volunteer-helper/join?ref={token}"
-            body = ("Hi, it's " + c["first_name"] + ". I volunteer with Dallas Discovery and thought of you. "
+            body = ("Hi, it's " + c["first_name"] + ". I volunteer with Discovery! and thought of you. "
                     "If you'd like to help too, tap here and it takes about a minute: " + share)
             profile = _base_url() + url_for("public_complete_profile", token=c["profile_token"]) if c["profile_token"] else None
             return render_template("public_helper_page.html", first=c["first_name"], share=share, sms_body=body,
@@ -1224,10 +1224,10 @@ def register(app, crm, leadership_required, get_db):
             link = sms_body = None
             if mine and req["outcome"] and not req["outcome"].startswith(("Not interested", "Wrong number")):
                 link = reserve_link(conn, req, _base_url())
-                sms_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link "
+                sms_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Discovery! Here is your personal link "
                             f"to reserve your spot in {_program_label(req['program_code'])}: {link}")
             q = questionnaire_links(conn, req, _base_url()) if mine else {"person": None, "partner": None}
-            q_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Dallas Discovery. Here is your personal link to the "
+            q_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Discovery! Here is your personal link to the "
                       f"questionnaire. You can stop and come back to it any time by opening the same link: {q['person']}") if q["person"] else None
             cap = conn.execute("SELECT name, cell_phone FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id LIMIT 1").fetchone()
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
@@ -1383,7 +1383,7 @@ def register(app, crm, leadership_required, get_db):
                 full = cap is not None and seats_used(conn, c["id"], code) >= cap
                 sessions.append(dict(id=c["id"], text=span_text(c) + (f" \u2013 {_loc(c)}" if _loc(c) else ""), full=full))
         def render(**kw):
-            base = dict(req=req, token=token, label=_program_label(code) if code else "Discovery", couple=(code in COUPLE_PROGRAMS),
+            base = dict(req=req, token=token, label=_program_label(code) if code else "Discovery!", couple=(code in COUPLE_PROGRAMS),
                         sessions=sessions, result=None, vals={}, done_session=None)
             base.update(kw)
             return render_template("public_reserve.html", **base)
@@ -1662,7 +1662,7 @@ def register(app, crm, leadership_required, get_db):
                 elif v and not v["push_user_key"]:
                     pm = "nokey"
                 elif v:
-                    ok = push(v["push_user_key"], "Test alert from Dallas Discovery",
+                    ok = push(v["push_user_key"], "Test alert from Discovery!",
                               f"Hi {v['name'].split()[0]}, this is a test. If you can read this, your phone alerts are working!",
                               click=_base_url() + "/cep-training#m3")
                     pm = "sent" if ok else "failed"
