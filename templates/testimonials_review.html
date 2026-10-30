@@ -5,6 +5,15 @@
 <p><a class="btn" href="{{ url_for('.testimonial_request') }}">Request a testimonial</a>
    <a class="btn secondary" href="{{ url_for('public_stories') }}" target="_blank">View the public Stories page</a></p>
 <p class="muted">Every request you send is listed here, from the moment it goes out until it is published. The ones that need you are at the top.</p>
+{% if text_only %}
+<div class="card" style="border-left:4px solid #c9a227">
+  <b>Said they attended Discovery!, but no email on file ({{ text_only|length }}).</b> Ask them for a testimonial by text:
+  <table style="margin-top:6px">
+  {% for c in text_only %}<tr><td>{{ c.full_name }}</td><td>{{ c.cell_phone or c.home_phone }}</td>
+    <td><a class="btn secondary" href="{{ url_for('.testimonial_request', c=c.id) }}">Make a text link</a></td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
 <div class="card" style="padding:10px 14px">
   <a href="{{ url_for('.testimonials_review') }}"><b>All ({{ items|length }})</b></a> &nbsp;|&nbsp;
   <a href="?show=review">Needs your review ({{ counts.review }})</a> &nbsp;|&nbsp;

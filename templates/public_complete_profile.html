@@ -22,6 +22,15 @@
     <div class="grid2">
       <div class="field"><label>First name *</label><input name="first_name" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
       <div class="field"><label>Last name</label><input name="last_name" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
+      <div class="field" style="grid-column: 1 / -1; background:#f5f9f9; border:1px solid #d8e9ea; border-radius:8px; padding:12px 14px">
+        <label style="font-size:1.05rem">Have you attended a Discovery! training?</label>
+        <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box" id="disc-att" style="max-width:220px">
+          <option value="" {% if not contact or not contact.discovery_attendance %}selected{% endif %}>Choose…</option>
+          <option {% if contact and contact.discovery_attendance == 'Yes' %}selected{% endif %}>Yes</option>
+          <option {% if contact and contact.discovery_attendance == 'No' %}selected{% endif %}>No</option>
+        </select>
+        <p id="disc-yes-note" style="display:none; margin:10px 0 0; font-weight:600; color:#176878">Wonderful! Please go to the bottom of this page to tell us more about your Discovery! experience and history.</p>
+      </div>
       <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
       <div class="field"><label>Secondary email <span class="muted" style="font-weight:400;">(optional -- an older address, if any)</span></label><input type="email" name="email_2" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
       <div class="field"><label>Third email <span class="muted" style="font-weight:400;">(optional)</span></label><input type="email" name="email_3" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
@@ -198,13 +207,7 @@
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>Overall Health and Health Limitations/Injuries</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       <div class="field">
-        <div class="field"><label>Previously enrolled in Discovery! trainings?</label>
-          <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box">
-            <option value="" {% if contact and contact.discovery_attendance == '' %}selected{% endif %}>—</option>
-            <option {% if contact and contact.discovery_attendance == 'Yes' %}selected{% endif %}>Yes</option>
-            <option {% if contact and contact.discovery_attendance == 'No' %}selected{% endif %}>No</option>
-          </select>
-        </div>
+        <div class="field" style="margin-bottom:6px"><b>Your Discovery! history</b></div>
         <div id="discovery_dates_box" style="display:none">
           <div class="field"><label>D1 month &amp; year</label><input name="d1_month_year" placeholder="e.g. March 2024" value="{{ contact.d1_month_year if contact and contact.d1_month_year else '' }}"></div>
           <div class="field"><label>D2 month &amp; year</label><input name="d2_month_year" placeholder="e.g. April 2024" value="{{ contact.d2_month_year if contact and contact.d2_month_year else '' }}"></div>
@@ -226,6 +229,10 @@
     {% endset %}
     <div id="finish_block_top" style="display: {{ 'none' if shows_contract_section else '' }}">{{ finish_block }}</div>
   </form>
+<script>
+(function(){var s=document.getElementById('disc-att'),n=document.getElementById('disc-yes-note');
+function u(){n.style.display=s.value==='Yes'?'block':'none';}s.addEventListener('change',u);u();})();
+</script>
 </div>
 
 <div id="contract_fields_section" {% if force_contracts %}data-always="1"{% else %}data-yes-only="1"{% endif %} style="display: {{ '' if shows_contract_section else 'none' }}">

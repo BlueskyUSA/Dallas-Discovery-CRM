@@ -22,7 +22,7 @@
   <datalist id="ct">{% for c in picks %}<option value="{{ c.key }}">{% endfor %}</datalist>
   <input type="hidden" name="contact_id" id="ct-id">
   <label>Contact (start typing a name)</label>
-  <input list="ct" name="contact" id="ct-in" style="width:100%" required autocomplete="off">
+  <input list="ct" name="contact" id="ct-in" style="width:100%" required autocomplete="off" value="{{ prefill.key if prefill else '' }}">
   <p id="ct-info" class="muted" style="margin:6px 0 12px"></p>
   <label>Which program did they experience?</label>
   <select name="program">{% for code, label in programs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
@@ -44,6 +44,6 @@ var CT={ {% for c in picks %}{{ c.key|tojson }}:{i:{{ c.id }},e:{{ c.email|tojso
 var h=document.getElementById('ct-id');
 function show(){var c=CT[i.value];h.value=c?c.i:'';if(!c){o.textContent='';return;}
  o.innerHTML='Email: <b>'+(c.e||'<span style="color:#b3261e">none on file</span>')+'</b> &nbsp;&middot;&nbsp; Phone: <b>'+(c.p||'<span style="color:#b3261e">none on file</span>')+'</b>'+(c.e?'':' &mdash; the email button will not work; use the link and text it.');}
-i.addEventListener('input',show);i.addEventListener('change',show);})();
+i.addEventListener('input',show);i.addEventListener('change',show);show();})();
 </script>
 {% endblock %}
