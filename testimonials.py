@@ -12,6 +12,7 @@ import secrets
 from datetime import datetime
 import html as _html
 
+from email_utils import DEFAULT_FROM_EMAIL
 from flask import render_template, request, redirect, url_for, flash, abort, session, send_file, make_response
 
 # (code, label) in the order shown on the Stories page; "GEN" = general / more than one program
@@ -300,7 +301,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                                   f"<p>Thank you,<br>Kent</p>")
                         try:
                             send_email(to_email=ct["email"], to_name=ct["full_name"],
-                                       subject=f"Would you share your {what} experience?", html_content=body)
+                                       subject=f"Would you share your {what} experience?", html_content=body,
+                                       bcc=DEFAULT_FROM_EMAIL)
                             emailed = True
                             conn.execute("UPDATE testimonial_requests SET sent_at = ?, sent_by = ? WHERE token = ?",
                                          (now, session.get("staff_name") or "", token))
@@ -367,7 +369,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                     link = url_for("public_share_confirm", token=token, _external=True)
                     first = (ct["first_name"] or ct["full_name"] or "there").strip()
                     try:
-                        send_email(to_email=ct["email"], to_name=ct["full_name"], subject="Please check your story before we share it",
+                        send_email(to_email=ct["email"], to_name=ct["full_name"], subject="Please check your story before we share it", bcc=DEFAULT_FROM_EMAIL,
                                    html_content=(f"<p>Hi {_html.escape(first)},</p><p>Thank you for sharing your experience. We made a few "
                                                  f"small edits for length and clarity. Before anything is published, please look at it and "
                                                  f"tell us it is right, or ask for changes.</p>"
