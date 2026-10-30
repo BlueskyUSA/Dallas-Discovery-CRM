@@ -272,7 +272,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                         except Exception as e:
                             err = f"The email could not be sent ({e}). You can text the link below instead."
                 result = dict(name=ct["full_name"], link=link, sms=sms, emailed=emailed, err=err)
-        contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name FROM contacts ORDER BY last_name, first_name").fetchall()
+        contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name, email, cell_phone, home_phone FROM contacts ORDER BY last_name, first_name").fetchall()
         conn.close()
         return render_template("testimonial_request.html", contacts=contacts, programs=STORY_PROGRAMS, result=result)
 
