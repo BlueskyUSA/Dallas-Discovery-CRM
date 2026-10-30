@@ -1,0 +1,118 @@
+{% extends "crm_base.html" %}
+{% block title %}Budget — {{ label }}{% endblock %}
+{% block content %}
+{% macro money(x) %}{% if x < 0 %}(${{ '{:,.0f}'.format(-x) }}){% else %}${{ '{:,.0f}'.format(x) }}{% endif %}{% endmacro %}
+<p><a href="{{ url_for('.budgets_home') }}">&larr; All budgets</a></p>
+<h1>Budget &mdash; {{ label }}</h1>
+<p class="muted">{% if updated_at %}Last saved {{ updated_at }} by {{ updated_by }}{% else %}Starting template, not yet saved{% endif %}</p>
+
+{% if is_owner %}
+<div class="card">
+  {% if editing %}<b>Editing.</b> Change any blue number, tick Delete to remove a line, or add a line at the bottom of a section. Then press Save. <a href="{{ url_for('.budget_view', key=key) }}">Cancel</a>
+  {% else %}You are the Owner, so you can change this budget. <a class="btn" href="{{ url_for('.budget_view', key=key, edit=1) }}">Edit budget</a>{% endif %}
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid #1f6f78">
+  <b>This budget is view only.</b> If the budget needs changing, click
+  <a href="#request"><b>Request a budget change</b></a> below and send your comments and estimate to the Owner.
+</div>
+{% endif %}
+
+<div class="card">
+{% if kind == 'fixed' %}
+  <div class="muted">Total fixed and one-time expenses (shared by all trainings)</div><b style="font-size:1.4rem">{{ money(totals.onetime) }}</b>
+{% else %}
+  <table style="width:auto"><tr>
+    <td style="padding-right:30px"><div class="muted">Total income</div><b style="font-size:1.3rem">{{ money(totals.income) }}</b></td>
+    <td style="padding-right:30px"><div class="muted">Expenses</div><b style="font-size:1.3rem">{{ money(totals.expenses) }}</b></td>
+    <td style="padding-right:30px"><div class="muted">Net</div><b style="font-size:1.3rem;color:{{ '#1b7a3d' if totals.net >= 0 else '#b3261e' }}">{{ money(totals.net) }}</b></td>
+    {% if kind == 'training' %}
+    <td style="padding-right:30px"><div class="muted">Break-even</div><b style="font-size:1.3rem">{{ totals.breakeven if totals.breakeven else '—' }} couples</b></td>
+    <td><div class="muted">Expense per couple</div><b style="font-size:1.3rem">{{ money(totals.per_couple_expense) }}</b></td>
+    {% endif %}
+  </tr></table>
+  {% if kind == 'training' %}<p class="muted" style="margin-bottom:0">Fixed and one-time expenses ({{ money(fixed_total) }}) are kept in their own budget and are not counted here. <a href="{{ url_for('.budget_view', key='fixed') }}">See fixed expenses</a></p>{% endif %}
+{% endif %}
+</div>
+
+{% if editing %}<form method="post" action="{{ url_for('.budget_save', key=key) }}">{% endif %}
+
+{% if kind == 'training' %}
+<h2>Key variables</h2>
+<div class="card">
+  <table>
+    <tr><th>Variable</th><th>Value</th><th>Note</th></tr>
+    {% for k, vlabel, default, vkind, note in key_vars %}
+    {% set v = data.vars[k] %}
+    <tr>
+      <td>{{ vlabel }}</td>
+      <td>{% if editing %}<input type="number" step="any" name="var_{{ k }}" value="{{ (v * 100)|round(4) if vkind == 'pct' else v }}" style="width:110px;color:#0000ff"> {% if vkind == 'pct' %}%{% endif %}
+          {% else %}{% if vkind == 'pct' %}{{ '%g'|format(v * 100) }}%{% elif vkind == 'money2' %}${{ '%.2f'|format(v) }}{% else %}{{ '%g'|format(v) }}{% endif %}{% endif %}</td>
+      <td class="muted">{{ note }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% for sec, sec_label in sections %}
+<h2>{{ sec_label }}</h2>
+<div class="card">
+  <table>
+    <tr><th>Item</th><th style="text-align:right">Quantity</th><th style="text-align:right">Unit cost</th><th style="text-align:right">Times</th><th style="text-align:right">Budget</th><th>Notes</th>{% if editing %}<th>Delete</th>{% endif %}</tr>
+    {% for r in rows if r.section == sec %}
+    <tr>
+      <td>{{ r.label }}</td>
+      {% for f, val, raw in (('q', r.qv, r.q), ('u', r.uv, r.u), ('t', r.tv, r.t)) %}
+      <td style="text-align:right">
+        {% if editing and not (raw is string and raw.startswith('=')) %}<input type="number" step="any" name="{{ f }}_{{ r.id }}" value="{{ raw }}" style="width:90px;color:#0000ff;text-align:right">
+        {% else %}{{ '{:,.2f}'.format(val) if f == 'u' else '{:,.0f}'.format(val) }}{% endif %}
+      </td>
+      {% endfor %}
+      <td style="text-align:right"><b>{{ money(r.amount) }}</b></td>
+      <td class="muted">{% if editing %}<input type="text" name="note_{{ r.id }}" value="{{ r.note }}" style="width:100%">{% else %}{{ r.note }}{% endif %}</td>
+      {% if editing %}<td style="text-align:center">{% if r.id != 'fee_income' %}<input type="checkbox" name="del_{{ r.id }}" value="1" title="Tick, then Save, to remove this line">{% endif %}</td>{% endif %}
+    </tr>
+    {% endfor %}
+    {% if editing %}
+    <tr style="background:#eef6f6"><td colspan="7"><b>Add a line to this section</b> (leave the name empty to add nothing)</td></tr>
+    <tr style="background:#eef6f6">
+      <td><input type="text" name="new_label_{{ sec }}" placeholder="Item name" style="width:100%"></td>
+      <td><input type="number" step="any" name="new_q_{{ sec }}" value="1" style="width:90px;text-align:right"></td>
+      <td><input type="number" step="any" name="new_u_{{ sec }}" value="0" style="width:90px;text-align:right"></td>
+      <td><input type="number" step="any" name="new_t_{{ sec }}" value="1" style="width:90px;text-align:right"></td>
+      <td colspan="3"><input type="text" name="new_note_{{ sec }}" placeholder="Note (optional)" style="width:60%">
+        <select name="new_mode_{{ sec }}"><option value="plain">Plain amount</option>{% if kind == 'training' %}<option value="room">Hotel room (adds hotel tax, discount)</option><option value="food">Food (adds service charge, discount)</option>{% endif %}</select></td>
+    </tr>
+    {% endif %}
+    <tr><td colspan="4"><b>Total</b></td><td style="text-align:right"><b>{{ money(totals[sec]) }}</b></td><td></td></tr>
+    {% if sec == 'other' and kind == 'training' %}<tr><td colspan="4">Contingency ({{ '%g'|format(data.vars.contingency * 100) }}% of operating expenses)</td><td style="text-align:right">{{ money(totals.contingency) }}</td><td></td></tr>{% endif %}
+  </table>
+</div>
+{% endfor %}
+
+{% if editing %}<p><button class="btn" type="submit">Save budget</button> <a href="{{ url_for('.budget_view', key=key) }}">Cancel</a></p></form>{% endif %}
+
+<h2 id="request">Request a budget change</h2>
+<div class="card">
+  <p>Only the Owner can change the budget. If something needs to change, tell the Owner what and why, with your best estimate.</p>
+  <form method="post" action="{{ url_for('.budget_request', key=key) }}">
+    <label>Your comments (what should change, and why)</label>
+    <textarea name="comments" rows="4" style="width:100%" required></textarea>
+    <label>Your estimate (amount or range)</label>
+    <input type="text" name="estimate" placeholder="e.g. $600 more for food, or $2,400 total" style="width:100%">
+    <p><button class="btn" type="submit">Send to the Owner</button></p>
+  </form>
+</div>
+
+{% if is_owner and change_requests %}
+<h2>Change requests</h2>
+<div class="card"><table>
+  <tr><th>When</th><th>From</th><th>Comments</th><th>Estimate</th><th>Status</th></tr>
+  {% for q in change_requests %}
+  <tr><td>{{ q.created_at }}</td><td>{{ q.requested_by }}</td><td>{{ q.comments }}</td><td>{{ q.estimate }}</td>
+      <td>{% if q.status == 'Open' %}<form class="inline" method="post" action="{{ url_for('.budget_request_done', req_id=q.id) }}" style="margin:0"><button class="btn secondary" type="submit">Mark done</button></form>{% else %}Done{% endif %}</td></tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

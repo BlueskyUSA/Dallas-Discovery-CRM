@@ -31,7 +31,7 @@
       {% set show_donations = is_lead or has_donations_access %}
       {% set show_finance = session.is_owner or has_accounting_access %}
       {% if show_contacts %}<a href="{{ url_for('.contacts_list') }}">Contacts</a>{% endif %}
-      {% if show_contacts or show_donations or show_finance or is_lead or session.is_owner or has_correspondence_access %}
+      {% if show_contacts or show_donations or show_finance or is_lead or session.is_owner or has_correspondence_access or has_budgets_access %}
       <details class="navmenu">
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
@@ -44,8 +44,9 @@
           <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
           {% endif %}
           {% if has_correspondence_access %}<a href="{{ url_for('.email_blasts') }}">Correspondence</a>{% endif %}
-          {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
           {% if show_finance %}<a href="{{ url_for('.finance') }}">Finance</a>{% endif %}
+          {% if session.is_owner or has_budgets_access %}<a href="{{ url_for('.budgets_home') }}">Budgets</a>{% endif %}
+          {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.database_map') }}">Database map</a>{% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
