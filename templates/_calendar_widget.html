@@ -88,19 +88,22 @@
 
   {% if not picker %}
   <h3 style="margin:{{ '4px' if cal.public else '18px' }} 0 8px">{{ 'Scheduled dates in ' if cal.public else 'Weekends in ' }}{{ cal.year }}</h3>
+  {% if cal.public %}<p style="margin:0 0 10px;font-size:1.05rem"><strong>Click a date to register for the training.</strong></p>{% endif %}
   <table class="cal-weekends">
-    <tr><th>Dates</th><th>Seminar</th></tr>
+    <tr><th>Dates</th><th>Seminar</th>{% if cal.public %}<th></th>{% endif %}</tr>
     {% for g in cal.groups %}
     {% if g.start.year == cal.year %}
     <tr>
-      <td><strong>{{ g.start|day_list(g.last) }}</strong></td>
+      {% set reg = url_for('public_register', program=(g.sessions[0].code if g.sessions[0].code in ('D1','D4') else ''), s=(g.start|day_list(g.last) ~ ' - ' ~ (g.sessions|map(attribute='code')|map('prog_label')|join(' / ')))) ~ '#interested' if cal.public else '' %}
+      <td><strong>{% if cal.public %}<a href="{{ reg }}" style="color:inherit;text-decoration:underline;text-underline-offset:3px">{{ g.start|day_list(g.last) }}</a>{% else %}{{ g.start|day_list(g.last) }}{% endif %}</strong></td>
       <td>
         {% for s in g.sessions %}{% if s.href %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ cal.colors.get(s.code, '#777') }}" href="{{ s.href }}" title="{{ s.code|prog_label }} #{{ s.session_number }} &middot; {{ s.status }}">{{ s.code|prog_label }}</a>{% else %}<span class="chip" style="background:{{ cal.colors.get(s.code, '#777') }}">{{ s.code|prog_label }}</span>{% endif %} {% endfor %}
       </td>
+      {% if cal.public %}<td style="text-align:right"><a href="{{ reg }}" style="display:inline-block;background:#006d86;color:#fff;text-decoration:none;border-radius:30px;padding:6px 16px;font-weight:700;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase">Register</a></td>{% endif %}
     </tr>
     {% endif %}
     {% else %}
-    <tr><td colspan="2" style="color:var(--cc-muted)">No sessions scheduled in {{ cal.year }} yet.</td></tr>
+    <tr><td colspan="3" style="color:var(--cc-muted)">No sessions scheduled in {{ cal.year }} yet.</td></tr>
     {% endfor %}
   </table>
   {% endif %}

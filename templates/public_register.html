@@ -44,7 +44,7 @@
         </select>
         <small class="muted" style="display:block; margin-top:6px">{{ call_consent_fine }}</small>
       </div>
-      <div class="field"><label>Anything you'd like us to know?</label><textarea name="message" rows="4"></textarea></div>
+      <div class="field"><label>Anything you'd like us to know?</label><textarea name="message" rows="4">{% if picked_date %}I'd like to register for: {{ picked_date }}{% endif %}</textarea></div>
       <button class="pub-btn dark" type="submit">Reserve your spot</button>
     </form>
   </div>
