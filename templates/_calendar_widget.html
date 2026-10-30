@@ -89,11 +89,11 @@
   {% if not picker %}
   <h3 style="margin:{{ '4px' if cal.public else '18px' }} 0 8px">{{ 'Scheduled dates in ' if cal.public else 'Weekends in ' }}{{ cal.year }}</h3>
   <table class="cal-weekends">
-    <tr><th>Starts</th><th>Training running that weekend</th></tr>
+    <tr><th>Dates</th><th>Seminar</th></tr>
     {% for g in cal.groups %}
     {% if g.start.year == cal.year %}
     <tr>
-      <td><strong>{{ g.start_short }}</strong></td>
+      <td><strong>{{ g.start|day_list(g.last) }}</strong></td>
       <td>
         {% for s in g.sessions %}{% if s.href %}<a class="chip{{ ' cx' if s.status == 'Cancelled' }}" style="background:{{ cal.colors.get(s.code, '#777') }}" href="{{ s.href }}" title="{{ s.code|prog_label }} #{{ s.session_number }} &middot; {{ s.status }}">{{ s.code|prog_label }}</a>{% else %}<span class="chip" style="background:{{ cal.colors.get(s.code, '#777') }}">{{ s.code|prog_label }}</span>{% endif %} {% endfor %}
       </td>
