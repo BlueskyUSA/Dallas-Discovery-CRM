@@ -17,7 +17,7 @@
     <b>View only.</b> <a class="btn secondary" href="#request">Request a budget change</a>
     <span class="muted"> If the budget needs changing, click this button and send your comments and estimate to the Owner.</span>
   {% endif %}
-  <a class="btn secondary" href="{{ url_for('.budget_download', key=key) }}" style="float:right">Download Excel</a>{% if is_owner and recipients %}<a class="btn secondary" href="#email" style="float:right;margin-right:6px">Email budget</a>{% endif %}
+  <a class="btn secondary" href="{{ url_for('.budget_download', key=key, fmt='pdf') }}" style="float:right">Download PDF</a><a class="btn secondary" href="{{ url_for('.budget_download', key=key) }}" style="float:right;margin-right:6px">Download Excel</a>{% if is_owner and recipients %}<a class="btn secondary" href="#email" style="float:right;margin-right:6px">Email budget</a>{% endif %}
 </div>
 
 <div class="card">
@@ -101,8 +101,12 @@
   <p>Sends the budget as an Excel file to the people you tick. It is a copy of what is saved now.</p>
   <form method="post" action="{{ url_for('.budget_email', key=key) }}">
     {% for p in recipients %}
-    <label style="display:block;margin:2px 0"><input type="checkbox" name="staff_ids" value="{{ p.id }}"> {{ p.name }} <span class="muted">({{ p.email }}){% if not p.has_grant %} &mdash; no Budgets access; emailing gives them a copy{% endif %}</span></label>
+    <label style="display:block;margin:2px 0"><input type="checkbox" name="staff_ids" value="{{ p.id }}"> {{ p.name }}{% if p.is_owner %} (you){% endif %} <span class="muted">({{ p.email }}){% if not p.has_grant and p.role != 'Owner' and not p.is_owner %} &mdash; no Budgets access; emailing gives them a copy{% endif %}</span></label>
     {% endfor %}
+    <p><b>Send as:</b>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="xlsx" checked> Excel</label>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="pdf"> PDF</label>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="both"> Both</label></p>
     <label>Message (optional)</label>
     <textarea name="message" rows="3" style="width:100%"></textarea>
     <p><button class="btn" type="submit">Email the budget</button></p>
@@ -118,6 +122,10 @@
     <textarea name="comments" rows="4" style="width:100%" required></textarea>
     <label>Your estimate (amount or range)</label>
     <input type="text" name="estimate" placeholder="e.g. $600 more for food, or $2,400 total" style="width:100%">
+    <p><b>Attach the budget as:</b>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="xlsx" checked> Excel</label>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="pdf"> PDF</label>
+      <label style="display:inline;margin-left:8px"><input type="radio" name="fmt" value="both"> Both</label></p>
     <p><button class="btn" type="submit">Send to the Owner</button></p>
   </form>
 </div>
