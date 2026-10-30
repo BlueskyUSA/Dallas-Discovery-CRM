@@ -74,6 +74,35 @@ def _display_name(choice, first, last):
     return (first + " " + last).strip() or "Anonymous"
 
 
+def share_link_for_contact(get_db, contact_id, external_url_for):
+    """Private testimonial link for a contact who said they attended, for the thank-you email. Reuses an open
+    request; returns None if they already sent a story (so we never ask twice). external_url_for(token) -> full URL."""
+    _ensure(get_db)
+    conn = get_db()
+    try:
+        done = conn.execute("SELECT 1 FROM testimonial_requests WHERE contact_id = ? AND submitted_at IS NOT NULL", (contact_id,)).fetchone()
+        if done:
+            return None
+        row = conn.execute("SELECT token FROM testimonial_requests WHERE contact_id = ? AND submitted_at IS NULL ORDER BY id DESC",
+                           (contact_id,)).fetchone()
+        if row:
+            token = row["token"]
+        else:
+            token = secrets.token_urlsafe(16)
+            conn.execute("""INSERT INTO testimonial_requests (token, contact_id, program_code, note, created_at, sent_at, sent_by)
+                            VALUES (?, ?, 'GEN', NULL, ?, ?, ?)""",
+                         (token, contact_id, datetime.now().strftime("%Y-%m-%d %H:%M"),
+                          datetime.now().strftime("%Y-%m-%d %H:%M"), "thank-you email"))
+            conn.commit()
+        return external_url_for(token)
+    except Exception as e:
+        conn.rollback()
+        print(f"share link failed: {e}", flush=True)
+        return None
+    finally:
+        conn.close()
+
+
 def register(app, crm, leadership_required, get_db, send_email, full_name_sql, program_name):
     # ---------------- public: the private share link ----------------
     @app.route("/share/<token>", methods=["GET", "POST"])
@@ -223,6 +252,12 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 LEFT JOIN contacts ct ON ct.id = r.contact_id
                 LEFT JOIN testimonials t ON t.request_id = r.id
                 ORDER BY r.id DESC""").fetchall()
+        text_only = conn.execute(
+            f"""SELECT ct.id, {full_name_sql('ct')} AS full_name, ct.cell_phone, ct.home_phone FROM contacts ct
+                WHERE ct.discovery_attendance = 'Yes' AND (ct.email IS NULL OR TRIM(ct.email) = '')
+                  AND (COALESCE(ct.cell_phone, '') <> '' OR COALESCE(ct.home_phone, '') <> '')
+                  AND NOT EXISTS (SELECT 1 FROM testimonial_requests r WHERE r.contact_id = ct.id)
+                ORDER BY ct.last_name, ct.first_name LIMIT 100""").fetchall()
         conn.close()
         items = []
         order = {"review": 0, "changes": 1, "ready": 2, "waiting_ok": 3, "waiting": 4, "published": 5, "hidden": 6}
@@ -246,7 +281,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             items.append(d)
         items.sort(key=lambda x: (order[x["stage"]], -x["req_id"]))
         counts = {k: sum(1 for i in items if i["stage"] == k) for k in order}
-        return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL,
+        return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL, text_only=text_only,
                                show=request.args.get("show") or "")
 
     @crm.route("/testimonials/request/<int:req_id>/delete", methods=["POST"])
@@ -328,7 +363,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             else:
                 seen[key] = 1
             picks.append(dict(key=key, id=c["id"], email=c["email"] or "", phone=c["cell_phone"] or c["home_phone"] or ""))
-        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result)
+        want = request.args.get("c", "")
+        prefill = next((p_ for p_ in picks if str(p_["id"]) == want), None) if want.isdigit() else None
+        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill)
 
     @crm.route("/testimonials/<int:tid>", methods=["GET", "POST"])
     @leadership_required
