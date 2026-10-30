@@ -126,9 +126,14 @@ def share_link_for_contact(get_db, contact_id, external_url_for):
 def pass_it_on(first, link):
     """The ready-made note a person can send to a friend who also attended."""
     who = (first or "").strip()
-    return (f"Hey there, this is {who}. " if who else "Hey there. ") + (
-        "I just completed a quick testimonial for Discovery!, and I thought you'd be interested in doing the same. "
-        "Please fill out your name, email and cell number, and here's the link for completing your testimonial: " + link)
+    greeting = f"Hey there, it's {who}!" if who else "Hey there!"
+    return (greeting + "\n"
+            "I just shared a short testimonial about my experience with Discovery!, and I thought you might enjoy "
+            "sharing yours, too.\n"
+            "We'd love to hear what Discovery! meant to you and what you took away from the experience. It only takes "
+            "a few minutes, and you can share your story in writing or through a short video.\n"
+            "Just enter your name, email, and cell number to get started.\n"
+            "Here's the link to share your story:\n" + link)
 
 
 def register(app, crm, leadership_required, get_db, send_email, full_name_sql, program_name):
