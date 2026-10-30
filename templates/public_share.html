@@ -28,6 +28,8 @@
       <b>Know someone else who has been through Discovery!?</b>
       <p style="margin:8px 0">Pass it on. Here is a note you can send. Change it however you like.</p>
       <textarea id="pass-msg" rows="9" style="width:100%">{{ pass_msg }}</textarea>
+      <div style="margin:8px 0 2px"><span class="sh-note">Preview (tap the link to check it):</span>
+        <div id="pass-prev" style="border:1px solid #d8e9ea;background:#fff;border-radius:6px;padding:8px 12px;line-height:1.5"></div></div>
       <p style="margin-top:8px">
         <button type="button" class="pub-btn dark" id="pass-copy">Copy the note</button>
         <a class="pub-btn" id="pass-sms" href="#">Text it</a>
@@ -37,7 +39,8 @@
     </div>
     <script>
     (function(){var m=document.getElementById('pass-msg');
-      function upd(){var b=encodeURIComponent(m.value);document.getElementById('pass-sms').href='sms:?&body='+b;
+      function lk(v){return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');}
+      function upd(){document.getElementById('pass-prev').innerHTML=lk(m.value);var b=encodeURIComponent(m.value);document.getElementById('pass-sms').href='sms:?&body='+b;
         document.getElementById('pass-mail').href='mailto:?subject='+encodeURIComponent('Would you share your Discovery! experience?')+'&body='+b;}
       m.addEventListener('input',upd);upd();
       document.getElementById('pass-copy').onclick=function(){m.select();try{navigator.clipboard.writeText(m.value);}catch(e){document.execCommand('copy');}document.getElementById('pass-ok').style.display='block';};})();
