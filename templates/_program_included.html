@@ -22,9 +22,15 @@
 <p class="pi-sub">Less lecture. More living.</p>
 <p class="pi-lead">You&rsquo;ll be invited to participate, reflect, laugh, experiment, and connect.</p>
 <div class="pi-days">
+{% if p is defined and p.code == 'D3' %}
+<div class="pi-day"><div class="d">Day 1 &mdash; Possibility</div><h3>Looking beyond familiar expectations</h3><p>Exploring the assumptions and limitations that may influence how we imagine our future.</p></div>
+<div class="pi-day"><div class="d">Day 2 &mdash; Intention</div><h3>Discovering what truly matters</h3><p>Clarifying values, priorities, relationships, and the life we want to create.</p></div>
+<div class="pi-day"><div class="d">Day 3 &mdash; Choice</div><h3>Bringing vision into everyday life</h3><p>Exploring the decisions, commitments, and practical steps that can turn possibilities into action.</p></div>
+{% else %}
 <div class="pi-day"><div class="d">Day 1</div><h3>Get Curious</h3><p>Notice the habits, stories, and communication patterns that shape how you relate&mdash;and begin seeing yourself and others in fresh ways.</p></div>
 <div class="pi-day"><div class="d">Day 2</div><h3>Get the Tools</h3><p>Learn practical tools for communicating, navigating differences, and creating closeness.</p></div>
 <div class="pi-day"><div class="d">Day 3</div><h3>Get Creative</h3><p>Bring your discoveries together and consider how to carry more understanding, energy, and intention into everyday life.</p></div>
+{% endif %}
 </div>
 <div class="pi-grid">
 <section class="pi-card"><img src="{{ url_for('static', filename='hotel-room.png') }}" alt="A comfortable hotel room" loading="lazy"><div class="in"><ul><li>Two nights in the hotel</li><li>All sessions and program materials</li><li>Snacks, coffee, tea and water throughout the program</li><li>Breakfast, lunch, and dinner are on your own at the hotel or many nearby local restaurants</li></ul></div></section>
