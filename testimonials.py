@@ -37,6 +37,13 @@ def flagged_words(text):
     return sorted({w for w in FLAG_WORDS if re.search(r"\b" + re.escape(w), low)})
 
 
+def _note_html(note):
+    """Escaped note text with web addresses turned into clickable links and line breaks kept."""
+    esc = _html.escape(note)
+    esc = re.sub(r"(https?://[^\s<]+)", r'<a href="\1">\1</a>', esc)
+    return esc.replace(chr(10), "<br>")
+
+
 _ready = False
 
 
@@ -324,7 +331,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 first = (ct["first_name"] or ct["full_name"] or "there").strip()
                 what = PROGRAM_LABEL[program] if program != "GEN" else "Discovery!"
                 sms = (f"Hi {first}, it's Kent. Would you be willing to share a few words (or a short video) about your "
-                       f"experience with {what}? You can speak it, type it or record it here: {link}")
+                       f"experience with {what}? You can speak it, type it or record it here: {link}"
+                       + (f"\n\n{note}" if note else ""))
                 emailed, err = False, ""
                 if request.form.get("action") == "email":
                     if not ct["email"]:
@@ -334,7 +342,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                                 f"<p>Would you be willing to share a few words, or a short video, about your experience with "
                                 f"<b>{_html.escape(what)}</b>? It only takes a couple of minutes. You can speak it, type it, "
                                 f"or record yourself. Your story may help someone take their first step.</p>"
-                                + (f"<p>{_html.escape(note).replace(chr(10), '<br>')}</p>" if note else "")
+                                + (f"<p>{_note_html(note)}</p>" if note else "")
                                 + f"<p><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:12px 22px;border-radius:6px;"
                                   f"text-decoration:none;display:inline-block\">Share your experience</a></p>"
                                   f"<p>Thank you,<br>Kent</p>")
@@ -365,7 +373,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             picks.append(dict(key=key, id=c["id"], email=c["email"] or "", phone=c["cell_phone"] or c["home_phone"] or ""))
         want = request.args.get("c", "")
         prefill = next((p_ for p_ in picks if str(p_["id"]) == want), None) if want.isdigit() else None
-        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill)
+        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill,
+                               home_url=url_for("public_home", _external=True), stories_url=url_for("public_stories", _external=True))
 
     @crm.route("/testimonials/<int:tid>", methods=["GET", "POST"])
     @leadership_required
