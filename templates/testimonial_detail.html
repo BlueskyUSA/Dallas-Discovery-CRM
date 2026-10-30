@@ -31,7 +31,7 @@
   <button class="btn" type="submit" name="action" value="send_back">Save and send back to them for approval</button>
   <button class="btn" type="submit" name="action" value="approve" {% if t.confirm_state == 'sent' %}onclick="return confirm('They have not answered yet. Publish anyway?')"{% endif %}>Publish on the Stories page</button>
   <button class="btn secondary" type="submit" name="action" value="hide">Hide from the website</button>
-  <button class="btn secondary" type="submit" name="action" value="delete" onclick="return confirm('Delete this testimonial for good?')">Delete</button>
+  <button class="btn secondary" type="submit" name="action" value="delete" style="color:#b3261e;border-color:#b3261e" onclick="return confirm('Delete this testimonial for good? This also removes its request from the list.')">Delete this testimonial</button>
 </p>
 </form>
 <p class="muted">Keep therapeutic and medical language out of testimonials. Only change spelling, punctuation and length. If you change the meaning, send it back for their approval first.</p>
