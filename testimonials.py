@@ -215,14 +215,38 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         _ensure(get_db)
         conn = get_db()
         rows = conn.execute(
-            """SELECT id, program_code, body, display_name, status, featured, created_at, (video_data IS NOT NULL) AS has_video
-               FROM testimonials ORDER BY CASE status WHEN 'New' THEN 0 WHEN 'Approved' THEN 1 ELSE 2 END, id DESC""").fetchall()
-        waiting = conn.execute(
-            f"""SELECT r.id, r.token, r.program_code, r.created_at, r.sent_at, {full_name_sql('ct')} AS full_name
-                FROM testimonial_requests r LEFT JOIN contacts ct ON ct.id = r.contact_id
-                WHERE r.submitted_at IS NULL ORDER BY r.id DESC LIMIT 50""").fetchall()
+            f"""SELECT r.id AS req_id, r.program_code AS req_program, r.created_at, r.sent_at, r.token,
+                       {full_name_sql('ct')} AS full_name, ct.id AS contact_id,
+                       t.id AS tid, t.status, t.confirm_state, t.display_name, t.body, (t.video_data IS NOT NULL) AS has_video
+                FROM testimonial_requests r
+                LEFT JOIN contacts ct ON ct.id = r.contact_id
+                LEFT JOIN testimonials t ON t.request_id = r.id
+                ORDER BY r.id DESC""").fetchall()
         conn.close()
-        return render_template("testimonials_review.html", rows=rows, waiting=waiting, labels=PROGRAM_LABEL)
+        items = []
+        order = {"review": 0, "changes": 1, "ready": 2, "waiting_ok": 3, "waiting": 4, "published": 5, "hidden": 6}
+        for r in rows:
+            d = dict(r)
+            if d["tid"] is None:
+                d["stage"], d["label"], d["action"] = "waiting", "Waiting for their story", ""
+            elif d["status"] == "Approved":
+                d["stage"], d["label"], d["action"] = "published", "Published", "Open"
+            elif d["status"] == "Hidden":
+                d["stage"], d["label"], d["action"] = "hidden", "Hidden", "Open"
+            elif d["confirm_state"] == "changes":
+                d["stage"], d["label"], d["action"] = "changes", "They asked for changes", "Open"
+            elif d["confirm_state"] == "yes":
+                d["stage"], d["label"], d["action"] = "ready", "They approved: ready to publish", "Open"
+            elif d["confirm_state"] == "sent":
+                d["stage"], d["label"], d["action"] = "waiting_ok", "Sent back; waiting for their OK", "Open"
+            else:
+                d["stage"], d["label"], d["action"] = "review", "Received: needs your review", "Review"
+            d["how"] = "Emailed " + d["sent_at"] if d["sent_at"] else "Link only"
+            items.append(d)
+        items.sort(key=lambda x: (order[x["stage"]], -x["req_id"]))
+        counts = {k: sum(1 for i in items if i["stage"] == k) for k in order}
+        return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL,
+                               show=request.args.get("show") or "")
 
     @crm.route("/testimonials/request", methods=["GET", "POST"])
     @leadership_required
