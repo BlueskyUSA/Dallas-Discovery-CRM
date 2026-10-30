@@ -6588,6 +6588,7 @@ def public_register():
     return render_template(
         "public_register.html", programs=programs, upcoming=upcoming, cal=cal,
         preselect=(request.args.get("program") or "").upper(),
+        picked_date=(request.args.get("s") or "").strip()[:140],
         prev_url=url_for("public_register", year=year - 1) + "#calendar",
         next_url=url_for("public_register", year=year + 1) + "#calendar",
         today_url=url_for("public_register") + "#calendar",
