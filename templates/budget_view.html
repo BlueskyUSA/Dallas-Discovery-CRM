@@ -17,7 +17,7 @@
     <b>View only.</b> <a class="btn secondary" href="#request">Request a budget change</a>
     <span class="muted"> If the budget needs changing, click this button and send your comments and estimate to the Owner.</span>
   {% endif %}
-  <a class="btn secondary" href="{{ url_for('.budget_download', key=key) }}" style="float:right">Download Excel</a>{% if is_owner and recipients %}<a class="btn secondary" href="#email" style="float:right;margin-right:6px">Email budget</a>{% endif %}
+  <a class="btn secondary" href="{{ url_for('.budget_download', key=key) }}" style="float:right">Download Excel</a>
 </div>
 
 <div class="card">
@@ -95,22 +95,7 @@
 
 {% if editing %}<p><button class="btn" type="submit">Save budget</button> <a href="{{ url_for('.budget_view', key=key) }}">Cancel</a></p></form>{% endif %}
 
-{% if is_owner and recipients %}
-<h2 id="email">Email this budget</h2>
-<div class="card">
-  <p>Sends the budget as an Excel file to the people you tick. It is a copy of what is saved now.</p>
-  <form method="post" action="{{ url_for('.budget_email', key=key) }}">
-    {% for p in recipients %}
-    <label style="display:block;margin:2px 0"><input type="checkbox" name="staff_ids" value="{{ p.id }}"> {{ p.name }} <span class="muted">({{ p.email }}){% if not p.has_grant %} &mdash; no Budgets access; emailing gives them a copy{% endif %}</span></label>
-    {% endfor %}
-    <label>Message (optional)</label>
-    <textarea name="message" rows="3" style="width:100%"></textarea>
-    <p><button class="btn" type="submit">Email the budget</button></p>
-  </form>
-</div>
-{% endif %}
-
-{% if not is_owner %}<h2 id="request">Request a budget change</h2>
+<h2 id="request">Request a budget change</h2>
 <div class="card">
   <p>Only the Owner can change the budget. If something needs to change, tell the Owner what and why, with your best estimate.</p>
   <form method="post" action="{{ url_for('.budget_request', key=key) }}">
@@ -121,7 +106,6 @@
     <p><button class="btn" type="submit">Send to the Owner</button></p>
   </form>
 </div>
-{% endif %}
 
 {% if is_owner and change_requests %}
 <h2>Change requests</h2>
