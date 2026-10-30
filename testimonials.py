@@ -61,7 +61,8 @@ def _ensure(get_db):
             body TEXT, body_original TEXT, name_choice TEXT, display_name TEXT, attended TEXT,
             video_data BYTEA, video_type TEXT, status TEXT NOT NULL DEFAULT 'New', featured INTEGER NOT NULL DEFAULT 0,
             consent_at TEXT, created_at TEXT, approved_at TEXT)""")
-        for col in ("confirm_token TEXT", "confirm_state TEXT", "confirm_note TEXT", "confirm_at TEXT"):
+        for col in ("confirm_token TEXT", "confirm_state TEXT", "confirm_note TEXT", "confirm_at TEXT",
+                    "submitter_name TEXT", "submitter_email TEXT", "submitter_phone TEXT", "referred_by TEXT"):
             conn.execute(f"ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS {col}")
         conn.commit()
         _ready = True
@@ -79,6 +80,18 @@ def _display_name(choice, first, last):
     if choice == "initial":
         return (first + (" " + last[0] + "." if last else "")).strip() or "Anonymous"
     return (first + " " + last).strip() or "Anonymous"
+
+
+def has_qualifying_role(notes):
+    """True if the contact's notes (from the short /discovery form) list a real past role other than 'Other'.
+    The short form writes a line like 'Roles: Facilitator (March 2018); TA'. 'Interested Party' is never listed."""
+    for line in (notes or "").splitlines():
+        if line.startswith("Roles:"):
+            for part in line[len("Roles:"):].split(";"):
+                role = re.sub(r"\s*\(.*\)\s*$", "", part).strip()
+                if role and role.lower() != "other":
+                    return True
+    return False
 
 
 def share_link_for_contact(get_db, contact_id, external_url_for):
@@ -108,6 +121,14 @@ def share_link_for_contact(get_db, contact_id, external_url_for):
         return None
     finally:
         conn.close()
+
+
+def pass_it_on(first, link):
+    """The ready-made note a person can send to a friend who also attended."""
+    who = (first or "").strip()
+    return (f"Hey there, this is {who}. " if who else "Hey there. ") + (
+        "I just completed a quick testimonial for Discovery!, and I thought you'd be interested in doing the same. "
+        "Please fill out your name, email and cell number, and here's the link for completing your testimonial: " + link)
 
 
 def register(app, crm, leadership_required, get_db, send_email, full_name_sql, program_name):
@@ -168,11 +189,81 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                                             f"<p><a href=\"{link}\">Open Testimonials to review it</a></p>")
                 except Exception as e:
                     print(f"testimonial notice failed: {e}", flush=True)
-            return render_template("public_share.html", req=req, done=True, already=False)
+            return render_template("public_share.html", req=req, done=True, already=False,
+                                   pass_link=url_for("public_share_open", _external=True, **{"from": token}),
+                                   pass_msg=pass_it_on(req["first_name"], url_for("public_share_open", _external=True, **{"from": token})))
         conn.close()
         return render_template("public_share.html", req=req, done=False, already=False, name_choices=NAME_CHOICES,
                                consent_text=CONSENT_TEXT, program_label=PROGRAM_LABEL.get(req["program_code"]),
                                max_mb=MAX_VIDEO_BYTES // (1024 * 1024))
+
+    # ---------------- public: open link (not tied to one person; for passing along) ----------------
+    @app.route("/share", methods=["GET", "POST"])
+    def public_share_open():
+        _ensure(get_db)
+        ref_token = (request.args.get("from") or request.form.get("from") or "")[:60]
+        if request.method == "POST":
+            if request.form.get("website"):  # hidden trap field: real people leave it empty
+                return render_template("public_share.html", req=dict(first_name=""), open_mode=True, done=True, already=False, pass_link="", pass_msg="")
+            name = (request.form.get("name") or "").strip()[:100]
+            email = (request.form.get("email") or "").strip()[:150]
+            phone = (request.form.get("phone") or "").strip()[:40]
+            body = (request.form.get("body") or "").strip()[:8000]
+            choice = request.form.get("name_choice") if request.form.get("name_choice") in dict(NAME_CHOICES) else "initial"
+            program = request.form.get("program") if request.form.get("program") in PROGRAM_LABEL else "GEN"
+            f = request.files.get("video")
+            vdata, vtype = None, None
+            problem = None
+            if not name or not (email or phone):
+                problem = "Please add your name, and an email or cell number so we can reach you."
+            elif f and f.filename:
+                vdata = f.read(MAX_VIDEO_BYTES + 1)
+                vtype = (f.mimetype or "video/mp4")[:60]
+                if len(vdata) > MAX_VIDEO_BYTES:
+                    problem = "That video is too large. Please record a shorter one (up to 2 minutes) right on this page."
+                elif not vdata:
+                    vdata, vtype = None, None
+            if not problem and not body and not vdata:
+                problem = "Please type, dictate or record something to share."
+            if not problem and not request.form.get("consent"):
+                problem = "Please tick the permission box so we may share your words."
+            if problem:
+                flash(problem)
+                return redirect(url_for("public_share_open", **({"from": ref_token} if ref_token else {})))
+            parts = name.split(None, 1)
+            conn = get_db()
+            referred = ""
+            if ref_token:
+                r = conn.execute(f"SELECT {full_name_sql('ct')} AS n FROM testimonial_requests r JOIN contacts ct ON ct.id = r.contact_id WHERE r.token = ?",
+                                 (ref_token,)).fetchone()
+                referred = r["n"] if r else ""
+            now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            conn.execute(
+                """INSERT INTO testimonials (request_id, contact_id, program_code, body, body_original, name_choice, display_name,
+                       attended, video_data, video_type, status, consent_at, created_at,
+                       submitter_name, submitter_email, submitter_phone, referred_by)
+                   VALUES (NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 'New', ?, ?, ?, ?, ?, ?)""",
+                (program, body, body, choice, _display_name(choice, parts[0], parts[1] if len(parts) > 1 else ""),
+                 (request.form.get("attended") or "").strip()[:60], vdata, vtype, now, now, name, email, phone, referred))
+            owners = conn.execute("SELECT email, name FROM staff WHERE is_owner = 1 AND active = 1").fetchall()
+            conn.commit()
+            conn.close()
+            link = url_for("crm.testimonials_review", _external=True)
+            for o in owners:
+                try:
+                    send_email(to_email=o["email"], to_name=o["name"], subject="A new testimonial is ready to review",
+                               html_content=f"<p>{_html.escape(name)} sent a testimonial through the shared link"
+                                            f"{' (referred by ' + _html.escape(referred) + ')' if referred else ''}"
+                                            f"{' with a video' if vdata else ''}.</p><p><a href=\"{link}\">Open Testimonials to review it</a></p>")
+                except Exception as e:
+                    print(f"testimonial notice failed: {e}", flush=True)
+            first = parts[0] if parts else ""
+            pl = url_for("public_share_open", _external=True)
+            return render_template("public_share.html", req=dict(first_name=first), open_mode=True, done=True, already=False,
+                                   pass_link=pl, pass_msg=pass_it_on(first, pl))
+        return render_template("public_share.html", req=dict(first_name=""), open_mode=True, done=False, already=False,
+                               name_choices=NAME_CHOICES, consent_text=CONSENT_TEXT, program_label=None, programs=STORY_PROGRAMS,
+                               max_mb=MAX_VIDEO_BYTES // (1024 * 1024), ref_token=ref_token)
 
     # ---------------- public: contributor confirms the edited version ----------------
     @app.route("/share/confirm/<token>", methods=["GET", "POST"])
@@ -265,11 +356,15 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                   AND (COALESCE(ct.cell_phone, '') <> '' OR COALESCE(ct.home_phone, '') <> '')
                   AND NOT EXISTS (SELECT 1 FROM testimonial_requests r WHERE r.contact_id = ct.id)
                 ORDER BY ct.last_name, ct.first_name LIMIT 100""").fetchall()
+        open_rows = conn.execute(
+            """SELECT id AS tid, program_code AS req_program, created_at, submitter_name AS full_name, status, confirm_state,
+                      display_name, body, (video_data IS NOT NULL) AS has_video, referred_by
+               FROM testimonials WHERE request_id IS NULL ORDER BY id DESC""").fetchall()
         conn.close()
         items = []
         order = {"review": 0, "changes": 1, "ready": 2, "waiting_ok": 3, "waiting": 4, "published": 5, "hidden": 6}
-        for r in rows:
-            d = dict(r)
+        all_rows = [dict(r) for r in rows] + [dict(r, req_id=None, sent_at=None, token=None, contact_id=None) for r in open_rows]
+        for d in all_rows:
             if d["tid"] is None:
                 d["stage"], d["label"], d["action"] = "waiting", "Waiting for their story", ""
             elif d["status"] == "Approved":
@@ -284,9 +379,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 d["stage"], d["label"], d["action"] = "waiting_ok", "Sent back; waiting for their OK", "Open"
             else:
                 d["stage"], d["label"], d["action"] = "review", "Received: needs your review", "Review"
-            d["how"] = "Emailed " + d["sent_at"] if d["sent_at"] else "Link only"
+            d["how"] = ("Shared link" + (" (from " + d["referred_by"] + ")" if d.get("referred_by") else "")) if d["req_id"] is None else ("Emailed " + d["sent_at"] if d["sent_at"] else "Link only")
             items.append(d)
-        items.sort(key=lambda x: (order[x["stage"]], -x["req_id"]))
+        items.sort(key=lambda x: (order[x["stage"]], -(x["req_id"] or x["tid"] or 0)))
         counts = {k: sum(1 for i in items if i["stage"] == k) for k in order}
         return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL, text_only=text_only,
                                show=request.args.get("show") or "")
@@ -383,7 +478,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         conn = get_db()
         t = conn.execute("""SELECT id, program_code, body, body_original, name_choice, display_name, attended, video_type,
                                    (video_data IS NOT NULL) AS has_video, status, featured, consent_at, created_at, contact_id,
-                                   confirm_state, confirm_note, confirm_at
+                                   confirm_state, confirm_note, confirm_at,
+                                   submitter_name, submitter_email, submitter_phone, referred_by
                             FROM testimonials WHERE id = ?""", (tid,)).fetchone()
         if not t:
             conn.close()
@@ -421,6 +517,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             if send_back:
                 ct = conn.execute(f"SELECT first_name, email, {full_name_sql()} AS full_name FROM contacts WHERE id = ?",
                                   (t["contact_id"],)).fetchone() if t["contact_id"] else None
+                if not ct and t["submitter_email"]:
+                    ct = {"first_name": (t["submitter_name"] or "").split(" ")[0], "email": t["submitter_email"],
+                          "full_name": t["submitter_name"] or ""}
                 if not ct or not ct["email"]:
                     msg = "Saved, but this contact has no email address, so it could not be sent back."
                 else:
