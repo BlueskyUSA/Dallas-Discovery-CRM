@@ -6,3 +6,4 @@ Pillow>=10.0
 pillow-heif>=0.15
 requests>=2.31
 certifi>=2026.10.19
+openpyxl>=3.1
