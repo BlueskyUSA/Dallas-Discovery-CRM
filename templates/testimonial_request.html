@@ -29,7 +29,7 @@
   <label>A personal note (optional, added to the email)</label>
   <textarea name="note" id="note-box" rows="4" style="width:100%"></textarea>
   <div id="note-prev-wrap" style="display:none;margin:4px 0 10px"><span class="muted">Preview (links are clickable here):</span>
-    <div id="note-prev" style="border:1px solid #d8e9ea;background:#f5f9f9;border-radius:6px;padding:8px 12px"></div></div>
+    <div id="note-prev" style="border:1px solid #d8e9ea;background:#f5f9f9;border-radius:6px;padding:8px 12px;line-height:1.35"></div></div>
   <p><button type="button" class="btn secondary" id="add-site-links">Add a link to our website</button>
      <span class="muted"> Adds a short invitation to look at our front page first, then to see what others are saying. You can reword it.</span></p>
   <p><b>How do you want to send it?</b></p>
@@ -53,9 +53,9 @@ i.addEventListener('input',show);i.addEventListener('change',show);show();})();
 <script>
 document.getElementById('add-site-links').addEventListener('click',function(){
   var b=document.getElementById('note-box'),
-  txt="Before you write, take a look at our website: {{ home_url }}\n\nFor help knowing what to say, here's what others are saying: {{ stories_url }}";
+  txt="Before you write, take a look at our website: {{ home_url }}\nFor help knowing what to say, here's what others are saying: {{ stories_url }}";
   if(b.value.indexOf('{{ stories_url }}')>-1)return;
-  b.value=(b.value?b.value.replace(/\s+$/,'')+"\n\n":"")+txt;});
+  b.value=(b.value?b.value.replace(/\s+$/,'')+"\n":"")+txt;});
 </script>
 <script>
 (function(){function lk(v){return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');}
