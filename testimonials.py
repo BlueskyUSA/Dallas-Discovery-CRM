@@ -258,6 +258,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         conn.execute("DELETE FROM testimonial_requests WHERE id = ?", (req_id,))
         conn.commit()
         conn.close()
+        if request.form.get("next") == "new":
+            flash("Request cancelled. The link no longer works. You can start over with a new contact.")
+            return redirect(url_for(".testimonial_request"))
         flash("Deleted. The link no longer works.")
         return redirect(url_for(".testimonials_review"))
 
@@ -281,6 +284,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 conn.execute("""INSERT INTO testimonial_requests (token, contact_id, program_code, note, created_at)
                                 VALUES (?, ?, ?, ?, ?)""", (token, ct["id"], program, note, now))
                 conn.commit()
+                req_row_id = conn.execute("SELECT id FROM testimonial_requests WHERE token = ?", (token,)).fetchone()["id"]
                 link = url_for("public_share", token=token, _external=True)
                 first = (ct["first_name"] or ct["full_name"] or "there").strip()
                 what = PROGRAM_LABEL[program] if program != "GEN" else "Discovery!"
@@ -309,7 +313,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                             conn.commit()
                         except Exception as e:
                             err = f"The email could not be sent ({e}). You can text the link below instead."
-                result = dict(name=ct["full_name"], link=link, sms=sms, emailed=emailed, err=err)
+                result = dict(req_id=req_row_id, name=ct["full_name"], link=link, sms=sms, emailed=emailed, err=err)
         contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name, email, cell_phone, home_phone FROM contacts ORDER BY last_name, first_name").fetchall()
         conn.close()
         # Pick-list text shows name and email (no database numbers). Duplicates get the phone, then a counter.
