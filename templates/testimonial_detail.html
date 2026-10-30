@@ -7,6 +7,7 @@
 {% if t.confirm_state == 'sent' %}<div class="card" style="border-left:4px solid #c9a227">Sent back to the contact; waiting for their answer.</div>{% endif %}
 {% if t.confirm_state == 'yes' %}<div class="card" style="border-left:4px solid #1b7a3d">&#10003; The contact approved this version ({{ t.confirm_at }}). You can publish it.</div>{% endif %}
 {% if t.confirm_state == 'changes' %}<div class="card" style="border-left:4px solid #b3261e"><b>The contact asked for changes</b> ({{ t.confirm_at }}):<br>{{ t.confirm_note or '(no note)' }}</div>{% endif %}
+{% if flags %}<div class="card" style="border-left:4px solid #c9a227;background:#fff8e1"><b>Check the wording.</b> This text contains words that can sound therapeutic or medical: <b>{{ flags|join(', ') }}</b>. Our rule is to keep therapeutic language out of testimonials. Edit it, or send it back to them for approval.</div>{% endif %}
 <form method="post" enctype="multipart/form-data">
 <div class="card">
   {% if t.has_video %}
@@ -33,5 +34,5 @@
   <button class="btn secondary" type="submit" name="action" value="delete" onclick="return confirm('Delete this testimonial for good?')">Delete</button>
 </p>
 </form>
-<p class="muted">Only change spelling, punctuation and length. If you change the meaning, send it back for their approval first.</p>
+<p class="muted">Keep therapeutic and medical language out of testimonials. Only change spelling, punctuation and length. If you change the meaning, send it back for their approval first.</p>
 {% endblock %}

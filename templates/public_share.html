@@ -25,7 +25,7 @@
     <p class="lead">Your story has been received. We will read it, and we will send you the final version to approve before anything is shared. Your words may help someone take their first step.</p>
   {% else %}
     <h2>Share your experience</h2>
-    <p class="lead">{% if req.first_name %}Hi {{ req.first_name }}, {% endif %}we would love to hear in your own words what {% if program_label %}{{ program_label }}{% else %}Discovery!{% endif %} meant to you. A few sentences is plenty. Choose whatever is easiest:</p>
+    <p class="lead">{% if req.first_name %}Hi {{ req.first_name }}, {% endif %}we would love to hear in your own words what {% if program_label %}{{ program_label }}{% else %}Discovery!{% endif %} meant to you. A few sentences is plenty. Please tell us what you experienced and learned, in everyday words, rather than medical or therapy terms. Choose whatever is easiest:</p>
     <form class="pub-form" method="post" enctype="multipart/form-data" id="shform" style="max-width:none">
       <div class="sh-opt">
         <button type="button" data-m="type" class="on">&#9998; Type it</button>
