@@ -36,7 +36,7 @@ class EmailSendError(Exception):
 
 
 def send_email(to_email, subject, html_content, to_name=None, text_content=None,
-                from_email=None, from_name=None, reply_to=None):
+                from_email=None, from_name=None, reply_to=None, attachments=None):
     """Sends one email through Brevo. Returns Brevo's message id on success.
     Raises EmailSendError on any failure (missing API key, bad request,
     Brevo-side error, network problem) -- callers decide how to handle
@@ -56,6 +56,9 @@ def send_email(to_email, subject, html_content, to_name=None, text_content=None,
         payload["textContent"] = text_content
     if reply_to:
         payload["replyTo"] = {"email": reply_to}
+    if attachments:  # list of (filename, bytes)
+        import base64
+        payload["attachment"] = [{"name": n, "content": base64.b64encode(b).decode("ascii")} for n, b in attachments]
 
     resp = None
     for attempt in range(1, SEND_ATTEMPTS + 1):

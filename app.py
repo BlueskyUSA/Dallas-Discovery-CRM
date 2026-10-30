@@ -6923,6 +6923,7 @@ def public_feedback(token):
 # "budgets" grant can VIEW; only the Owner can change numbers. Others use "Request a budget change"
 # (comments + estimate), which is saved and emailed to the Owner.
 import budget_model
+import budget_xlsx
 import json as _json
 BUDGET_KEYS = [
     ("prog_D1", "The Beginning / Awakening / Vision weekend", "training"),
@@ -7008,6 +7009,26 @@ def budget_view(key):
                            editing=bool(session.get("is_owner") and request.args.get("edit")))
 
 
+def _budget_xlsx_bytes(key):
+    label, kind = _budget_info(key)
+    conn = get_db()
+    data, updated_at, _ = _load_budget(conn, key, label, kind)
+    conn.close()
+    return label, budget_xlsx.build_xlsx(label, kind, data, updated_at)
+
+
+@crm.route("/budgets/<key>/download")
+@area_required("budgets")
+def budget_download(key):
+    _ensure_budget_tables()
+    label, blob = _budget_xlsx_bytes(key)
+    name = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx"
+    resp = make_response(blob)
+    resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{name}"'
+    return resp
+
+
 @crm.route("/budgets/<key>/save", methods=["POST"])
 @area_required("budgets")
 def budget_save(key):
@@ -7053,9 +7074,17 @@ def budget_request(key):
             f"<p><b>Estimate:</b> {_html.escape(estimate) or '(none given)'}</p>"
             f"<p><a href=\"{link}\">Open the budget</a></p>")
     sent = False
+    try:
+        _, blob = _budget_xlsx_bytes(key)
+        attach = [(re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx", blob)]
+    except Exception as e:
+        print(f"budget excel build failed: {e}", flush=True)
+        attach = None
+    body += "<p>The current budget is attached as an Excel file.</p>" if attach else ""
     for o in owners:
         try:
-            send_email(to_email=o["email"], to_name=o["name"], subject=f"Budget change request: {label}", html_content=body)
+            send_email(to_email=o["email"], to_name=o["name"], subject=f"Budget change request: {label}", html_content=body,
+                       attachments=attach)
             sent = True
         except Exception as e:
             print(f"budget request email failed: {e}", flush=True)
