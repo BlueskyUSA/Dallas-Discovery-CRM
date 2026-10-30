@@ -7179,6 +7179,8 @@ def inject_area_access():
 
 app.jinja_env.globals["role_label"] = role_label
 call_flow.register(app, crm, leadership_required, get_db)
+import testimonials
+testimonials.register(app, crm, leadership_required, get_db, send_email, full_name_sql, PROGRAM_NAME)
 
 # ---------- volunteer chat: discussion board + live chat room ----------
 # Internal only. Open to every Team / Leadership / Owner login; Accounting & Legal
