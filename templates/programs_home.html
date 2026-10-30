@@ -48,7 +48,8 @@ d.addEventListener('change',upd);d.form.program_id.addEventListener('change',upd
           <form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=c.id) }}" style="margin:6px 0">
             <input type="hidden" name="back" value="programs">{% if c.code == 'D1' %}<input type="hidden" name="weekend" value="1">{% endif %}
             <input type="hidden" name="status" value="{{ c.status }}">
-            <input type="date" name="session_date" value="{{ c.session_date }}" required>
+            <input type="date" name="session_date" value="{{ c.session_date }}" required
+                   onchange="var e=this.form.end_date; if(this.value){var n=new Date(this.value+'T12:00:00'); n.setDate(n.getDate()+{{ 1 if c.code == 'D5' else 2 }}); e.value=n.toISOString().slice(0,10);}">
             <span class="muted">through</span>
             <input type="date" name="end_date" value="{{ c.end_date or '' }}">
             <button class="btn secondary" type="submit">Save dates</button>
