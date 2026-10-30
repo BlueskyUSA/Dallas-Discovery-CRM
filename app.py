@@ -6924,6 +6924,7 @@ def public_feedback(token):
 # (comments + estimate), which is saved and emailed to the Owner.
 import budget_model
 import budget_xlsx
+import budget_pdf
 import json as _json
 BUDGET_KEYS = [
     ("prog_D1", "The Beginning / Awakening / Vision weekend", "training"),
@@ -7003,10 +7004,10 @@ def budget_view(key):
     recipients = []
     if session.get("is_owner"):
         recipients = conn.execute(
-            """SELECT s.id, s.name, s.email, s.role,
+            """SELECT s.id, s.name, s.email, s.role, s.is_owner,
                       EXISTS (SELECT 1 FROM access_grants g WHERE g.staff_id = s.id AND g.area_key = 'budgets') AS has_grant
-               FROM staff s WHERE s.active = 1 AND s.is_owner = 0
-                 AND (s.role = 'Leadership' OR EXISTS (SELECT 1 FROM access_grants g WHERE g.staff_id = s.id AND g.area_key = 'budgets'))
+               FROM staff s WHERE s.active = 1
+                 AND (s.is_owner = 1 OR s.role = 'Leadership' OR EXISTS (SELECT 1 FROM access_grants g WHERE g.staff_id = s.id AND g.area_key = 'budgets'))
                ORDER BY s.name""").fetchall()
     conn.close()
     rows, totals = budget_model.compute(data)
@@ -7017,22 +7018,31 @@ def budget_view(key):
                            editing=bool(session.get("is_owner") and request.args.get("edit")))
 
 
-def _budget_xlsx_bytes(key):
+def _budget_attachments(key, fmt):
+    """List of (filename, bytes) for fmt 'xlsx', 'pdf' or 'both'."""
     label, kind = _budget_info(key)
     conn = get_db()
     data, updated_at, _ = _load_budget(conn, key, label, kind)
     conn.close()
-    return label, budget_xlsx.build_xlsx(label, kind, data, updated_at)
+    base = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget"
+    out = []
+    if fmt in ("xlsx", "both"):
+        out.append((base + ".xlsx", budget_xlsx.build_xlsx(label, kind, data, updated_at)))
+    if fmt in ("pdf", "both"):
+        out.append((base + ".pdf", budget_pdf.build_pdf(label, kind, data, updated_at)))
+    return out
 
 
 @crm.route("/budgets/<key>/download")
 @area_required("budgets")
 def budget_download(key):
+    _budget_info(key)
     _ensure_budget_tables()
-    label, blob = _budget_xlsx_bytes(key)
-    name = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx"
+    fmt = "pdf" if request.args.get("fmt") == "pdf" else "xlsx"
+    name, blob = _budget_attachments(key, fmt)[0]
     resp = make_response(blob)
-    resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    resp.headers["Content-Type"] = ("application/pdf" if fmt == "pdf"
+                                    else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     resp.headers["Content-Disposition"] = f'attachment; filename="{name}"'
     return resp
 
@@ -7044,6 +7054,7 @@ def budget_email(key):
     _ensure_budget_tables()
     ids = [int(x) for x in request.form.getlist("staff_ids") if x.isdigit()]
     note = (request.form.get("message") or "").strip()[:3000]
+    fmt = request.form.get("fmt") if request.form.get("fmt") in ("xlsx", "pdf", "both") else "xlsx"
     if not ids:
         flash("Tick at least one person to email the budget to.")
         return redirect(url_for(".budget_view", key=key))
@@ -7051,18 +7062,18 @@ def budget_email(key):
     people = conn.execute(
         "SELECT name, email FROM staff WHERE active = 1 AND id IN ({})".format(",".join("?" for _ in ids)), tuple(ids)).fetchall()
     conn.close()
-    _, blob = _budget_xlsx_bytes(key)
-    fname = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx"
+    files = _budget_attachments(key, fmt)
+    kinds = {"xlsx": "an Excel file", "pdf": "a PDF", "both": "an Excel file and a PDF"}[fmt]
     sent, failed = [], []
     for pr in people:
         body = (f"<p>Hello {_html.escape(pr['name'].split()[0])},</p>"
-                f"<p>Attached is the budget for <b>{_html.escape(label)}</b> as an Excel file.</p>"
+                f"<p>Attached is the budget for <b>{_html.escape(label)}</b> as {kinds}.</p>"
                 + (f"<p>{_html.escape(note).replace(chr(10), '<br>')}</p>" if note else "")
                 + "<p>This budget is confidential; please do not forward it. If it needs changing, use "
                   "\"Request a budget change\" on the Budgets page.</p>")
         try:
             send_email(to_email=pr["email"], to_name=pr["name"], subject=f"Budget: {label}", html_content=body,
-                       attachments=[(fname, blob)])
+                       attachments=files)
             sent.append(pr["name"])
         except Exception as e:
             print(f"budget email failed for {pr['email']}: {e}", flush=True)
@@ -7119,13 +7130,13 @@ def budget_request(key):
             f"<p><b>Estimate:</b> {_html.escape(estimate) or '(none given)'}</p>"
             f"<p><a href=\"{link}\">Open the budget</a></p>")
     sent = False
+    fmt = request.form.get("fmt") if request.form.get("fmt") in ("xlsx", "pdf", "both") else "xlsx"
     try:
-        _, blob = _budget_xlsx_bytes(key)
-        attach = [(re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx", blob)]
+        attach = _budget_attachments(key, fmt)
     except Exception as e:
-        print(f"budget excel build failed: {e}", flush=True)
+        print(f"budget attachment build failed: {e}", flush=True)
         attach = None
-    body += "<p>The current budget is attached as an Excel file.</p>" if attach else ""
+    body += "<p>The current budget is attached.</p>" if attach else ""
     for o in owners:
         try:
             send_email(to_email=o["email"], to_name=o["name"], subject=f"Budget change request: {label}", html_content=body,
