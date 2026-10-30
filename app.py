@@ -7000,12 +7000,20 @@ def budget_view(key):
         requests_ = conn.execute(
             "SELECT * FROM budget_requests WHERE budget_key = ? ORDER BY id DESC LIMIT 20", (key,)).fetchall()
     fixed_total = _budget_totals(conn, "fixed", "Fixed", "fixed")["onetime"] if kind == "training" else None
+    recipients = []
+    if session.get("is_owner"):
+        recipients = conn.execute(
+            """SELECT s.id, s.name, s.email, s.role,
+                      EXISTS (SELECT 1 FROM access_grants g WHERE g.staff_id = s.id AND g.area_key = 'budgets') AS has_grant
+               FROM staff s WHERE s.active = 1 AND s.is_owner = 0
+                 AND (s.role = 'Leadership' OR EXISTS (SELECT 1 FROM access_grants g WHERE g.staff_id = s.id AND g.area_key = 'budgets'))
+               ORDER BY s.name""").fetchall()
     conn.close()
     rows, totals = budget_model.compute(data)
     return render_template("budget_view.html", key=key, label=label, kind=kind, data=data, rows=rows, totals=totals,
                            sections=budget_model.sections_for(kind), key_vars=budget_model.KEY_VARS,
                            updated_at=updated_at, updated_by=updated_by, is_owner=bool(session.get("is_owner")),
-                           change_requests=requests_, fixed_total=fixed_total,
+                           change_requests=requests_, fixed_total=fixed_total, recipients=recipients,
                            editing=bool(session.get("is_owner") and request.args.get("edit")))
 
 
@@ -7027,6 +7035,43 @@ def budget_download(key):
     resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     resp.headers["Content-Disposition"] = f'attachment; filename="{name}"'
     return resp
+
+
+@crm.route("/budgets/<key>/email", methods=["POST"])
+@owner_required
+def budget_email(key):
+    label, kind = _budget_info(key)
+    _ensure_budget_tables()
+    ids = [int(x) for x in request.form.getlist("staff_ids") if x.isdigit()]
+    note = (request.form.get("message") or "").strip()[:3000]
+    if not ids:
+        flash("Tick at least one person to email the budget to.")
+        return redirect(url_for(".budget_view", key=key))
+    conn = get_db()
+    people = conn.execute(
+        "SELECT name, email FROM staff WHERE active = 1 AND id IN ({})".format(",".join("?" for _ in ids)), tuple(ids)).fetchall()
+    conn.close()
+    _, blob = _budget_xlsx_bytes(key)
+    fname = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_") + "_Budget.xlsx"
+    sent, failed = [], []
+    for pr in people:
+        body = (f"<p>Hello {_html.escape(pr['name'].split()[0])},</p>"
+                f"<p>Attached is the budget for <b>{_html.escape(label)}</b> as an Excel file.</p>"
+                + (f"<p>{_html.escape(note).replace(chr(10), '<br>')}</p>" if note else "")
+                + "<p>This budget is confidential; please do not forward it. If it needs changing, use "
+                  "\"Request a budget change\" on the Budgets page.</p>")
+        try:
+            send_email(to_email=pr["email"], to_name=pr["name"], subject=f"Budget: {label}", html_content=body,
+                       attachments=[(fname, blob)])
+            sent.append(pr["name"])
+        except Exception as e:
+            print(f"budget email failed for {pr['email']}: {e}", flush=True)
+            failed.append(pr["name"])
+    if sent:
+        flash("Budget emailed to: " + ", ".join(sent) + ".")
+    if failed:
+        flash("Could not email: " + ", ".join(failed) + ".")
+    return redirect(url_for(".budget_view", key=key))
 
 
 @crm.route("/budgets/<key>/save", methods=["POST"])
