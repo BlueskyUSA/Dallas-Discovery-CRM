@@ -1622,7 +1622,7 @@ def date_span(row):
     return f"{fdate_text(start)} to {fdate_text(end)}" if end and end != start else fdate_text(start)
 
 
-PROGRAM_LABELS = {"D1": "The Beginning", "D2": "Awakening", "D3": "Vision", "D4": "The Art of Us",
+PROGRAM_LABELS = {"D1": "The Beginning, Awakening & Vision", "D2": "Awakening", "D3": "Vision", "D4": "The Art of Us",
                   "D5": "Renew", "D6": "Spiritual"}
 
 
