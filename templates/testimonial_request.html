@@ -22,8 +22,11 @@
   <select name="program">{% for code, label in programs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
   <label>A personal note (optional, added to the email)</label>
   <textarea name="note" rows="3" style="width:100%"></textarea>
-  <p><button class="btn" type="submit" name="action" value="email">Email them the invitation</button>
-     <button class="btn secondary" type="submit" name="action" value="link">Just make the link (I will text it)</button></p>
+  <p><b>How do you want to send it?</b></p>
+  <p><button class="btn" type="submit" name="action" value="email">Send it by email now</button>
+     <span class="muted"> The program emails them the invitation.</span></p>
+  <p><button class="btn secondary" type="submit" name="action" value="link">Get a text message to send myself</button>
+     <span class="muted"> Nothing is emailed. You get their private link and a ready-made text message to copy and send from your phone.</span></p>
 </form>
 <p class="muted">They can type, speak, or record a video. Nothing is published until you review it and they approve your edited version.</p>
 </div>
