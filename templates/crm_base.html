@@ -45,8 +45,8 @@
           {% endif %}
           {% if has_correspondence_access %}<a href="{{ url_for('.email_blasts') }}">Correspondence</a>{% endif %}
           {% if show_finance %}<a href="{{ url_for('.finance') }}">Finance</a>{% endif %}
-          {% if session.is_owner or has_budgets_access %}<a href="{{ url_for('.budgets_home') }}">Budgets</a>{% endif %}
-          {% if show_donations %}<a href="{{ url_for('.donations_list') }}">Donations</a>{% endif %}
+          {% if session.is_owner or has_budgets_access %}<a href="{{ url_for('.budgets_home') }}" style="padding-left:30px">&ndash; Budgets</a>{% endif %}
+          {% if show_donations %}<a href="{{ url_for('.donations_list') }}" style="padding-left:30px">&ndash; Donations</a>{% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.database_map') }}">Database map</a>{% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
