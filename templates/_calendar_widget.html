@@ -40,6 +40,7 @@
     <a class="cal-nav" href="{{ next_url }}">{{ cal.year + 1 }} &rarr;</a>
     <a class="cal-nav" href="{{ today_url }}">{{ today_label|default('This year') }}</a>
   </div>
+  {% if not cal.public %}
   <div class="cal-legend">
     <span><span class="dot" style="background:#fff; border:1.5px solid #b3261e"></span>US &amp; Christian holiday</span>
     <span><span class="dot" style="background:#fff; border:1.5px solid #1f5fa8"></span>Jewish holiday (begins at sundown the evening before)</span>
@@ -47,8 +48,9 @@
     {% for c in cal.codes %}<span><span class="dot" style="background:{{ cal.colors.get(c, '#777') }}"></span>{{ c|prog_label }}</span>{% endfor %}
   {% endif %}
   </div>
+  {% endif %}
 
-  <div class="cal-grid">
+  {% if not cal.public %}<div class="cal-grid">
     {% for m in cal.months %}
     <div class="cal-month">
       <h3>{{ m.name }}</h3>
@@ -82,10 +84,10 @@
       </div>
     </div>
     {% endfor %}
-  </div>
+  </div>{% endif %}
 
   {% if not picker %}
-  <h3 style="margin:18px 0 8px">Weekends in {{ cal.year }}</h3>
+  <h3 style="margin:{{ '4px' if cal.public else '18px' }} 0 8px">{{ 'Scheduled dates in ' if cal.public else 'Weekends in ' }}{{ cal.year }}</h3>
   <table class="cal-weekends">
     <tr><th>Starts</th><th>Training running that weekend</th></tr>
     {% for g in cal.groups %}
