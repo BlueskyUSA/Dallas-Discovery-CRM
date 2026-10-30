@@ -24,6 +24,18 @@ CONSENT_TEXT = ("I give Discovery! permission to publish what I have shared here
                 "website and in its materials, using the name choice I picked. I understand I can ask to have it "
                 "removed at any time.")
 
+# Words that sound therapeutic or medical. Shown as a warning on the review page so they can be edited out
+# (or the person asked) before anything is published. Matching is by word start, e.g. "heal" also catches "healing".
+FLAG_WORDS = ["heal", "therap", "cure", "cured", "trauma", "depress", "anxiety", "anxious", "ptsd", "diagnos", "treatment",
+              "medicat", "psychiatr", "psycholog", "counsel", "disorder", "addiction", "recovery", "abuse", "suicid",
+              "mental health", "clinical", "symptom", "disease", "illness", "bipolar", "panic"]
+
+
+def flagged_words(text):
+    low = (text or "").lower()
+    return sorted({w for w in FLAG_WORDS if re.search(r"\b" + re.escape(w), low)})
+
+
 _ready = False
 
 
@@ -331,7 +343,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             flash(msg)
             return redirect(url_for(".testimonial_detail", tid=tid))
         conn.close()
-        return render_template("testimonial_detail.html", t=t, programs=STORY_PROGRAMS)
+        return render_template("testimonial_detail.html", t=t, programs=STORY_PROGRAMS, flags=flagged_words(t["body"]))
 
     @crm.route("/testimonials/<int:tid>/video")
     @leadership_required
