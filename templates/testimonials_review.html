@@ -1,0 +1,31 @@
+{% extends "crm_base.html" %}
+{% block title %}Testimonials{% endblock %}
+{% block content %}
+<h1>Testimonials</h1>
+<p><a class="btn" href="{{ url_for('.testimonial_request') }}">Request a testimonial</a>
+   <a class="btn secondary" href="{{ url_for('public_stories') }}" target="_blank">View the public Stories page</a></p>
+{% set new = rows|selectattr('status', 'equalto', 'New')|list %}
+<h2>Needs your review ({{ new|length }})</h2>
+<div class="card">
+{% if new %}<table><tr><th>Received</th><th>From</th><th>Program</th><th>Preview</th><th></th></tr>
+  {% for r in new %}<tr><td>{{ r.created_at }}</td><td>{{ r.display_name }}</td><td>{{ labels.get(r.program_code, r.program_code) }}</td>
+    <td>{% if r.has_video %}&#127909; {% endif %}{{ (r.body or '')[:90] }}{% if (r.body or '')|length > 90 %}&hellip;{% endif %}</td>
+    <td><a class="btn secondary" href="{{ url_for('.testimonial_detail', tid=r.id) }}">Review</a></td></tr>{% endfor %}</table>
+{% else %}<p class="muted">Nothing waiting.</p>{% endif %}
+</div>
+<h2>All testimonials</h2>
+<div class="card">
+{% set rest = rows|rejectattr('status', 'equalto', 'New')|list %}
+{% if rest %}<table><tr><th>Status</th><th>From</th><th>Program</th><th>Preview</th><th></th></tr>
+  {% for r in rest %}<tr><td>{{ r.status }}{% if r.featured %} &#9733;{% endif %}</td><td>{{ r.display_name }}</td><td>{{ labels.get(r.program_code, r.program_code) }}</td>
+    <td>{% if r.has_video %}&#127909; {% endif %}{{ (r.body or '')[:90] }}</td>
+    <td><a class="btn secondary" href="{{ url_for('.testimonial_detail', tid=r.id) }}">Open</a></td></tr>{% endfor %}</table>
+{% else %}<p class="muted">None yet.</p>{% endif %}
+</div>
+<h2>Waiting for a reply ({{ waiting|length }})</h2>
+<div class="card">
+{% if waiting %}<table><tr><th>Contact</th><th>Program</th><th>Created</th><th>Emailed</th></tr>
+  {% for w in waiting %}<tr><td>{{ w.full_name }}</td><td>{{ labels.get(w.program_code, w.program_code) }}</td><td>{{ w.created_at }}</td><td>{{ w.sent_at or 'link only' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="muted">No open requests.</p>{% endif %}
+</div>
+{% endblock %}

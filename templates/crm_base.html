@@ -46,6 +46,7 @@
           <a href="{{ url_for('.interest_report') }}">Interest report</a>
           <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
           {% endif %}
+          {% if is_lead %}<a href="{{ url_for('.testimonials_review') }}">Testimonials</a>{% endif %}
           {% if has_correspondence_access %}<a href="{{ url_for('.email_blasts') }}">Correspondence</a>{% endif %}
           {% if show_finance or show_donations or session.is_owner or has_budgets_access %}
           <details class="subnav">

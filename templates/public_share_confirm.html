@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Please check your story — {{ public_brand }}{% endblock %}
+{% block site_header %}{% include "_helper_header.html" %}{% endblock %}
+{% block content %}
+<section class="pub-section"><div class="pub-container" style="max-width:680px">
+{% if not t %}
+  <h2>This link is not valid</h2><p class="lead">Please reply to our message and we will send a new one.</p>
+{% elif answered == 'yes' %}
+  <h2>Thank you</h2><p class="lead">You approved it as shown. We will publish it soon.</p>
+{% elif answered == 'changes' %}
+  <h2>Thank you</h2><p class="lead">We got your note and will make the changes. We will send it back to you to check before anything is published.</p>
+{% else %}
+  <h2>Please check your story</h2>
+  <p class="lead">Here is exactly how it would appear{% if label %} under {{ label }}{% endif %}. Nothing is published until you say yes.</p>
+  {% if t.has_video %}<video controls playsinline style="width:100%;max-width:480px;border-radius:10px;background:#000" src="{{ url_for('public_share_confirm_video', token=t.confirm_token) }}"></video>{% endif %}
+  {% if t.body %}<blockquote style="border-left:4px solid #176878;margin:18px 0;padding:6px 18px;font-size:1.1rem;line-height:1.6;white-space:pre-wrap">{{ t.body }}</blockquote>{% endif %}
+  <p><b>&mdash; {{ t.display_name }}</b></p>
+  <form method="post" class="pub-form" style="max-width:none">
+    <div class="field"><label for="note">If you would like changes, tell us here (optional if you approve)</label><textarea id="note" name="note" rows="4"></textarea></div>
+    <button class="pub-btn dark" type="submit" name="answer" value="yes">Yes, this is right. You may publish it.</button>
+    <button class="pub-btn" type="submit" name="answer" value="changes">I would like changes</button>
+  </form>
+{% endif %}
+</div></section>
+{% endblock %}

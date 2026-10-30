@@ -1,0 +1,37 @@
+{% extends "crm_base.html" %}
+{% block title %}Review testimonial{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.testimonials_review') }}">&larr; Testimonials</a></p>
+<h1>Review: {{ t.display_name }}</h1>
+<p class="muted">Received {{ t.created_at }} &middot; Status: <b>{{ t.status }}</b>{% if t.consent_at %} &middot; Permission given {{ t.consent_at }}{% endif %}</p>
+{% if t.confirm_state == 'sent' %}<div class="card" style="border-left:4px solid #c9a227">Sent back to the contact; waiting for their answer.</div>{% endif %}
+{% if t.confirm_state == 'yes' %}<div class="card" style="border-left:4px solid #1b7a3d">&#10003; The contact approved this version ({{ t.confirm_at }}). You can publish it.</div>{% endif %}
+{% if t.confirm_state == 'changes' %}<div class="card" style="border-left:4px solid #b3261e"><b>The contact asked for changes</b> ({{ t.confirm_at }}):<br>{{ t.confirm_note or '(no note)' }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data">
+<div class="card">
+  {% if t.has_video %}
+  <video controls playsinline style="width:100%;max-width:480px;background:#000;border-radius:8px" src="{{ url_for('.testimonial_video', tid=t.id) }}"></video>
+  <p><a class="btn secondary" href="{{ url_for('.testimonial_video', tid=t.id, dl=1) }}">Download video</a></p>
+  {% endif %}
+  <label>{{ 'Replace video (edited file)' if t.has_video else 'Add a video file' }}</label>
+  <input type="file" name="video" accept="video/*">
+  <label>Words (edit for typos and length; the original is shown below)</label>
+  <textarea name="body" rows="9" style="width:100%">{{ t.body }}</textarea>
+  <details><summary class="muted">What they originally wrote</summary><p style="white-space:pre-wrap">{{ t.body_original }}</p></details>
+  <table style="width:auto"><tr>
+    <td><label>Name shown</label><input type="text" name="display_name" value="{{ t.display_name }}"></td>
+    <td><label>Year attended</label><input type="text" name="attended" value="{{ t.attended or '' }}"></td>
+    <td><label>Program</label><select name="program">{% for code, label in programs %}<option value="{{ code }}" {% if code == t.program_code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+  </tr></table>
+  <label style="display:inline"><input type="checkbox" name="featured" value="1" {% if t.featured %}checked{% endif %} style="width:auto"> Show first on the Stories page</label>
+</div>
+<p>
+  <button class="btn secondary" type="submit" name="action" value="save">Save</button>
+  <button class="btn" type="submit" name="action" value="send_back">Save and send back to them for approval</button>
+  <button class="btn" type="submit" name="action" value="approve" {% if t.confirm_state == 'sent' %}onclick="return confirm('They have not answered yet. Publish anyway?')"{% endif %}>Publish on the Stories page</button>
+  <button class="btn secondary" type="submit" name="action" value="hide">Hide from the website</button>
+  <button class="btn secondary" type="submit" name="action" value="delete" onclick="return confirm('Delete this testimonial for good?')">Delete</button>
+</p>
+</form>
+<p class="muted">Only change spelling, punctuation and length. If you change the meaning, send it back for their approval first.</p>
+{% endblock %}

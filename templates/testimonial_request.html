@@ -1,0 +1,29 @@
+{% extends "crm_base.html" %}
+{% block title %}Request a testimonial{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.testimonials_review') }}">&larr; Testimonials</a></p>
+<h1>Request a testimonial</h1>
+{% if result %}
+<div class="card" style="border-left:4px solid #1f6f78">
+  <b>Link created for {{ result.name }}.</b>
+  {% if result.emailed %}<p>&#10003; The email was sent.</p>{% endif %}
+  {% if result.err %}<p style="color:#b3261e">{{ result.err }}</p>{% endif %}
+  <p>Their private link:<br><input type="text" readonly value="{{ result.link }}" style="width:100%" onclick="this.select()"></p>
+  <p>Text message you can copy:<br><textarea readonly rows="4" style="width:100%" onclick="this.select()">{{ result.sms }}</textarea></p>
+</div>
+{% endif %}
+<div class="card">
+<form method="post">
+  <datalist id="ct">{% for c in contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]">{% endfor %}</datalist>
+  <label>Contact (start typing a name)</label>
+  <input list="ct" name="contact" style="width:100%" required>
+  <label>Which program did they experience?</label>
+  <select name="program">{% for code, label in programs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
+  <label>A personal note (optional, added to the email)</label>
+  <textarea name="note" rows="3" style="width:100%"></textarea>
+  <p><button class="btn" type="submit" name="action" value="email">Email them the invitation</button>
+     <button class="btn secondary" type="submit" name="action" value="link">Just make the link (I will text it)</button></p>
+</form>
+<p class="muted">They can type, speak, or record a video. Nothing is published until you review it and they approve your edited version.</p>
+</div>
+{% endblock %}
