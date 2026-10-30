@@ -2467,8 +2467,12 @@ def public_complete_profile(token):
             if thankyou_email:
                 connect_url = url_for("public_connect_request", token=token, _external=True)
                 plan_url = url_for("request_preliminary_plan", token=token, _external=True)
+                share_url = None
+                if (values.get("discovery_attendance") or contact["discovery_attendance"]) == "Yes":
+                    share_url = testimonials.share_link_for_contact(
+                        get_db, contact["id"], lambda tk: url_for("public_share", token=tk, _external=True))
                 html_content, text_content = longform_thankyou_content(
-                    values["first_name"], connect_url, plan_url
+                    values["first_name"], connect_url, plan_url, share_url
                 )
                 try:
                     send_email(

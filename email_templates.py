@@ -297,7 +297,7 @@ def longform_followup_content(first_name, longform_url):
 LONGFORM_THANKYOU_SUBJECT = "Thank you!"
 
 
-def longform_thankyou_content(first_name, connect_url, plan_url):
+def longform_thankyou_content(first_name, connect_url, plan_url, share_url=None):
     """Returns (html_content, text_content) for the thank-you email sent
     when someone clicks Submit on the public long form (complete-profile)
     -- not every autosave, just that final submit. Offers two separate
@@ -307,6 +307,30 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
     is their personal /connect link so they can ask Kent to follow up
     directly if they'd like, without needing to reply to this email."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
+
+    share_html = ""
+    share_text = ""
+    if share_url:
+        share_html = (
+            "<p><strong>One more thing:</strong> your story matters. Would you be willing to share, in a "
+            "few sentences or a short video, how Discovery! touched your life? You can type it, say it out "
+            "loud, or record it on your phone. It takes about two minutes. Your words may help someone "
+            "else take their first step.</p>"
+            "<p>Nothing is ever published without your approval. We'll send you the final version to look "
+            "over first, and you choose how your name appears: full name, first name and last initial, or "
+            "anonymous.</p>"
+            f'<p><a href="{share_url}" style="display:inline-block; background:#0c4561; color:#ffffff; '
+            'text-decoration:none; font-weight:700; padding:12px 22px; border-radius:8px;">Share my experience</a></p>'
+        )
+        share_text = (
+            "One more thing: your story matters. Would you be willing to share, in a few sentences or a "
+            "short video, how Discovery! touched your life? You can type it, say it out loud, or record it "
+            "on your phone. It takes about two minutes. Your words may help someone else take their first "
+            "step.\n\n"
+            "Nothing is ever published without your approval. We'll send you the final version to look over "
+            "first, and you choose how your name appears: full name, first name and last initial, or "
+            f"anonymous.\n\nShare my experience: {share_url}\n\n"
+        )
 
     html_content = f"""
         <p>Dear {greeting},</p>
@@ -322,6 +346,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         <p><a href="{plan_url}" style="display:inline-block; background:#1f6fb2; color:#ffffff;
         text-decoration:none; font-weight:700; padding:12px 22px; border-radius:8px;">Send me the
         Preliminary Discovery! Plan</a></p>
+        {share_html}
         <p>Thanks again for all that you have done in years past, and for perhaps all that you
         will be doing for Discovery! in the future.</p>
         <p>If you'd like for me to personally reach out to you &mdash; just
@@ -342,6 +367,7 @@ def longform_thankyou_content(first_name, connect_url, plan_url):
         "In short... we need an army of serious volunteers willing to dig deep and take on "
         "responsibility. If you wish, we'll send you the plan outline:\n"
         f"{plan_url}\n\n"
+        f"{share_text}"
         "Thanks again for all that you have done in years past, and for perhaps all that you "
         "will be doing for Discovery! in the future.\n\n"
         "If you'd like for me to personally reach out to you -- just click the link below and "
