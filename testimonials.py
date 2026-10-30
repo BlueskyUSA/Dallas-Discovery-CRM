@@ -248,6 +248,18 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL,
                                show=request.args.get("show") or "")
 
+    @crm.route("/testimonials/request/<int:req_id>/delete", methods=["POST"])
+    @leadership_required
+    def testimonial_request_delete(req_id):
+        _ensure(get_db)
+        conn = get_db()
+        conn.execute("DELETE FROM testimonials WHERE request_id = ?", (req_id,))
+        conn.execute("DELETE FROM testimonial_requests WHERE id = ?", (req_id,))
+        conn.commit()
+        conn.close()
+        flash("Deleted. The link no longer works.")
+        return redirect(url_for(".testimonials_review"))
+
     @crm.route("/testimonials/request", methods=["GET", "POST"])
     @leadership_required
     def testimonial_request():
@@ -315,7 +327,10 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         if request.method == "POST":
             action = request.form.get("action")
             if action == "delete":
+                req = conn.execute("SELECT request_id FROM testimonials WHERE id = ?", (tid,)).fetchone()
                 conn.execute("DELETE FROM testimonials WHERE id = ?", (tid,))
+                if req and req["request_id"]:
+                    conn.execute("DELETE FROM testimonial_requests WHERE id = ?", (req["request_id"],))
                 conn.commit()
                 conn.close()
                 flash("Testimonial deleted.")
