@@ -14,7 +14,8 @@
 {% endif %}
 <div class="card">
 <form method="post">
-  <datalist id="ct">{% for c in contacts %}<option value="{{ c.full_name }} [#{{ c.id }}]" label="{{ c.email or 'no email' }} &middot; {{ c.cell_phone or c.home_phone or 'no phone' }}">{% endfor %}</datalist>
+  <datalist id="ct">{% for c in picks %}<option value="{{ c.key }}">{% endfor %}</datalist>
+  <input type="hidden" name="contact_id" id="ct-id">
   <label>Contact (start typing a name)</label>
   <input list="ct" name="contact" id="ct-in" style="width:100%" required autocomplete="off">
   <p id="ct-info" class="muted" style="margin:6px 0 12px"></p>
@@ -31,9 +32,10 @@
 <p class="muted">They can type, speak, or record a video. Nothing is published until you review it and they approve your edited version.</p>
 </div>
 <script>
-var CT={ {% for c in contacts %}{{ (c.full_name ~ ' [#' ~ c.id ~ ']')|tojson }}:{e:{{ (c.email or '')|tojson }},p:{{ (c.cell_phone or c.home_phone or '')|tojson }}}{% if not loop.last %},{% endif %}{% endfor %} };
+var CT={ {% for c in picks %}{{ c.key|tojson }}:{i:{{ c.id }},e:{{ c.email|tojson }},p:{{ c.phone|tojson }}}{% if not loop.last %},{% endif %}{% endfor %} };
 (function(){var i=document.getElementById('ct-in'),o=document.getElementById('ct-info');
-function show(){var c=CT[i.value];if(!c){o.textContent='';return;}
+var h=document.getElementById('ct-id');
+function show(){var c=CT[i.value];h.value=c?c.i:'';if(!c){o.textContent='';return;}
  o.innerHTML='Email: <b>'+(c.e||'<span style="color:#b3261e">none on file</span>')+'</b> &nbsp;&middot;&nbsp; Phone: <b>'+(c.p||'<span style="color:#b3261e">none on file</span>')+'</b>'+(c.e?'':' &mdash; the email button will not work; use the link and text it.');}
 i.addEventListener('input',show);i.addEventListener('change',show);})();
 </script>
