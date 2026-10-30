@@ -1626,6 +1626,21 @@ PROGRAM_LABELS = {"D1": "The Beginning, Awakening & Vision", "D2": "Awakening", 
                   "D5": "Renew", "D6": "Spiritual"}
 
 
+@app.template_filter("day_list")
+def day_list(start, last=None):
+    """'February 12, 13 & 14' (or 'July 30, 31 & August 1' across a month change) for the public summary."""
+    last = last or start
+    days, d = [], start
+    while d <= last and len(days) < 31:
+        days.append(d)
+        d += timedelta(days=1)
+    parts = []
+    for i, d in enumerate(days):
+        name = d.strftime("%B")
+        parts.append(f"{name} {d.day}" if i == 0 or d.month != days[i - 1].month else str(d.day))
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " & " + parts[-1] if len(parts) > 2 else " & ".join(parts)
+
+
 @app.template_filter("prog_label")
 def prog_label(code):
     """Calendar labels: show the program's name instead of its code (D4 -> The Art of Us)."""
