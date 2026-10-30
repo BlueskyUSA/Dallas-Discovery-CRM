@@ -23,10 +23,39 @@
   {% elif done %}
     <h2>Thank you</h2>
     <p class="lead">Your story has been received. We will read it, and we will send you the final version to approve before anything is shared. Your words may help someone take their first step.</p>
+    {% if pass_msg %}
+    <div class="sh-consent" style="margin-top:26px">
+      <b>Know someone else who has been through Discovery!?</b>
+      <p style="margin:8px 0">Pass it on. Here is a note you can send. Change it however you like.</p>
+      <textarea id="pass-msg" rows="6" style="width:100%">{{ pass_msg }}</textarea>
+      <p style="margin-top:8px">
+        <button type="button" class="pub-btn dark" id="pass-copy">Copy the note</button>
+        <a class="pub-btn" id="pass-sms" href="#">Text it</a>
+        <a class="pub-btn" id="pass-mail" href="#">Email it</a>
+      </p>
+      <p class="sh-note" id="pass-ok" style="display:none">Copied. Paste it into a text or email.</p>
+    </div>
+    <script>
+    (function(){var m=document.getElementById('pass-msg');
+      function upd(){var b=encodeURIComponent(m.value);document.getElementById('pass-sms').href='sms:?&body='+b;
+        document.getElementById('pass-mail').href='mailto:?subject='+encodeURIComponent('Would you share your Discovery! experience?')+'&body='+b;}
+      m.addEventListener('input',upd);upd();
+      document.getElementById('pass-copy').onclick=function(){m.select();try{navigator.clipboard.writeText(m.value);}catch(e){document.execCommand('copy');}document.getElementById('pass-ok').style.display='block';};})();
+    </script>
+    {% endif %}
   {% else %}
     <h2>Share your experience</h2>
-    <p class="lead">{% if req.first_name %}Hi {{ req.first_name }}, {% endif %}we would love to hear in your own words what {% if program_label %}{{ program_label }}{% else %}Discovery!{% endif %} meant to you. A few sentences is plenty. Please tell us what you experienced and learned, in everyday words, rather than medical or therapy terms. Choose whatever is easiest:</p>
+    <p class="lead">{% if req.first_name and not open_mode %}Hi {{ req.first_name }}, {% endif %}we would love to hear in your own words what {% if program_label %}{{ program_label }}{% else %}Discovery!{% endif %} meant to you. A few sentences is plenty. Please tell us what you experienced and learned, in everyday words, rather than medical or therapy terms. Choose whatever is easiest:</p>
     <form class="pub-form" method="post" enctype="multipart/form-data" id="shform" style="max-width:none">
+      {% if open_mode %}
+      <input type="hidden" name="from" value="{{ ref_token or '' }}">
+      <div style="position:absolute;left:-9999px" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="field"><label for="p-name">Your name *</label><input id="p-name" name="name" required autocomplete="name"></div>
+      <div class="field"><label for="p-email">Your email</label><input id="p-email" name="email" type="email" autocomplete="email"></div>
+      <div class="field"><label for="p-phone">Your cell number</label><input id="p-phone" name="phone" inputmode="tel" autocomplete="tel"><span class="sh-note">Email or cell number, at least one, so we can reach you.</span></div>
+      <div class="field"><label for="p-prog">Which Discovery! program did you take? (optional)</label>
+        <select id="p-prog" name="program"><option value="GEN">Not sure / more than one</option>{% for code, label in programs if code != 'GEN' %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+      {% endif %}
       <div class="sh-opt">
         <button type="button" data-m="type" class="on">&#9998; Type it</button>
         <button type="button" data-m="speak" id="b-speak">&#127908; Speak it</button>
@@ -61,6 +90,7 @@
       </div>
       <div class="sh-consent"><label style="font-weight:400;margin:0"><input type="checkbox" name="consent" value="1" required style="width:auto;display:inline"> {{ consent_text }}</label></div>
       <p class="sh-note">We will send you the final version to approve before anything is published.</p>
+      {% if not open_mode %}<p class="sh-note">This link is just for you. After you send your story, you will get a note you can pass along to a friend.</p>{% endif %}
       <button class="pub-btn dark" type="submit" id="send-btn">Send my story</button>
     </form>
 <script>

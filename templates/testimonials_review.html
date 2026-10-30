@@ -35,7 +35,7 @@
     <td><b style="color:{{ {'review':'#b3261e','changes':'#b3261e','ready':'#1b7a3d','published':'#1b7a3d','waiting_ok':'#8a6d00','waiting':'#5a6b75','hidden':'#5a6b75'}[i.stage] }}">{{ i.label }}</b></td>
     <td>{% if i.has_video %}&#127909; {% endif %}{{ (i.body or '')[:80] }}{% if (i.body or '')|length > 80 %}&hellip;{% endif %}</td>
     <td style="white-space:nowrap">{% if i.tid %}<a class="btn secondary" href="{{ url_for('.testimonial_detail', tid=i.tid) }}">{{ i.action }}</a>{% endif %}
-      <form class="inline" method="post" action="{{ url_for('.testimonial_request_delete', req_id=i.req_id) }}" style="margin:0;display:inline" onsubmit="return confirm('Delete this {{ 'testimonial and request' if i.tid else 'request' }} for good?{{ ' Its link will stop working.' if not i.tid else '' }}')"><button class="btn secondary" type="submit" style="color:#b3261e">Delete</button></form></td>
+      {% if i.req_id is none %}<form class="inline" method="post" action="{{ url_for('.testimonial_detail', tid=i.tid) }}" style="margin:0;display:inline" onsubmit="return confirm('Delete this testimonial for good?')"><input type="hidden" name="action" value="delete"><button class="btn secondary" type="submit" style="color:#b3261e">Delete</button></form>{% else %}<form class="inline" method="post" action="{{ url_for('.testimonial_request_delete', req_id=i.req_id) }}" style="margin:0;display:inline" onsubmit="return confirm('Delete this {{ 'testimonial and request' if i.tid else 'request' }} for good?{{ ' Its link will stop working.' if not i.tid else '' }}')"><button class="btn secondary" type="submit" style="color:#b3261e">Delete</button></form>{% endif %}</td>
   </tr>
   {% endfor %}
 </table>

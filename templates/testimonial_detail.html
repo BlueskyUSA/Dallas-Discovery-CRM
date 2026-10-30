@@ -3,6 +3,9 @@
 {% block content %}
 <p><a href="{{ url_for('.testimonials_review') }}">&larr; Testimonials</a></p>
 <h1>Review: {{ t.display_name }}</h1>
+{% if t.submitter_name %}<div class="card" style="border-left:4px solid #1f6f78"><b>Came through the shared link.</b><br>
+  {{ t.submitter_name }}{% if t.submitter_email %} &middot; {{ t.submitter_email }}{% endif %}{% if t.submitter_phone %} &middot; {{ t.submitter_phone }}{% endif %}{% if t.referred_by %}<br>Passed along by {{ t.referred_by }}{% endif %}
+  {% if not t.submitter_email %}<br><span style="color:#b3261e">No email, so it cannot be sent back for approval. Text them instead.</span>{% endif %}</div>{% endif %}
 <p class="muted">Received {{ t.created_at }} &middot; Status: <b>{{ t.status }}</b>{% if t.consent_at %} &middot; Permission given {{ t.consent_at }}{% endif %}</p>
 {% if t.confirm_state == 'sent' %}<div class="card" style="border-left:4px solid #c9a227">Sent back to the contact; waiting for their answer.</div>{% endif %}
 {% if t.confirm_state == 'yes' %}<div class="card" style="border-left:4px solid #1b7a3d">&#10003; The contact approved this version ({{ t.confirm_at }}). You can publish it.</div>{% endif %}
