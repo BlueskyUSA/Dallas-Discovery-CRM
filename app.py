@@ -323,13 +323,14 @@ FIXED_ACCESS_AREAS = [
     ("contracts", "Contracts & business plan"),
     ("session_team", "Session Team (on each training session page)"),
     ("trainee_roster", "Trainee Roster (on each training session page)"),
+    ("budgets", "Budgets (view only; Admin menu)"),
 ]
 # Ticking either session box also gives Contacts automatically, since the session pages
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
-FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence")
-UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence"}
+FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence", "budgets")
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "budgets"}
 
 
 def _can_see_session_part(part):
@@ -6916,12 +6917,170 @@ def public_feedback(token):
     return render_template("public_feedback.html", enr=enr, already_submitted=bool(already))
 
 
+
+# ---------- budgets ----------
+# One budget per training (not per date) plus one for fixed / one-time expenses. Everyone with the
+# "budgets" grant can VIEW; only the Owner can change numbers. Others use "Request a budget change"
+# (comments + estimate), which is saved and emailed to the Owner.
+import budget_model
+import json as _json
+BUDGET_KEYS = [
+    ("prog_D1", "The Beginning / Awakening / Vision weekend", "training"),
+    ("prog_D4", "The Art of Us", "training"),
+    ("prog_D5", "Renew", "training"),
+    ("prog_D6", "Spiritual", "training"),
+    ("fixed", "Fixed and one-time expenses", "fixed"),
+    ("donations", "Donations", "donations"),
+]
+_budgets_ready = False
+
+
+def _budget_info(key):
+    for k, label, kind in BUDGET_KEYS:
+        if k == key:
+            return label, kind
+    abort(404)
+
+
+def _ensure_budget_tables():
+    global _budgets_ready
+    if _budgets_ready:
+        return
+    conn = get_db()
+    try:
+        conn.execute("""CREATE TABLE IF NOT EXISTS budgets (
+            budget_key TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT, updated_by TEXT)""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS budget_requests (
+            id SERIAL PRIMARY KEY, budget_key TEXT NOT NULL, requested_by TEXT, comments TEXT,
+            estimate TEXT, status TEXT NOT NULL DEFAULT 'Open', created_at TEXT)""")
+        conn.commit()
+        _budgets_ready = True
+    except Exception as e:
+        conn.rollback()
+        print(f"Couldn't create budget tables: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+def _load_budget(conn, key, label, kind):
+    row = conn.execute("SELECT data, updated_at, updated_by FROM budgets WHERE budget_key = ?", (key,)).fetchone()
+    if row:
+        return budget_model.loads(row["data"], kind), row["updated_at"], row["updated_by"]
+    return budget_model.default_budget(label, kind), None, None
+
+
+def _budget_totals(conn, key, label, kind):
+    data, _, _ = _load_budget(conn, key, label, kind)
+    return budget_model.compute(data)[1]
+
+
+@crm.route("/budgets")
+@area_required("budgets")
+def budgets_home():
+    _ensure_budget_tables()
+    conn = get_db()
+    cards = []
+    for key, label, kind in BUDGET_KEYS:
+        t = _budget_totals(conn, key, label, kind)
+        cards.append(dict(key=key, label=label, kind=kind, totals=t))
+    conn.close()
+    return render_template("budgets_home.html", cards=cards)
+
+
+@crm.route("/budgets/<key>")
+@area_required("budgets")
+def budget_view(key):
+    label, kind = _budget_info(key)
+    _ensure_budget_tables()
+    conn = get_db()
+    data, updated_at, updated_by = _load_budget(conn, key, label, kind)
+    requests_ = []
+    if session.get("is_owner"):
+        requests_ = conn.execute(
+            "SELECT * FROM budget_requests WHERE budget_key = ? ORDER BY id DESC LIMIT 20", (key,)).fetchall()
+    fixed_total = _budget_totals(conn, "fixed", "Fixed", "fixed")["onetime"] if kind == "training" else None
+    conn.close()
+    rows, totals = budget_model.compute(data)
+    return render_template("budget_view.html", key=key, label=label, kind=kind, data=data, rows=rows, totals=totals,
+                           sections=budget_model.sections_for(kind), key_vars=budget_model.KEY_VARS,
+                           updated_at=updated_at, updated_by=updated_by, is_owner=bool(session.get("is_owner")),
+                           change_requests=requests_, fixed_total=fixed_total,
+                           editing=bool(session.get("is_owner") and request.args.get("edit")))
+
+
+@crm.route("/budgets/<key>/save", methods=["POST"])
+@area_required("budgets")
+def budget_save(key):
+    label, kind = _budget_info(key)
+    if not session.get("is_owner"):
+        flash("Only the Owner can change the budget. Use \"Request a budget change\" instead.")
+        return redirect(url_for(".budget_view", key=key))
+    _ensure_budget_tables()
+    conn = get_db()
+    data, _, _ = _load_budget(conn, key, label, kind)
+    budget_model.apply_form(data, request.form)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    conn.execute("DELETE FROM budgets WHERE budget_key = ?", (key,))
+    conn.execute("INSERT INTO budgets (budget_key, data, updated_at, updated_by) VALUES (?, ?, ?, ?)",
+                 (key, _json.dumps(data), now, session.get("staff_name") or "Owner"))
+    conn.commit()
+    conn.close()
+    flash("Budget saved.")
+    return redirect(url_for(".budget_view", key=key))
+
+
+@crm.route("/budgets/<key>/request", methods=["POST"])
+@area_required("budgets")
+def budget_request(key):
+    label, kind = _budget_info(key)
+    _ensure_budget_tables()
+    comments = (request.form.get("comments") or "").strip()[:3000]
+    estimate = (request.form.get("estimate") or "").strip()[:300]
+    if not comments:
+        flash("Please add your comments so the Owner knows what to change.")
+        return redirect(url_for(".budget_view", key=key))
+    conn = get_db()
+    who = session.get("staff_name") or "A team member"
+    conn.execute(
+        "INSERT INTO budget_requests (budget_key, requested_by, comments, estimate, created_at) VALUES (?, ?, ?, ?, ?)",
+        (key, who, comments, estimate, datetime.now().strftime("%Y-%m-%d %H:%M")))
+    owners = conn.execute("SELECT email, name FROM staff WHERE is_owner = 1 AND active = 1").fetchall()
+    conn.commit()
+    conn.close()
+    link = url_for(".budget_view", key=key, _external=True)
+    body = (f"<p><b>{_html.escape(str(who))}</b> asks for a change to the budget: <b>{_html.escape(label)}</b>.</p>"
+            f"<p><b>Comments:</b><br>{_html.escape(comments).replace(chr(10), '<br>')}</p>"
+            f"<p><b>Estimate:</b> {_html.escape(estimate) or '(none given)'}</p>"
+            f"<p><a href=\"{link}\">Open the budget</a></p>")
+    sent = False
+    for o in owners:
+        try:
+            send_email(to_email=o["email"], to_name=o["name"], subject=f"Budget change request: {label}", html_content=body)
+            sent = True
+        except Exception as e:
+            print(f"budget request email failed: {e}", flush=True)
+    flash("Your request was sent to the Owner." if sent else "Your request was saved for the Owner (the email could not be sent).")
+    return redirect(url_for(".budget_view", key=key))
+
+
+@crm.route("/budget-requests/<int:req_id>/done", methods=["POST"])
+@owner_required
+def budget_request_done(req_id):
+    _ensure_budget_tables()
+    conn = get_db()
+    row = conn.execute("SELECT budget_key FROM budget_requests WHERE id = ?", (req_id,)).fetchone()
+    conn.execute("UPDATE budget_requests SET status = 'Done' WHERE id = ?", (req_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for(".budget_view", key=row["budget_key"]) if row else url_for(".budgets_home"))
+
+
 @crm.context_processor
 def inject_area_access():
     if not session.get("staff_id"):
         return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False,
                 "has_contracts_access": False, "has_accounting_access": False,
-                "has_correspondence_access": False}
+                "has_correspondence_access": False, "has_budgets_access": False}
     return {
         "has_contacts_access": _has_area_access("contacts"),
         "has_program_access": _has_any_program_access(),
@@ -6929,6 +7088,7 @@ def inject_area_access():
         "has_contracts_access": _has_area_access("contracts"),
         "has_accounting_access": _has_area_access("accounting"),
         "has_correspondence_access": _has_area_access("correspondence"),
+        "has_budgets_access": _has_area_access("budgets"),
     }
 
 

@@ -12,8 +12,8 @@ import json
 import math
 
 KEY_VARS = [
-    ("rack", "Hotel rack rate per room per night", 108.99, "money2",
-     "PLACEHOLDER: one guest's average Fri-Sun rate here in Oct. 2025, not the rack rate. Replace with the hotel's quote."),
+    ("rack", "Hotel room rate per room per night", 80, "money2",
+     "Kent's expected negotiated rate ($80). Confirm with the hotel's written quote."),
     ("room_discount", "Negotiated discount off room rate", 0, "pct", "Percent off the rack rate (0% = none)."),
     ("room_tax", "Hotel tax on rooms", 0.13, "pct", "Total taxes of 13% listed for this hotel. Confirm."),
     ("food_discount", "Negotiated discount off food and beverage", 0, "pct", "Percent off hotel food prices (0% = none)."),
@@ -73,24 +73,48 @@ SECTIONS = [
     ("team", "Team hotel rooms (paid by the program)"),
     ("meals", "Meals"),
     ("other", "Other operating expenses"),
-    ("onetime", "One-time expenses (equipment, banners, insurance, nonprofit setup)"),
+    ("onetime", "Fixed and one-time expenses (equipment, banners, insurance, nonprofit setup)"),
 ]
 
 
-def default_budget(title=""):
-    return {"title": title, "vars": {k: v for k, _, v, _, _ in KEY_VARS}, "lines": copy.deepcopy(DEFAULT_LINES)}
+DONATION_LINES = [
+    _L("d_partners", "income", "Financial Partnerships / sponsorships", 0, 0, 1, "plain", "Expected sponsor gifts; enter quantity and average gift"),
+    _L("d_gifts", "income", "Individual donations", 0, 0, 1, "plain", "Expected gifts from individuals"),
+    _L("d_events", "income", "Fundraising events", 0, 0, 1, "plain", ""),
+    _L("d_costs", "other", "Fundraising costs (mailings, events, thank-yous)", 1, 0, 1, "plain", "ESTIMATE"),
+    _L("d_proc", "other", "Donation processing fees", 1, 0, 1, "plain", ""),
+]
 
 
-def loads(text):
+def _lines_for(kind):
+    if kind == "donations":
+        return [copy.deepcopy(ln) for ln in DONATION_LINES]
+    """'training' = everything except one-time expenses; 'fixed' = only the one-time / fixed expenses."""
+    if kind == "fixed":
+        return [copy.deepcopy(ln) for ln in DEFAULT_LINES if ln["section"] == "onetime"]
+    return [copy.deepcopy(ln) for ln in DEFAULT_LINES if ln["section"] != "onetime"]
+
+
+def sections_for(kind):
+    if kind == "donations":
+        return [x for x in SECTIONS if x[0] in ("income", "other")]
+    return [x for x in SECTIONS if (x[0] == "onetime") == (kind == "fixed")]
+
+
+def default_budget(title="", kind="training"):
+    return {"title": title, "vars": {k: v for k, _, v, _, _ in KEY_VARS}, "lines": _lines_for(kind)}
+
+
+def loads(text, kind="training"):
     try:
         data = json.loads(text)
         data.setdefault("vars", {})
         for k, _, v, _, _ in KEY_VARS:
             data["vars"].setdefault(k, v)
-        data.setdefault("lines", copy.deepcopy(DEFAULT_LINES))
+        data.setdefault("lines", _lines_for(kind))
         return data
     except (TypeError, ValueError):
-        return default_budget()
+        return default_budget(kind=kind)
 
 
 def _num(x, default=0.0):
@@ -163,4 +187,21 @@ def apply_form(data, form):
                 ln[field] = _num(form.get(key), ln[field])
         if f"note_{ln['id']}" in form:
             ln["note"] = (form.get(f"note_{ln['id']}") or "")[:300]
+    # delete ticked lines (the couples/price income line must stay: everything else is based on it)
+    data["lines"] = [ln for ln in data["lines"] if ln["id"] == "fee_income" or not form.get(f"del_{ln['id']}")]
+    # add new lines, one optional new line per section
+    import secrets as _secrets
+    for sec, _ in SECTIONS:
+        label = (form.get(f"new_label_{sec}") or "").strip()[:120]
+        if not label:
+            continue
+        mode = form.get(f"new_mode_{sec}")
+        if mode not in ("plain", "room", "food"):
+            mode = "plain"
+        new = _L("x" + _secrets.token_hex(4), sec, label, _num(form.get(f"new_q_{sec}"), 1),
+                 _num(form.get(f"new_u_{sec}"), 0), _num(form.get(f"new_t_{sec}"), 1), mode,
+                 (form.get(f"new_note_{sec}") or "")[:300])
+        # insert after the last line of that section
+        idx = max([i for i, ln in enumerate(data["lines"]) if ln["section"] == sec], default=len(data["lines"]) - 1)
+        data["lines"].insert(idx + 1, new)
     return data
