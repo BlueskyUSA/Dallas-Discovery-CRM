@@ -28,10 +28,9 @@
   <select name="program">{% for code, label in programs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
   <label>A personal note (optional, added to the email)</label>
   <textarea name="note" id="note-box" rows="4" style="width:100%"></textarea>
-  <div id="note-prev-wrap" style="display:none;margin:4px 0 10px"><span class="muted">Preview (links are clickable here):</span>
-    <div id="note-prev" style="border:1px solid #d8e9ea;background:#f5f9f9;border-radius:6px;padding:8px 12px;line-height:1.35"></div></div>
-  <p><button type="button" class="btn secondary" id="add-site-links">Add a link to our website</button>
-     <span class="muted"> Adds a short invitation to look at our front page first, then to see what others are saying. You can reword it.</span></p>
+  <p style="margin:8px 0 14px"><label style="display:inline;font-weight:400"><input type="checkbox" name="include_links" value="1" checked style="width:auto;display:inline">
+     <b>Include website links</b></label>
+     <span class="muted"> Adds a small line under the button: "Need ideas? Take a look at our website, or see what others are saying."</span></p>
   <p><b>How do you want to send it?</b></p>
   <p><button class="btn" type="submit" name="action" value="email">Send it by email now</button>
      <span class="muted"> The program emails them the invitation.</span></p>
@@ -49,18 +48,5 @@ var h=document.getElementById('ct-id');
 function show(){var c=CT[i.value];h.value=c?c.i:'';if(!c){o.textContent='';return;}
  o.innerHTML='Email: <b>'+(c.e||'<span style="color:#b3261e">none on file</span>')+'</b> &nbsp;&middot;&nbsp; Phone: <b>'+(c.p||'<span style="color:#b3261e">none on file</span>')+'</b>'+(c.e?'':' &mdash; the email button will not work; use the link and text it.');}
 i.addEventListener('input',show);i.addEventListener('change',show);show();})();
-</script>
-<script>
-document.getElementById('add-site-links').addEventListener('click',function(){
-  var b=document.getElementById('note-box'),
-  txt="Before you write, take a look at our website: {{ home_url }}\nFor help knowing what to say, here's what others are saying: {{ stories_url }}";
-  if(b.value.indexOf('{{ stories_url }}')>-1)return;
-  b.value=(b.value?b.value.replace(/\s+$/,'')+"\n":"")+txt;});
-</script>
-<script>
-(function(){function lk(v){return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');}
-var b=document.getElementById('note-box'),w=document.getElementById('note-prev-wrap'),p=document.getElementById('note-prev');
-function u(){var has=/https?:\/\//.test(b.value);w.style.display=has?'block':'none';p.innerHTML=lk(b.value);}
-b.addEventListener('input',u);document.getElementById('add-site-links').addEventListener('click',function(){setTimeout(u,0);});u();})();
 </script>
 {% endblock %}
