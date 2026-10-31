@@ -476,7 +476,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                         except Exception as e:
                             err = f"The email could not be sent ({e}). You can text the link below instead."
                 result = dict(req_id=req_row_id, name=ct["full_name"], link=link, sms=sms, emailed=emailed, err=err)
-        contacts = conn.execute(f"SELECT id, {full_name_sql()} AS full_name, email, cell_phone, home_phone FROM contacts ORDER BY last_name, first_name").fetchall()
+        contacts = conn.execute(f"SELECT id, first_name, {full_name_sql()} AS full_name, email, cell_phone, home_phone FROM contacts ORDER BY last_name, first_name").fetchall()
         conn.close()
         # Pick-list text shows name and email (no database numbers). Duplicates get the phone, then a counter.
         seen, picks = {}, []
@@ -489,7 +489,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 key += f" ({seen[key]})"
             else:
                 seen[key] = 1
-            picks.append(dict(key=key, id=c["id"], email=c["email"] or "", phone=c["cell_phone"] or c["home_phone"] or ""))
+            picks.append(dict(key=key, id=c["id"], first=(c["first_name"] or c["full_name"] or "").strip(), email=c["email"] or "", phone=c["cell_phone"] or c["home_phone"] or ""))
         want = request.args.get("c", "")
         prefill = next((p_ for p_ in picks if str(p_["id"]) == want), None) if want.isdigit() else None
         return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill,
