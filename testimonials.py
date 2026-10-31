@@ -428,6 +428,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             m = re.fullmatch(r"\d+", (request.form.get("contact_id") or "").strip())
             program = request.form.get("program") if request.form.get("program") in PROGRAM_LABEL else "GEN"
             note = (request.form.get("note") or "").strip()[:1000]
+            include_links = bool(request.form.get("include_links"))
+            home_url, stories_url = url_for("public_home", _external=True), url_for("public_stories", _external=True)
             ct = conn.execute(f"SELECT id, first_name, email, {full_name_sql()} AS full_name FROM contacts WHERE id = ?",
                               (int(m.group(0)),)).fetchone() if m else None
             if not ct:
@@ -444,19 +446,24 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 what = PROGRAM_LABEL[program] if program != "GEN" else "Discovery!"
                 sms = (f"Hi {first}, it's Kent. We'd love to hear, in a few words or a short video, about your "
                        f"experience with {what}. You can speak it, type it or record it here: {link}"
-                       + (f"\n\n{note}" if note else ""))
+                       + (f"\n\n{note}" if note else "")
+                       + (f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others are saying: {stories_url}"
+                          if include_links else ""))
                 emailed, err = False, ""
                 if request.form.get("action") == "email":
                     if not ct["email"]:
                         err = "This contact has no email address, so use the text message below instead."
                     else:
                         body = (f"<p>Hi {_html.escape(first)},</p>"
-                                f"<p>We'd love to hear, in a few words or a short video, about your experience with "
-                                f"<b>{_html.escape(what)}</b>. It only takes a couple of minutes. You can speak it, type it, "
-                                f"or record yourself. Your story may help someone take their first step.</p>"
-                                f"<p style=\"margin:18px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:12px 22px;"
-                                f"border-radius:6px;text-decoration:none;display:inline-block\">Share your experience</a></p>"
-                                + (f"<p>{_note_html(note, url_for('public_home', _external=True), url_for('public_stories', _external=True))}</p>" if note else "")
+                                + (f"<p>{_note_html(note)}</p>" if note else "")
+                                + f"<p>We'd love to hear, in a few words or a short video, about your experience with "
+                                  f"<b>{_html.escape(what)}</b>. It only takes a couple of minutes. You can speak it, type it, "
+                                  f"or record yourself. Your story may help someone take their first step.</p>"
+                                  f"<p style=\"margin:22px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:14px 28px;"
+                                  f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>"
+                                + (f"<p style=\"color:#555;font-size:14px\">Need ideas? Take a look at "
+                                   f"<a href=\"{home_url}\">our website</a>, or see "
+                                   f"<a href=\"{stories_url}\">what others are saying</a>.</p>" if include_links else "")
                                 + "<p>Thank you,<br>Kent</p>")
                         try:
                             send_email(to_email=ct["email"], to_name=ct["full_name"],
