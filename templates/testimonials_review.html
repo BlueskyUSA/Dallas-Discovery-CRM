@@ -4,6 +4,16 @@
 <h1>Testimonials</h1>
 <p><a class="btn" href="{{ url_for('.testimonial_request') }}">Request a testimonial</a>
    <a class="btn secondary" href="{{ url_for('public_stories') }}" target="_blank">View the public Stories page</a></p>
+<div class="card" style="border-left:4px solid {{ '#1b7a3d' if site_on else '#b3261e' }}">
+  <form method="post" action="{{ url_for('.testimonials_site_switch') }}" style="margin:0">
+    <b>On the website: {{ 'SHOWING' if site_on else 'HIDDEN' }}.</b>
+    {% if site_on %}Visitors can see the band, menu links and the stories page.
+      <button class="btn secondary" type="submit" name="on" value="0" onclick="return confirm('Hide testimonials from the whole website?')">Hide them</button>
+    {% else %}Nothing about testimonials appears on the public website yet (staff can still open the stories page to preview it).
+      <button class="btn" type="submit" name="on" value="1" onclick="return confirm('Show testimonials on the whole website now?')">Show them on the website</button>
+    {% endif %}
+  </form>
+</div>
 <p class="muted">Every request you send is listed here, from the moment it goes out until it is published. The ones that need you are at the top.</p>
 {% if text_only %}
 <div class="card" style="border-left:4px solid #c9a227">

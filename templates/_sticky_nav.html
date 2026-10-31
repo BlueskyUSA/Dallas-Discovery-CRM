@@ -27,7 +27,7 @@ html{scroll-padding-top:66px}
       <a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening</a>
       <a href="{{ url_for('public_program_page', slug='vision') }}">Vision</a>
       <a href="{{ url_for('public_about_program') }}">About</a>
-      <a href="{{ url_for('public_stories') }}">In Their Own Words</a>
+      {% if stories_visible %}<a href="{{ url_for('public_stories') }}">In Their Own Words</a>{% endif %}
     </nav>
     <div class="sn-right">
       <a class="sn-btn" href="{{ url_for('public_register') }}#interested">Reserve Your Spot</a>
@@ -41,7 +41,7 @@ html{scroll-padding-top:66px}
     <a href="{{ url_for('public_program_page', slug='awakening') }}">Awakening</a>
     <a href="{{ url_for('public_program_page', slug='vision') }}">Vision</a>
     <a href="{{ url_for('public_about_program') }}">About</a>
-    <a href="{{ url_for('public_stories') }}">In Their Own Words</a>
+    {% if stories_visible %}<a href="{{ url_for('public_stories') }}">In Their Own Words</a>{% endif %}
   </div>
 </div>
 <script>
