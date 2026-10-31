@@ -68,8 +68,13 @@
           </details>
           {% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
-          {% if session.is_owner %}<a href="{{ url_for('.database_map') }}">Database map</a>{% endif %}
-          {% if session.is_owner %}<a href="{{ url_for('.feature_guide') }}">Database Features</a>{% endif %}
+          {% if session.is_owner %}
+          <details class="subnav">
+            <summary>Database Features &#9662;</summary>
+            <a href="{{ url_for('.feature_guide') }}" style="padding-left:30px">How the site works</a>
+            <a href="{{ url_for('.database_map') }}" style="padding-left:30px">Database map</a>
+          </details>
+          {% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
         </div>
       </details>
