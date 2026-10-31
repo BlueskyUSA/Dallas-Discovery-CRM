@@ -148,6 +148,28 @@ def pass_it_on(first, link):
             "Here's the link to share your story:\n" + link)
 
 
+_vis_cache = {"v": False, "at": 0.0}
+
+
+def stories_on(get_db, fresh=False):
+    """Whether testimonials are shown on the public website (off until Kent flips it on). Cached for 20 seconds."""
+    import time
+    now = time.time()
+    if not fresh and now - _vis_cache["at"] < 20:
+        return _vis_cache["v"]
+    try:
+        conn = get_db()
+        conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)")
+        row = conn.execute("SELECT value FROM app_settings WHERE key = 'stories_visible'").fetchone()
+        conn.commit()
+        conn.close()
+        _vis_cache["v"] = bool(row and row["value"] == "1")
+    except Exception:
+        pass
+    _vis_cache["at"] = now
+    return _vis_cache["v"]
+
+
 def register(app, crm, leadership_required, get_db, send_email, full_name_sql, program_name):
     # ---------------- public: the private share link ----------------
     @app.route("/share/<token>", methods=["GET", "POST"])
@@ -327,10 +349,16 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             abort(404)
         return send_file(io.BytesIO(bytes(row["video_data"])), mimetype=row["video_type"] or "video/mp4", conditional=True)
 
+    @app.context_processor
+    def _inject_stories_flag():
+        return {"stories_visible": stories_on(get_db)}
+
     # ---------------- public: Stories page ----------------
     @app.route("/stories")
     def public_stories():
         _ensure(get_db)
+        if not stories_on(get_db) and not session.get("staff_id"):
+            abort(404)
         conn = get_db()
         rows = conn.execute(
             """SELECT id, program_code, body, display_name, attended, (video_data IS NOT NULL) AS has_video
@@ -346,6 +374,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
     @app.route("/stories/video/<int:tid>")
     def public_story_video(tid):
         _ensure(get_db)
+        if not stories_on(get_db):
+            abort(404)
         conn = get_db()
         row = conn.execute("SELECT video_data, video_type FROM testimonials WHERE id = ? AND status = 'Approved'", (tid,)).fetchone()
         conn.close()
@@ -400,8 +430,22 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             items.append(d)
         items.sort(key=lambda x: (order[x["stage"]], -(x["req_id"] or x["tid"] or 0)))
         counts = {k: sum(1 for i in items if i["stage"] == k) for k in order}
-        return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL, text_only=text_only,
+        return render_template("testimonials_review.html", items=items, counts=counts, labels=PROGRAM_LABEL, text_only=text_only, site_on=stories_on(get_db, fresh=True),
                                show=request.args.get("show") or "")
+
+    @crm.route("/testimonials/site-switch", methods=["POST"])
+    @leadership_required
+    def testimonials_site_switch():
+        want = "1" if request.form.get("on") == "1" else "0"
+        conn = get_db()
+        conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)")
+        conn.execute("DELETE FROM app_settings WHERE key = 'stories_visible'")
+        conn.execute("INSERT INTO app_settings (key, value) VALUES ('stories_visible', ?)", (want,))
+        conn.commit()
+        conn.close()
+        stories_on(get_db, fresh=True)
+        flash("Testimonials are now SHOWING on the website." if want == "1" else "Testimonials are now HIDDEN from the website.")
+        return redirect(url_for(".testimonials_review"))
 
     @crm.route("/testimonials/request/<int:req_id>/delete", methods=["POST"])
     @leadership_required
@@ -448,16 +492,19 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                        f"their lives. We'd love to hear about your experience with the training. You can speak it, type it or record it "
                        f"here: {link}"
                        + (f"\n\n{note}" if note else "")
-                       + (f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others have been saying: {stories_url}"
-                          if include_links else "")
+                       + ((f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others have been saying: {stories_url}"
+                           if stories_on(get_db) else f"\n\nTake a look at our website: {home_url}") if include_links else "")
                        + "\n\nNothing is published without your approval.")
                 emailed, err = False, ""
                 if request.form.get("action") == "email":
                     if not ct["email"]:
                         err = "This contact has no email address, so use the text message below instead."
                     else:
-                        p2_links = (f"Please take a look at <a href=\"{home_url}\">our website</a> to see the new direction, and if you'd like "
-                                    f"ideas, see <a href=\"{stories_url}\">what others have been saying</a>. ") if include_links else ""
+                        site_on = stories_on(get_db)
+                        p2_links = ""
+                        if include_links:
+                            p2_links = f"Please take a look at <a href=\"{home_url}\">our website</a> to see the new direction"
+                            p2_links += (f", and if you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>. " if site_on else ". ")
                         body = (f"<p>Hi {_html.escape(first)},</p>"
                                 + (f"<p>{_note_html(note)}</p>" if note else "")
                                 + "<p>You may have heard we're asking former trainees and volunteers to share how Discovery! has touched "
@@ -496,7 +543,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
             picks.append(dict(key=key, id=c["id"], first=(c["first_name"] or c["full_name"] or "").strip(), email=c["email"] or "", phone=c["cell_phone"] or c["home_phone"] or ""))
         want = request.args.get("c", "")
         prefill = next((p_ for p_ in picks if str(p_["id"]) == want), None) if want.isdigit() else None
-        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill,
+        return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill, site_on=stories_on(get_db),
                                home_url=url_for("public_home", _external=True), stories_url=url_for("public_stories", _external=True))
 
     @crm.route("/testimonials/<int:tid>", methods=["GET", "POST"])
