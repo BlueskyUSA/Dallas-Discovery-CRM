@@ -312,24 +312,23 @@ def longform_thankyou_content(first_name, connect_url, plan_url, share_url=None)
     share_text = ""
     if share_url:
         share_html = (
-            "<p><strong>One more thing:</strong> your story matters. Would you be willing to share, in a "
-            "few sentences or a short video, how Discovery! touched your life? You can type it, say it out "
-            "loud, or record it on your phone. It takes about two minutes. Your words may help someone "
-            "else take their first step.</p>"
-            "<p>Nothing is ever published without your approval. We'll send you the final version to look "
-            "over first, and you choose how your name appears: full name, first name and last initial, or "
-            "anonymous.</p>"
-            f'<p><a href="{share_url}" style="display:inline-block; background:#0c4561; color:#ffffff; '
-            'text-decoration:none; font-weight:700; padding:12px 22px; border-radius:8px;">Share my experience</a></p>'
+            "<p><strong>One more thing:</strong> you may have heard we are inviting former trainees &amp; volunteers to "
+            "share how Discovery! has touched their lives, and the lives of their family and friends. We'd love to hear "
+            "about your experience with the training. It only takes a couple of minutes. You can speak it, type it, or "
+            "record yourself. Your story may help someone else take their first step.</p>"
+            f'<p style="margin:22px 0"><a href="{share_url}" style="display:inline-block; background:#0c4561; color:#ffffff; '
+            'text-decoration:none; font-weight:700; padding:14px 28px; border-radius:8px;">Share your experience</a></p>'
+            "<p>Nothing is published without your approval. We'll show you the final version first, and we'll add "
+            "testimonials to the website once enough of you have responded.</p>"
         )
         share_text = (
-            "One more thing: your story matters. Would you be willing to share, in a few sentences or a "
-            "short video, how Discovery! touched your life? You can type it, say it out loud, or record it "
-            "on your phone. It takes about two minutes. Your words may help someone else take their first "
-            "step.\n\n"
-            "Nothing is ever published without your approval. We'll send you the final version to look over "
-            "first, and you choose how your name appears: full name, first name and last initial, or "
-            f"anonymous.\n\nShare my experience: {share_url}\n\n"
+            "One more thing: you may have heard we are inviting former trainees & volunteers to share how Discovery! "
+            "has touched their lives, and the lives of their family and friends. We'd love to hear about your experience "
+            "with the training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your "
+            "story may help someone else take their first step.\n\n"
+            f"Share your experience: {share_url}\n\n"
+            "Nothing is published without your approval. We'll show you the final version first, and we'll add "
+            "testimonials to the website once enough of you have responded.\n\n"
         )
 
     html_content = f"""
