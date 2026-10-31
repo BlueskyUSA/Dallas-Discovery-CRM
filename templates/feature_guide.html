@@ -1,0 +1,56 @@
+{% extends "crm_base.html" %}
+{% block title %}Database Features — {{ program_name }}{% endblock %}
+{% block content %}
+<style>
+  .fg-top { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:6px }
+  .fg-note { color:#555; margin:0 0 14px; font-size:.95rem }
+  .fg-find { width:100%; max-width:420px; padding:9px 12px; font-size:1rem; border:1px solid #c5d0db; border-radius:8px; margin:6px 0 16px }
+  .fg-sec { margin:22px 0 8px; padding:9px 14px; border-radius:8px; background:#1f6f8b; color:#fff; font-size:1.2rem; font-weight:800 }
+  .fg-blurb { font-style:italic; color:#444; margin:0 0 8px }
+  details.fg { background:#fff; border:1px solid #d9e2ec; border-radius:10px; margin:0 0 8px; padding:0 14px }
+  details.fg > summary { cursor:pointer; padding:10px 0; font-weight:700; list-style:none }
+  details.fg > summary::-webkit-details-marker { display:none }
+  details.fg > summary:before { content:"\25B8"; display:inline-block; width:18px; color:#1f6f8b }
+  details.fg[open] > summary:before { content:"\25BE" }
+  .fg-row { display:grid; grid-template-columns:110px 1fr; gap:8px; padding:5px 0; border-top:1px solid #eef3f8 }
+  .fg-row b { color:#444 }
+  @media (max-width:600px) { .fg-row { grid-template-columns:1fr; gap:0 } }
+  @media print { details.fg { page-break-inside:avoid } nav, .fg-find, .fg-top a { display:none } }
+</style>
+<div class="fg-top">
+  <h1 style="margin:0">Database Features</h1>
+  <a class="btn" href="{{ url_for('.feature_guide_pdf') }}">Download PDF</a>
+  <a href="#" onclick="document.querySelectorAll('details.fg').forEach(function(d){d.open=true});return false">Open all</a>
+  <a href="#" onclick="document.querySelectorAll('details.fg').forEach(function(d){d.open=false});return false">Close all</a>
+</div>
+<p class="fg-note">What each feature does, where to find it, who can use it and what it connects to. Updated {{ updated }}. Owner only. Pair this with the <a href="{{ url_for('.database_map') }}">Database map</a>.</p>
+<input id="fg-find" class="fg-find" type="search" placeholder="Search for a feature, a word or a menu name" oninput="fgFilter(this.value)">
+{% for key, title, blurb, entries in sections %}
+<div class="fg-block">
+  <div class="fg-sec">{{ title }}</div>
+  {% if blurb %}<p class="fg-blurb">{{ blurb }}</p>{% endif %}
+  {% for e in entries %}
+  <details class="fg">
+    <summary>{{ e.name }}</summary>
+    <div class="fg-row"><b>Where</b><span>{{ e.where }}</span></div>
+    <div class="fg-row"><b>Who</b><span>{{ e.who }}</span></div>
+    <div class="fg-row"><b>What</b><span>{{ e.what }}</span></div>
+    {% if e.connects %}<div class="fg-row"><b>Connects to</b><span>{{ e.connects }}</span></div>{% endif %}
+  </details>
+  {% endfor %}
+</div>
+{% endfor %}
+<script>
+function fgFilter(q){
+  q=(q||'').toLowerCase().trim();
+  document.querySelectorAll('.fg-block').forEach(function(b){
+    var any=false;
+    b.querySelectorAll('details.fg').forEach(function(d){
+      var hit=!q||d.textContent.toLowerCase().indexOf(q)>-1;
+      d.style.display=hit?'':'none'; if(hit){any=true; if(q) d.open=true;}
+    });
+    b.style.display=any?'':'none';
+  });
+}
+</script>
+{% endblock %}
