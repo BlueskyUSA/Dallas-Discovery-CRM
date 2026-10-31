@@ -444,30 +444,34 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 link = url_for("public_share", token=token, _external=True)
                 first = (ct["first_name"] or ct["full_name"] or "there").strip()
                 what = PROGRAM_LABEL[program] if program != "GEN" else "Discovery!"
-                sms = (f"Hi {first}, it's Kent. We'd love to hear, in a few words or a short video, about your "
-                       f"experience with {what}. You can speak it, type it or record it here: {link}"
+                sms = (f"Hi {first}, it's Kent. We're asking former trainees and volunteers to share how Discovery! has touched "
+                       f"their lives. We'd love to hear about your experience with the training. You can speak it, type it or record it "
+                       f"here: {link}"
                        + (f"\n\n{note}" if note else "")
-                       + (f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others are saying: {stories_url}"
-                          if include_links else ""))
+                       + (f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others have been saying: {stories_url}"
+                          if include_links else "")
+                       + "\n\nNothing is published without your approval.")
                 emailed, err = False, ""
                 if request.form.get("action") == "email":
                     if not ct["email"]:
                         err = "This contact has no email address, so use the text message below instead."
                     else:
+                        p2_links = (f"Please take a look at <a href=\"{home_url}\">our website</a> to see the new direction, and if you'd like "
+                                    f"ideas, see <a href=\"{stories_url}\">what others have been saying</a>. ") if include_links else ""
                         body = (f"<p>Hi {_html.escape(first)},</p>"
                                 + (f"<p>{_note_html(note)}</p>" if note else "")
-                                + f"<p>We'd love to hear, in a few words or a short video, about your experience with "
-                                  f"<b>{_html.escape(what)}</b>. It only takes a couple of minutes. You can speak it, type it, "
-                                  f"or record yourself. Your story may help someone take their first step.</p>"
+                                + "<p>You may have heard we're asking former trainees and volunteers to share how Discovery! has touched "
+                                  "their lives, and the lives of their family and friends. We'd love to hear about your experience with the "
+                                  "training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your story "
+                                  "may help someone else take their first step.</p>"
                                   f"<p style=\"margin:22px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:14px 28px;"
                                   f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>"
-                                + (f"<p style=\"color:#555;font-size:14px\">Need ideas? Take a look at "
-                                   f"<a href=\"{home_url}\">our website</a>, or see "
-                                   f"<a href=\"{stories_url}\">what others are saying</a>.</p>" if include_links else "")
-                                + "<p>Thank you,<br>Kent</p>")
+                                  f"<p>{p2_links}Nothing is published without your approval. We'll show you the final version first, and we'll "
+                                  "add testimonials to the website once enough of you have responded.</p>"
+                                  "<p>Thank you so much,<br>Kent</p>")
                         try:
                             send_email(to_email=ct["email"], to_name=ct["full_name"],
-                                       subject=f"Share your {what} experience", html_content=body,
+                                       subject="Share your Discovery! experience", html_content=body,
                                        bcc=DEFAULT_FROM_EMAIL)
                             emailed = True
                             conn.execute("UPDATE testimonial_requests SET sent_at = ?, sent_by = ? WHERE token = ?",
