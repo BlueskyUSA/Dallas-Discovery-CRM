@@ -488,7 +488,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                 link = url_for("public_share", token=token, _external=True)
                 first = (ct["first_name"] or ct["full_name"] or "there").strip()
                 what = PROGRAM_LABEL[program] if program != "GEN" else "Discovery!"
-                sms = (f"Hi {first}, it's Kent. We're asking former trainees and volunteers to share how Discovery! has touched "
+                sms = (f"Hi {first}, it's Kent. We're inviting former trainees & volunteers to share how Discovery! has touched "
                        f"their lives. We'd love to hear about your experience with the training. You can speak it, type it or record it "
                        f"here: {link}"
                        + (f"\n\n{note}" if note else "")
@@ -507,7 +507,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                             p2_links += (f", and if you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>. " if site_on else ". ")
                         body = (f"<p>Hi {_html.escape(first)},</p>"
                                 + (f"<p>{_note_html(note)}</p>" if note else "")
-                                + "<p>You may have heard we're asking former trainees and volunteers to share how Discovery! has touched "
+                                + "<p>You may have heard we are inviting former trainees &amp; volunteers to share how Discovery! has touched "
                                   "their lives, and the lives of their family and friends. We'd love to hear about your experience with the "
                                   "training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your story "
                                   "may help someone else take their first step.</p>"
