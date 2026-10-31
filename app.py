@@ -7539,6 +7539,8 @@ def correspondence_access(view):
 blasts.register(app, crm, correspondence_access, get_db)
 import dbmap
 dbmap.register(app, crm, owner_required, get_db)
+import feature_guide
+feature_guide.register(app, crm, owner_required, PROGRAM_NAME)
 app.register_blueprint(crm)
 
 
