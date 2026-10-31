@@ -2468,7 +2468,10 @@ def public_complete_profile(token):
                 connect_url = url_for("public_connect_request", token=token, _external=True)
                 plan_url = url_for("request_preliminary_plan", token=token, _external=True)
                 share_url = None
-                if (values.get("discovery_attendance") or contact["discovery_attendance"]) == "Yes":
+                attended = values.get("discovery_attendance") or contact["discovery_attendance"]
+                # Ask for a testimonial if they said they attended, or picked a real past role (Facilitator, TA,
+                # Trainee, etc., not Interested Party or Other) on the short /discovery form -- unless they said No.
+                if attended == "Yes" or (attended != "No" and testimonials.has_qualifying_role(contact["notes"])):
                     share_url = testimonials.share_link_for_contact(
                         get_db, contact["id"], lambda tk: url_for("public_share", token=tk, _external=True))
                 html_content, text_content = longform_thankyou_content(
@@ -5065,7 +5068,7 @@ def _session_letter_for(cohort, person, key):
         role=role, duties=person["duties"],
         link=_letter_link(person, key),
         partner=person.get("partner_name"),
-        amount=("$1,200 per couple" if code == "D4" else None))
+        amount=("$1,399 per couple" if code == "D4" else None))
 
 
 def _letter_cohort(conn, cohort_id):
@@ -5924,7 +5927,7 @@ def money_required(view):
 
 
 # Training fee per the program code, and who it covers. Shown as the starting amount in "Record payment".
-TRAINING_FEES = {"D4": 1200.0}   # Relationship Training: $1,200 per couple (one payment covers both partners)
+TRAINING_FEES = {"D4": 1399.0}   # Relationship Training: $1,399 per couple (one payment covers both partners)
 PAYMENT_METHODS = ["Check", "Zelle", "Cash", "Card", "Other"]
 BOOKS_ENTITY = "Nonprofit"        # which set of books the CRM's money belongs to (the LLC is not run from the CRM)
 _finance_ready = False
