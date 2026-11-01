@@ -154,22 +154,22 @@ def catalog():
     return [
         ("interested", "Interested people (before they register)",
          "What someone receives after they ask a question, ask to be called, or fill in a form on the website.", [
-            E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called"),
-            E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
-            E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
-            V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
             V("welcome", "Welcome", "Automatically, when someone fills in the Discovery! form as an interested party.", "Interested parties"),
             V("longform_followup", "Long-form follow-up", "Automatically, when someone fills in the Discovery! form and checks Volunteer.", "Past volunteers"),
             V("longform_thankyou", "Long-form thank-you", "Automatically, when someone finishes their long form.", "People who completed the long form"),
             V("connect", "Connect-request confirmation", "Automatically, when someone asks us to reach out from their private link.", "People who asked to connect"),
-            V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
+            E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called"),
             V("excitement", "Excitement email", "By hand, from a contact's record.", "Contacts"),
+            V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
             C("Video call link", "By hand, from a contact's record.", "Contacts"),
+            E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
+            E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
+            V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
          ]),
         ("trainees", "Trainees",
          "Letters to the people registered for a session. Each session's page shows who has received each one.", [
-            E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
             E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
+            E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
             E("payment_reminder", sl["payment_reminder"]["title"], "By hand; also automatically 3 days after a Guide's reservation and within 2 weeks of the session.", "Trainees who have not paid"),
             E("payment_received", sl["payment_received"]["title"], "By hand from the session's letters page.", "Trainees who have paid"),
             E("questionnaire_reminder", sl["questionnaire_reminder"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire"),
@@ -194,8 +194,8 @@ def catalog():
          ]),
         ("testimonials", "Testimonials", "Inviting and checking what people say about the program.", [
             C("Share your Discovery! experience", "By hand, from the Testimonials page.", "Past trainees"),
-            C("Please check your story before we share it", "By hand, once a story is ready.", "People who sent a testimonial"),
             C("A new testimonial is ready to review", "Automatically, when a testimonial comes in.", "Leadership"),
+            C("Please check your story before we share it", "By hand, once a story is ready.", "People who sent a testimonial"),
          ]),
         ("marketing", "Marketing & Email Blasts", "Announcements to your wider community, with the test, SEND and unsubscribe safeguards.", [
             dict(kind="link", name="Marketing & Email Blasts", when="By you, when you choose.", who="The audience you choose",

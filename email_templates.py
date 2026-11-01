@@ -711,7 +711,7 @@ SESSION_LETTERS = {
         "signoff": "With gratitude,",
     },
 }
-SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
+SESSION_TRAINEE_LETTERS = ["seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
