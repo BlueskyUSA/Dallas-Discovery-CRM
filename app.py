@@ -5107,7 +5107,8 @@ def session_letters(cohort_id):
         "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
     conn.close()
     return render_template("session_letters.html", cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
-                           recipients=recipients, sent=sent, live=_session_letters_live())
+                           recipients=recipients, sent=sent, live=_session_letters_live(),
+                           only=(request.args.get("only") if request.args.get("only") in ("trainees", "team") else None))
 
 
 @crm.route("/cohorts/<int:cohort_id>/letters/<key>/preview/<int:contact_id>")
@@ -7554,6 +7555,12 @@ def correspondence_access(view):
 
 
 blasts.register(app, crm, correspondence_access, get_db)
+import correspondence
+correspondence.register(app, crm, get_db, {
+    "leadership_required": leadership_required, "correspondence_access": correspondence_access,
+    "has_correspondence_access": lambda: _has_area_access("correspondence"),
+    "staff_email": _staff_email, "ensure_letters_table": _ensure_session_letters_table,
+    "program_labels": PROGRAM_LABELS})
 import dbmap
 dbmap.register(app, crm, owner_required, get_db)
 import feature_guide
