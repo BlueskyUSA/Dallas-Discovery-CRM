@@ -150,9 +150,10 @@ GUIDE_EXPLAINER = (
     "A Guide is a volunteer who becomes one person's personal contact for Discovery!, from their first question all the way into the training room. "
     "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. "
     "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning.",
-    "It starts when someone fills in an \"I'm curious\" form on the website and asks to be called or texted. Each form is tied to one program, such as The Beginning or The Art of Us, "
-    "so only the Guides for that program get the alert (if a person selects \"Not sure\" about which program they are interested in, or if a program has no Guides of its own, such as Awakening or Vision, the \"Everything else\" group is alerted). "
-    "The first Guide to claim the request becomes that person's Guide, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch.",
+    "## How it works",
+    "When someone fills out an \"I'm curious\" form, and let's say they are interested in The Art of Us, an alert is sent to all 6 of the Guides for that program. "
+    "The first Guide to respond to the request is assigned to that contact, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch. "
+    "(If a person selects \"Not sure\" about which program they are interested in, or if a program has no Guides of its own, such as Awakening or Vision, the \"Everything else\" group is alerted.)",
     "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave, so to speak, "
     "to guide that person into the training room, including registration, payment and greeting them at the door. "
     "A Guide needs to be gifted, with breadth and depth in communication skill.",

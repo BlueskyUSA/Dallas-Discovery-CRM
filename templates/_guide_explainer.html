@@ -1,4 +1,4 @@
-{% for p in guide_note %}<p style="margin:8px 0 0">{{ p }}</p>{% endfor %}
+{% for p in guide_note %}{% if p.startswith('## ') %}<p style="margin:14px 0 0"><strong>{{ p[3:] }}</strong></p>{% else %}<p style="margin:8px 0 0">{{ p }}</p>{% endif %}{% endfor %}
 <details style="margin-top:10px">
   <summary style="cursor:pointer; font-weight:600">Who the Guides are</summary>
   {% if guides %}
