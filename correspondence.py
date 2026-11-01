@@ -297,7 +297,8 @@ def register(app, crm, get_db, h):
         except Exception:
             subject, html = None, None
         return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html,
-                               forms_note=(slug in ("welcome", "longform_followup", "longform_thankyou")))
+                               short_note=(slug in ("welcome", "longform_followup")),
+                               long_note=(slug in ("longform_followup", "longform_thankyou")))
 
     @crm.route("/correspondence")
     @leadership_required

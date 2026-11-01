@@ -4,6 +4,18 @@
 <p><a href="{{ url_for('.correspondence_all') }}">&larr; All Letters</a></p>
 <h1>{{ name }}</h1>
 <p class="muted">This is the letter as written, with [First name] standing in for the person's name. Nothing has been sent. Its wording is still in the program code; ask to have it made editable here.</p>
+{% if short_note %}
+<div class="card" style="max-width:720px; border-left:4px solid #a8892f; background:#fff8e1; margin-bottom:12px">
+  <strong>What is a Short Form?</strong>
+  {% include "_short_form_explainer.html" %}
+</div>
+{% endif %}
+{% if long_note %}
+<div class="card" style="max-width:720px; border-left:4px solid #a8892f; background:#fff8e1; margin-bottom:12px">
+  <strong>What is a Long Form?</strong>
+  {% include "_long_form_explainer.html" %}
+</div>
+{% endif %}
 {% if letter_html %}
 <div class="card" style="max-width:720px">
   <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ subject }}</strong></p>
