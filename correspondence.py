@@ -168,21 +168,18 @@ def catalog():
             V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
          ]),
         ("trainees", "Trainee Correspondence",
-         "Letters to the people registered for a session. Each session's page shows who has received each one.", [
+         "Letters and questionnaires for the people registered for a session. Each session's page shows who has received each letter. The questionnaires are the forms trainees fill in on their private link; their questions are fixed in the program code for now, and making them editable per program is the next piece.", [
             E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
             E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
             E("payment_reminder", sl["payment_reminder"]["title"], "By hand; also automatically 3 days after a Guide's reservation and within 2 weeks of the session.", "Trainees who have not paid"),
             E("payment_received", sl["payment_received"]["title"], "By hand from the session's letters page.", "Trainees who have paid"),
             E("questionnaire_reminder", sl["questionnaire_reminder"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire"),
-            E("what_to_bring", sl["what_to_bring"]["title"], "By hand from the session's letters page, as the training gets closer.", "Trainees"),
-            V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
-            V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
-         ]),
-        ("questionnaires", "Questionnaires",
-         "The questions each trainee answers on their private link before the training. Right now each program's questions are fixed in the program code; making them editable per program is the next piece.", [
             X("Questionnaire: The Art of Us (Relationship Training)", "Sent as a private link by the Guide's \"Email it\" or from the session page.", "Each partner of a couple, separately", "/cep-letters/q-rt"),
             X("Questionnaire: The Beginning", "Sent as a private link from the session page.", "Each person, separately. The Beginning's own questions are still to be written (shown as TBD).", "/cep-letters/q-d1"),
             C("Questionnaire: other programs", "Sent as a private link from the session page.", "Each person", "Awakening, Vision, Renew and Spiritual use a short standard set: first time attending, goals, food and access needs, injuries, anything else."),
+            E("what_to_bring", sl["what_to_bring"]["title"], "By hand from the session's letters page, as the training gets closer.", "Trainees"),
+            V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
+            V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
          ]),
         ("team", "Team (Facilitators, TA's, Support Team, Leadership)",
          "Letters to the people who run a session.", [
