@@ -5168,6 +5168,11 @@ def _letter_link(person, key):
     return None
 
 
+# Each training has its own Friday schedule. The "What to bring" letter adds the line for the program here;
+# a program not listed gets no Friday end-time line until one is added.
+FRIDAY_END = {"D4": "The Friday session ends by 11:00 pm at the latest."}
+
+
 def _session_letter_for(cohort, person, key):
     code, name = cohort["code"], cohort["name"]
     training = name if name.startswith(code) else f"{code}-{name}"
@@ -5177,7 +5182,8 @@ def _session_letter_for(cohort, person, key):
         role=role, duties=person["duties"],
         link=_letter_link(person, key),
         partner=person.get("partner_name"),
-        amount=("$1,399 per couple" if code == "D4" else None))
+        amount=("$1,399 per couple" if code == "D4" else None),
+        friday_end=FRIDAY_END.get(code))
 
 
 def _letter_cohort(conn, cohort_id):
