@@ -148,7 +148,8 @@ def _preview_map():
 # Plain-language note shown where the Guide letters appear, because most people don't know what a Guide is.
 GUIDE_EXPLAINER = (
     "A Guide is a volunteer who becomes one person's personal contact for Discovery!, from their first question all the way into the training room. "
-    "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job.",
+    "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. "
+    "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning.",
     "It starts when someone fills in an \"I'm curious\" form on the website and asks to be called or texted. Each form is tied to one program, such as The Beginning or The Art of Us, "
     "so only the Guides for that program get the alert (if a program has no Guides of its own, the \"Everything else\" group is alerted). "
     "The first Guide to claim the request becomes that person's Guide, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch.",
