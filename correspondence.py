@@ -157,8 +157,13 @@ GUIDE_EXPLAINER = (
     "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave, so to speak, "
     "to guide that person into the training room, including registration, payment and greeting them at the door. "
     "A Guide needs to be gifted, with breadth and depth in communication skill.",
-    "When the person is ready, the Guide sends the registration link. After they reserve their seat, the Guide sends the questionnaire link, the payment request link, "
-    "the payment reminder and the what-to-bring letter.",
+    "Each Guide is sent a separate link of their own, and the alert that carries it names the client, so the Guide knows right away who it is about. "
+    "The link opens a web page dedicated to that one client, which makes it easy for the Guide to send correspondence to them: "
+    "when the person is ready, the Guide sends the registration link. After they reserve their seat, the Guide sends the questionnaire link, "
+    "the payment request link, the payment reminder and the what-to-bring letter.",
+    "We expect the Guide to keep us informed of each person's progress. After reaching out, the Guide chooses how it went from a drop-down "
+    "(spoke with them, left a voicemail, texted and waiting for a reply, no answer and will try again, not interested, or wrong number) and adds a note about what the person is hoping for, "
+    "their questions and the next step. This shows on the Call requests page, along with whether the person has reserved a seat.",
     "Before the trainee shows up at the door, the Guide makes sure that the long-form contact information is complete, including a photo, "
     "that the questionnaire is complete, and that payment has been received.",
 )
