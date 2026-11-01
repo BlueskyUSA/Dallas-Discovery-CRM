@@ -25,6 +25,17 @@
 </p>
 {% endif %}
 
+<h2>Letter wording</h2>
+<p class="muted">These are the letters. Edit one and the new wording is used for every letter sent from then on. Letters already sent keep their original wording.</p>
+<table>
+  <tr><th>Letter</th><th>Goes to</th><th>Wording</th><th></th></tr>
+  {% for l in letter_rows %}
+  <tr><td>{{ l.title }}</td><td>{{ l.audience }}</td>
+      <td>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</td>
+      <td><a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">Edit wording</a></td></tr>
+  {% endfor %}
+</table>
+
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
 <p style="margin:8px 0">Year letters were sent:
   <select id="yearFilter" style="padding:6px; font-size:1rem">

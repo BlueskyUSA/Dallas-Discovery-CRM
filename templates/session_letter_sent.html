@@ -1,0 +1,19 @@
+{% extends "crm_base.html" %}
+{% block title %}Letter as sent: {{ spec.title }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}">&larr; Back to the letters</a></p>
+<h1>{{ spec.title }} &mdash; as sent</h1>
+<p class="muted">Sent to {{ row.name }}{% if row.email %} ({{ row.email }}){% endif %} on {{ row.sent_at[:10]|fdate }}{% if row.sent_by %} by {{ row.sent_by }}{% endif %}.</p>
+{% if row.snapshot_html %}
+<div class="card" style="max-width:720px">
+  <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ row.snapshot_subject }}</strong></p>
+  <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
+  <div style="line-height:1.55">{{ row.snapshot_html|safe }}</div>
+</div>
+<p class="muted">This is the wording at the time it was sent, even if the letter has been edited since.</p>
+{% else %}
+<div class="card" style="max-width:720px">
+  This letter was sent before copies were being kept, so the exact wording from that time isn't available.
+</div>
+{% endif %}
+{% endblock %}

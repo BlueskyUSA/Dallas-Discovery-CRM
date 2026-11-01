@@ -1,0 +1,60 @@
+{% extends "crm_base.html" %}
+{% block title %}Edit letter: {{ orig.title }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.' ~ back) }}">&larr; {{ 'Trainee' if back == 'correspondence_trainees' else 'Team' }} Correspondence</a></p>
+<h1>Edit letter: {{ orig.title }}</h1>
+<p class="muted">Goes to: {{ orig.audience }}.
+  {% if saved %}Edited by {{ saved.updated_by or 'a team member' }} on {{ saved.updated_at[:10]|fdate }}.{% else %}This is the original wording.{% endif %}</p>
+<div class="card" style="max-width:900px; border-left:4px solid #1f5fbf">
+  Changes apply to letters sent <strong>from now on</strong>, for every session. Letters already sent are not changed:
+  each one is kept exactly as it went out.
+</div>
+{% if error %}<div class="card" style="max-width:900px; border-left:4px solid #b3261e; color:#b3261e; margin-top:10px">{{ error }}</div>{% endif %}
+
+<div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:14px">
+<form method="post" style="flex:1 1 520px; max-width:640px">
+  <label>Subject<br><input type="text" name="subject" value="{{ form.subject }}" style="width:100%; padding:8px" maxlength="250"></label>
+  <label style="display:block; margin-top:10px">Letter<br>
+    <textarea name="body" rows="16" style="width:100%; padding:8px; line-height:1.45">{{ form.body }}</textarea></label>
+  <p class="muted" style="margin:4px 0 10px">The letter opens with "Dear [first name]," on its own. A blank line starts a new paragraph.</p>
+  <div style="display:flex; gap:12px; flex-wrap:wrap">
+    <label>Closing<br><input type="text" name="signoff" value="{{ form.signoff }}" style="padding:8px"></label>
+    <label>Signed<br><input type="text" name="signer" value="{{ form.signer }}" style="padding:8px; min-width:260px"></label>
+  </div>
+  <p style="margin-top:14px">
+    <button class="btn secondary" type="submit" name="action" value="preview">Preview</button>
+    <button class="btn secondary" type="submit" name="action" value="test">Send a test to me</button>
+    <button class="btn" type="submit" name="action" value="save">Save this wording</button>
+  </p>
+  {% if saved %}
+  <p><button class="btn secondary" type="submit" name="action" value="reset"
+     onclick="return confirm('Go back to the original wording? Your edits to this letter will be removed.');">Go back to the original wording</button></p>
+  {% endif %}
+</form>
+
+<div style="flex:1 1 300px; max-width:420px">
+  <div class="card">
+    <strong>Words that fill in by themselves</strong>
+    <p class="muted" style="margin:4px 0 8px">Type them exactly, with the curly brackets.</p>
+    <p style="margin:2px 0"><code>{training}</code> the name of the training</p>
+    <p style="margin:2px 0"><code>{dates}</code> the session dates</p>
+    <p style="margin:2px 0"><code>{where}</code> " at" and the place, when there is one</p>
+    {% if 'link' in used %}<p style="margin:2px 0"><code>{link}</code> the person's private link (must stay)</p>{% endif %}
+    {% if 'role' in used %}<p style="margin:2px 0"><code>{role}</code> Lead Facilitator or Support Facilitator</p>{% endif %}
+    {% if 'duties' in used %}<p style="margin:2px 0"><code>{duties}</code> the person's assignment</p>{% endif %}
+    {% if 'amount_sentence' in used %}<p style="margin:2px 0"><code>{amount_sentence}</code> the fee sentence</p>{% endif %}
+    {% if 'partner_sentence' in used %}<p style="margin:2px 0"><code>{partner_sentence}</code> the partner sentence</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{% if preview_html %}
+<h2>How it will look</h2>
+<p class="muted">Shown with a sample person (Alex), a sample session and sample link. Nothing has been sent.</p>
+<div class="card" style="max-width:720px">
+  <p style="margin:0 0 14px"><span class="muted">Subject:</span> <strong>{{ preview_subject }}</strong></p>
+  <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
+  <div style="line-height:1.55">{{ preview_html|safe }}</div>
+</div>
+{% endif %}
+{% endblock %}

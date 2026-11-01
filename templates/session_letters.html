@@ -23,7 +23,8 @@
 <details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; padding:6px 12px; background:#fffdf7">
 <summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></summary>
 <h2 style="margin-top:12px">{{ spec.title }}
-  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a></h2>
+  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a>
+  <a class="btn secondary" style="margin-left:8px; font-size:0.9rem" href="{{ url_for('.correspondence_letter_edit', key=key) }}">Edit wording{% if key in edited %} (edited){% endif %}</a></h2>
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
@@ -36,7 +37,7 @@
         <td>{% if p.email and not when %}<input type="checkbox" name="contact_id" value="{{ p.contact_id }}" {{ 'disabled' if not live }}>{% endif %}</td>
         <td>{{ p.name }}{% if p.partner_name %} <span class="muted">(with {{ p.partner_name }})</span>{% endif %}</td>
         <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
-        <td>{% if when %}<span class="badge good">&#10003; {{ when[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}</td>
+        <td>{% if when %}<a href="{{ url_for('.session_letter_sent_copy', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}" title="See the letter as it was sent"><span class="badge good">&#10003; {{ when[:10]|fdate }}</span></a>{% else %}<span class="muted">not sent</span>{% endif %}</td>
         <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
       </tr>
       {% endfor %}
@@ -65,7 +66,8 @@
 <details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; padding:6px 12px; background:#fffdf7">
 <summary style="cursor:pointer; font-weight:700; font-size:1.05rem; color:#1f5fbf">{{ spec.title }} <span class="muted" style="font-size:0.9rem; font-weight:400">({{ people|length }} {{ spec.audience|lower }})</span></summary>
 <h2 style="margin-top:12px">{{ spec.title }}
-  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a></h2>
+  <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a>
+  <a class="btn secondary" style="margin-left:8px; font-size:0.9rem" href="{{ url_for('.correspondence_letter_edit', key=key) }}">Edit wording{% if key in edited %} (edited){% endif %}</a></h2>
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
@@ -78,7 +80,7 @@
         <td>{% if p.email and not when %}<input type="checkbox" name="contact_id" value="{{ p.contact_id }}" {{ 'disabled' if not live }}>{% endif %}</td>
         <td>{{ p.name }}{% if p.partner_name %} <span class="muted">(with {{ p.partner_name }})</span>{% endif %}</td>
         <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
-        <td>{% if when %}<span class="badge good">&#10003; {{ when[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}</td>
+        <td>{% if when %}<a href="{{ url_for('.session_letter_sent_copy', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}" title="See the letter as it was sent"><span class="badge good">&#10003; {{ when[:10]|fdate }}</span></a>{% else %}<span class="muted">not sent</span>{% endif %}</td>
         <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
       </tr>
       {% endfor %}
