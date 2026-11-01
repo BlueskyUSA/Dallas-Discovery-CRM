@@ -5,7 +5,7 @@ How it works
   1. Someone fills in the short form (front page, program pages, or the Reserve form) and answers Yes/No to
      "Do we have permission to call and text you on your cell phone?"
   2. On Yes, a call request is saved and the volunteers for that program (set up on the Call volunteers page,
-     up to six per program, plus a Lead Guide) are alerted. Each alert has a personal link.
+     up to six per program, plus a Guide Team Captain) are alerted. Each alert has a personal link.
   3. The first volunteer to open their link and tap "I'll call within 2 hours" gets the request. The others see
      "already claimed". The interested person is then told the volunteer's name and number.
   4. After calling, the volunteer logs the outcome on the same link.
@@ -35,7 +35,7 @@ except Exception:  # pragma: no cover
     CHI = None
 
 POOLS = [
-    ("CAPTAIN", "Lead Guide (oversees the team)"),
+    ("CAPTAIN", "Guide Team Captain (oversees the team)"),
     ("D1", "D1 – The Beginning"),
     ("D4", "Relationship Training"),
     ("ALL", "Everything else (also the back-up if a program has no volunteers)"),
@@ -63,10 +63,10 @@ CONSENT_WORDING = CONSENT_QUESTION + " (" + CONSENT_FINE + ")"
 
 VOLUNTEER_CONSENT = (
     "I give Discovery! permission to share my name, my cell phone number and my email address with the people "
-    "who ask to hear from the Guides, and with the Lead Guide and other Guides. This may happen in a "
+    "who ask to hear from the Guides, and with the Guide Team Captain and other Guides. This may happen in a "
     "message, an email, a letter or on a web page. I am a volunteer, and I understand that the people I speak with will "
     "be given my name and cell phone number so they can recognize and reach me. Discovery! will not sell or rent "
-    "my information. I can withdraw this permission at any time by telling my Lead Guide, and Discovery! will "
+    "my information. I can withdraw this permission at any time by telling my Guide Team Captain, and Discovery! will "
     "then stop sharing my information with new people.")
 
 _ready = False
@@ -646,13 +646,15 @@ def client_progress(conn, req, base_url):
 
 
 GUIDE_LIST = "Guides"
-LEAD_GUIDE_LIST = "Lead Guide"
+LEAD_GUIDE_LIST = "Guide Team Captain"
 
 
 def sync_guide_lists(conn):
-    """Keeps two contact lists up to date from the Guides page: 'Guides' and 'Lead Guide' (matched by email).
+    """Keeps two contact lists up to date from the Guides page: 'Guides' and 'Guide Team Captain' (matched by email).
     Use the Lists filter on Contacts to see them. Never raises."""
     try:
+        conn.execute("UPDATE contact_lists SET name = ? WHERE name = 'Lead Guide' AND NOT EXISTS (SELECT 1 FROM contact_lists WHERE name = ?)",
+                     (LEAD_GUIDE_LIST, LEAD_GUIDE_LIST))
         g, l = list_id_for(conn, GUIDE_LIST), list_id_for(conn, LEAD_GUIDE_LIST)
         want = {g: set(), l: set()}
         for v in conn.execute("SELECT program_code, email FROM call_volunteers WHERE active = 1").fetchall():
@@ -683,7 +685,7 @@ def guide_for_email(conn, email):
                      (email.strip(),)).fetchone()
     if not v:
         return None
-    return dict(id=v["id"], name=v["name"], role="Lead Guide" if v["program_code"] == "CAPTAIN" else "Guide",
+    return dict(id=v["id"], name=v["name"], role="Guide Team Captain" if v["program_code"] == "CAPTAIN" else "Guide",
                 group=dict(POOLS).get(v["program_code"], v["program_code"]))
 
 
