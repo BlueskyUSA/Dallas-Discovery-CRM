@@ -7,8 +7,24 @@
 {% if not live %}
 <div class="card" style="border-left:4px solid #b3261e; max-width:860px"><strong style="color:#b3261e">Sending to people is switched off.</strong> Nothing here goes to anyone until it is switched on.</div>
 {% endif %}
+<p style="margin:14px 0">
+  <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=true})">Open all</button>
+  <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=false})">Close all</button>
+</p>
+<style>
+details.catblock{border:1px solid #d9d2c0;border-radius:8px;margin:10px 0;background:#fbf9f3}
+details.catblock>summary{cursor:pointer;padding:12px 16px;font-size:1.15rem;font-weight:700;list-style:none}
+details.catblock>summary::-webkit-details-marker{display:none}
+details.catblock>summary::before{content:"\25B8";display:inline-block;width:1.2em;color:#a8892f}
+details.catblock[open]>summary::before{content:"\25BE"}
+details.catblock .cnt{font-weight:400;font-size:.9rem;color:#6b6b5e;margin-left:8px}
+details.catblock .catbody{padding:0 16px 14px}
+</style>
 {% for cid, ctitle, cintro, entries in cats %}
-<h2 style="margin-top:26px">{{ ctitle }}</h2>
+{% set vis = entries|rejectattr('owner')|list if not can_marketing else entries %}
+<details class="catblock" id="cat-{{ cid }}">
+<summary>{{ ctitle }}<span class="cnt">{{ vis|length }} letter{{ '' if vis|length == 1 else 's' }}</span></summary>
+<div class="catbody">
 <p class="muted" style="margin-top:0">{{ cintro }}</p>
 <table>
   <tr><th>Letter</th><th>When it is sent</th><th>Who gets it</th><th>Wording</th></tr>
@@ -40,5 +56,7 @@
   {% endif %}
   {% endfor %}
 </table>
+</div>
+</details>
 {% endfor %}
 {% endblock %}
