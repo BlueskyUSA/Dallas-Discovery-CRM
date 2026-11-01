@@ -8,13 +8,13 @@
 <p class="muted" style="max-width:860px">This page shows every type of correspondence (automated or not) that may be sent to trainees and volunteers throughout the entire Discovery program. The correspondence is grouped by who receives it.</p>
 <p class="muted" style="max-width:860px">Each of these documents may be viewed by all volunteers who have logins to this program, but only the owner of this program may make changes to a document. Every changed document is saved as a numbered version so, if necessary, we can go back to previous versions. The <strong>View</strong> button shows the most current correspondence available and indicates whether the document is automated or not.</p>
 <p class="muted" style="max-width:860px">At the top of this page a button is available to send the owner suggested changes to these documents. If the owner agrees, the changes will be made.</p>
-<p style="margin:12px 0"><a class="btn" href="#suggest" onclick="var d=document.getElementById('suggestBox'); d.open=true;">Suggest a change to a letter</a></p>
+<p style="margin:12px 0"><a class="btn" href="#suggest" onclick="document.getElementById('suggestBox').style.display='block';">Suggest a change to a letter</a></p>
 {% if not live %}
 <div class="card" style="border-left:4px solid #b3261e; max-width:860px"><strong style="color:#b3261e">Sending to people is switched off.</strong> Nothing here goes to anyone until it is switched on.</div>
 {% endif %}
 {% if is_owner %}
 <details id="suggestions" class="card" style="max-width:860px; margin-top:14px" {{ 'open' if sugg_new else '' }}>
-  <summary style="cursor:pointer; font-weight:700">Suggested changes <span class="muted" style="font-weight:400">({{ sugg_new|length }} new)</span></summary>
+  <summary style="cursor:pointer; font-weight:700">Suggestions received from volunteers <span class="muted" style="font-weight:400">({{ sugg_new|length }} new &middot; only you see this)</span></summary>
   {% for s in sugg_new %}
   <div style="border-top:1px solid var(--border); padding:10px 0">
     <strong>{{ s.letter_name or 'A letter' }}</strong>
@@ -36,11 +36,11 @@
   {% endif %}
 </details>
 {% endif %}
-<details id="suggestBox" class="card" style="max-width:860px; margin-top:14px">
-  <summary id="suggest" style="cursor:pointer; font-weight:700">Suggest a change to a letter</summary>
+<div id="suggestBox" class="card" style="max-width:860px; margin-top:14px; display:none">
+  <strong id="suggest">Suggest a change to a letter</strong>
   {% set suggest_action = url_for('.correspondence_suggest') %}{% set suggest_letters = letter_names %}{% set suggest_pick = '' %}{% set suggest_public = false %}{% set suggest_back = '' %}{% set suggest_fixed = '' %}
   {% include "_suggest_form.html" %}
-</details>
+</div>
 <p style="margin:14px 0">
   <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=true})">Open all</button>
   <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=false})">Close all</button>
@@ -126,7 +126,7 @@ details.catblock .catbody{padding:0 16px 14px}
 <script>
 document.querySelectorAll('.suggestLink').forEach(function (l) {
   l.addEventListener('click', function () {
-    var d = document.getElementById('suggestBox'); d.open = true;
+    document.getElementById('suggestBox').style.display = 'block';
     var s = document.getElementById('suggestLetter'); if (s) { s.value = l.getAttribute('data-letter'); }
   });
 });
