@@ -1,0 +1,48 @@
+{% extends "crm_base.html" %}
+{% block title %}{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.correspondence_home') }}">&larr; Correspondence</a></p>
+<h1>{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence</h1>
+{% if not live %}
+<div class="card" style="border-left:4px solid #b3261e; max-width:760px">
+  <strong style="color:#b3261e">Sending to people is switched off.</strong>
+  You can preview any letter and send a test copy to yourself. Nothing goes to anyone yet.
+</div>
+{% endif %}
+
+{% if kind == 'team' %}
+<h2>Write a note to a group</h2>
+<p class="muted">A free-form note, one email per person. Facilitators, TA's and Support Team can be limited to one session.</p>
+<p>
+  {% for g in team_groups %}<a class="btn secondary" style="margin:0 8px 8px 0" href="{{ url_for('.correspondence_note', group=g) }}">{{ groups[g][0] }}</a>{% endfor %}
+</p>
+{% endif %}
+
+<h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
+<form onsubmit="var s=this.querySelector('select'); if(!s.value){return false;} window.location=s.value; return false;" style="margin:8px 0 16px">
+  <select style="min-width:360px; padding:8px; font-size:1rem">
+    <option value="">Choose a program session&hellip;</option>
+    {% for s in sessions %}
+    <option value="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">{{ labels.get(s.code, s.program_name) }} &mdash; Session #{{ s.session_number }}, {{ s|date_span }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">Open</button>
+</form>
+
+<table>
+  <tr><th>Program</th><th>Session</th><th>Dates</th><th>{{ 'Trainees' if kind == 'trainees' else 'Team members' }}</th><th>Letters sent</th><th></th></tr>
+  {% for s in sessions %}
+  <tr>
+    <td>{{ labels.get(s.code, s.program_name) }}</td>
+    <td>#{{ s.session_number }}{% if s.status == 'Cancelled' %} <span class="badge warn">Cancelled</span>{% endif %}</td>
+    <td>{{ s|date_span }}</td>
+    <td>{{ s.n_trainees if kind == 'trainees' else s.n_team }}</td>
+    <td>{{ s.n_sent }}</td>
+    <td><a href="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">Open letters</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">No program sessions yet.</td></tr>
+  {% endfor %}
+</table>
+{% if kind == 'team' %}<p class="muted">The Support Team has no session letters; write to them with a note above.</p>{% endif %}
+{% endblock %}
