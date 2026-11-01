@@ -161,6 +161,7 @@ def register(app, crm, get_db, h):
             default_syear = this_year if this_year in with_sessions else (ahead[0] if ahead else (max(with_sessions) if with_sessions else this_year))
             return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years, counts=counts,
                                    session_years=session_years, default_syear=default_syear,
+                                   by_year={y: [x for x in sessions if (x["session_date"] or "").startswith(str(y))] for y in session_years},
                                    letter_rows=letter_rows,
                                    labels=h["program_labels"], groups=GROUPS, team_groups=TEAM_GROUPS, live=live())
         finally:
