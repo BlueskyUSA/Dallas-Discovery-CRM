@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CEP Team Training — {{ program_name }}{% endblock %}
+{% block title %}Guide Training — {{ program_name }}{% endblock %}
 {% block site_header %}{% include "_cep_header.html" %}{% endblock %}
 {% block site_footer %}{% endblock %}
 {% block content %}
@@ -13,8 +13,8 @@
 <section class="pub-section">
   <div class="pub-container" style="max-width:760px">
     <p class="muted" style="margin:0 0 6px"><strong>DRAFT</strong> &mdash; wording to be revised by Coach Kent.</p>
-    <h2>CEP Team Training</h2>
-    <p class="lead">Client Engagement Protocol (CEP) Team &mdash; how to help someone who says, &ldquo;I&rsquo;m curious to learn more.&rdquo;</p>
+    <h2>Guide Training</h2>
+    <p class="lead">How to help someone who says, &ldquo;I&rsquo;m curious to learn more.&rdquo;</p>
 
     <div class="cep-mod cep-toc" id="top">
       <h3>The modules</h3>
@@ -31,7 +31,7 @@
     </div>
 
     <div class="cep-mod" id="m1">
-      <p style="margin:0 0 2px; font-size:1.25rem; font-weight:700">Welcome to the CEP team,</p>
+      <p style="margin:0 0 2px; font-size:1.25rem; font-weight:700">Welcome, Guide,</p>
       <p style="margin:0 0 16px; font-size:1.05rem">Thank you for your love and service.</p>
       <h3>Module 1 &ndash; Your role and our promise</h3>
       <p>If within the Discovery! website, a person completes (what we call the &ldquo;Curious&rdquo; form), they are asking for a conversation with a real person who has been through the training. That is you. With excitement, but with no pressure or sales pitch, we ask that you simply share how the training changed your life and answer any questions they may have.</p>
@@ -60,7 +60,7 @@
     <div class="cep-mod" id="m2">
       <h3>Module 2 &ndash; Getting Ready to Handle Curious Form Inquiries</h3>
       <ol>
-        <li><strong>Give your permission.</strong> When you decide to respond to a Curious form request, the applicant is told your name and cell phone number (so that they know it is really us). So, the first step is to give Discovery! permission to send your name, cell phone number and email address to Curious Form applicants. Your CEP Team Captain will send you a personal link. Open it one time. It takes about a minute. You can withdraw your permission at any time by telling your team Captain or Kent Hafemann.</li>
+        <li><strong>Give your permission.</strong> When you decide to respond to a Curious form request, the applicant is told your name and cell phone number (so that they know it is really us). So, the first step is to give Discovery! permission to send your name, cell phone number and email address to Curious Form applicants. Your Lead Guide will send you a personal link. Open it one time. It takes about a minute. You can withdraw your permission at any time by telling your team Captain or Kent Hafemann.</li>
         <li><strong>Set up your phone notifications.</strong> You will receive an email and a cell phone notification that a Curious Form applicant wants to be contacted. Discovery! uses an app called &ldquo;Pushover&rdquo; for these phone notifications. See the instructions below. Pushover is free for the first 30 days, then it is a one-time purchase of $4.99 plus tax (not a subscription).
           <ol type="a">
             <li><strong>Download Pushover.</strong>
@@ -74,7 +74,7 @@
             <li><strong>Create your free account.</strong> Open the app, tap <strong>Sign Up</strong>, and enter your email and a password.</li>
             <li><strong>Verify your email address.</strong> Pushover sends you an email. Open it and tap the link inside to verify your address. Alerts will not arrive until this is done.</li>
             <li><strong>Allow notifications</strong> when the app asks. Without this you will not hear the alert. (If you tapped &ldquo;Don&rsquo;t Allow&rdquo; by mistake, see the steps below.)</li>
-            <li><strong>Find your User Key.</strong> It is shown at the top of the app: a code of 30 letters and numbers. Send it to your CEP Team Captain (a text or email is fine). Your Captain enters it for you.</li>
+            <li><strong>Find your User Key.</strong> It is shown at the top of the app: a code of 30 letters and numbers. Send it to your Lead Guide (a text or email is fine). Your Captain enters it for you.</li>
             <li><strong>Try it.</strong> Ask your Captain to send you a test alert. You should hear it and see it within a few seconds. Tap it. It opens this training page.</li>
             <li><strong>If you ever stop getting alerts</strong>, check that your phone is allowed to show them:
               <ul>
@@ -102,7 +102,7 @@
       </ul>
       <h4 style="margin:16px 0 6px">2. Taking the Curious Form request:</h4>
       <ul>
-        <li>On the web page, tap &ldquo;Yes, I&rsquo;ll reach out within 2 hours.&rdquo; The first CEP member to tap gets the request. If someone else already took it, the page tells you, and you will get the next one.</li>
+        <li>On the web page, tap &ldquo;Yes, I&rsquo;ll reach out within 2 hours.&rdquo; The first Guide to tap gets the request. If someone else already took it, the page tells you, and you will get the next one.</li>
       </ul>
       <h4 style="margin:16px 0 6px">3. What you see once it is yours:</h4>
       <ul>
@@ -144,15 +144,27 @@
         <li>After they have reserved a date, a <strong>&ldquo;Send the questionnaire&rdquo;</strong> box appears on your page. It lets you text or email their private questionnaire link. Module 7 has the details.</li>
       </ul>
 
+      <h4 style="margin:16px 0 6px">What your page looks like</h4>
+      <p>Here is a sample page (the client shown is made up). The blue <strong>Your next step</strong> box always tells you the one thing to do now, and the <strong>checklist</strong> below it ticks itself off as the client moves forward.</p>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start">
+        <figure style="margin:0; flex:0 1 230px"><img src="{{ url_for('static', filename='guide-page-phone.png') }}" alt="Your page on a phone" style="width:100%; border:1px solid #d5dbe3; border-radius:10px"><figcaption class="muted" style="font-size:.85rem">On your phone</figcaption></figure>
+        <figure style="margin:0; flex:1 1 320px"><img src="{{ url_for('static', filename='guide-page-computer.png') }}" alt="Your page on a computer" style="width:100%; border:1px solid #d5dbe3; border-radius:10px"><figcaption class="muted" style="font-size:.85rem">On a computer</figcaption></figure>
+      </div>
+      <h4 style="margin:16px 0 6px">Your client checklist</h4>
+      <ul>
+        <li>Talked with them</li><li>Reserved a seat</li><li>Contact information (long form) complete</li><li>Photo added</li><li>Questionnaire complete</li><li>Payment received</li>
+      </ul>
+      <p>You never tick these yourself. If payment is late, we nudge you every 7 days, and sending a reminder is your call. Once payment arrives, we send &ldquo;Thank you &ndash; We&rsquo;re so excited&rdquo; automatically, and &ldquo;What to bring&rdquo; one week before the training.</p>
+
       <h4 style="margin:16px 0 6px">At the bottom of your page</h4>
       <ul>
-        <li>Links to this <strong>CEP Team Training guide</strong> and to <strong>the letters we send to clients</strong>, so you can read exactly what they receive.</li>
-        <li>Your CEP Team Captain&rsquo;s name and number, if you have a question or get stuck.</li>
+        <li>Links to this <strong>Guide Training</strong> and to <strong>the letters we send to clients</strong>, so you can read exactly what they receive.</li>
+        <li>Your Lead Guide&rsquo;s name and number, if you have a question or get stuck.</li>
       </ul>
 
       <h4 style="margin:16px 0 6px">A few reminders</h4>
       <ul>
-        <li>If you cannot make the two-hour window, do not tap yes. Let your CEP Team Captain know if no one else has taken it.</li>
+        <li>If you cannot make the two-hour window, do not tap yes. Let your Lead Guide know if no one else has taken it.</li>
         <li>What you see on your page is private. Please keep it between you and the team.</li>
       </ul>
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
@@ -178,7 +190,7 @@
       <ul>
         <li>Answer from your own experience of the training.</li>
         <li>If you do not know, say so and tell them you will find out. Do not guess about prices, dates or promises.</li>
-        <li>Questions you cannot answer go to your CEP Team Captain.</li>
+        <li>Questions you cannot answer go to your Lead Guide.</li>
       </ul>
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
@@ -216,7 +228,7 @@
         <li>If someone says they are not interested, thank them, log it, and do not follow up again.</li>
         <li>Keep what people tell you private. Do not share their name, number or story outside the team.</li>
       </ul>
-      <p><strong>Questions or stuck?</strong> Contact your CEP Team Captain. Their name and number are at the bottom of your personal page.</p>
+      <p><strong>Questions or stuck?</strong> Contact your Lead Guide. Their name and number are at the bottom of your personal page.</p>
       <p class="cep-top"><a href="#top">&uarr; Back to the modules</a></p>
     </div>
   </div>
