@@ -147,11 +147,18 @@ def _preview_map():
 
 # Plain-language note shown where the Guide letters appear, because most people don't know what a Guide is.
 GUIDE_EXPLAINER = (
-    "A Guide is a volunteer, usually a past trainee, who talks with people who are curious about Discovery! and answers their questions.",
-    "It starts when someone fills in an \"I'm curious\" form on the website and asks to be called or texted. Each form is tied to one program, such as The Beginning or The Art of Us, so only the Guides for that program get the alert (if a program has no Guides of its own, the \"Everything else\" group is alerted). "
+    "A Guide is a volunteer who becomes one person's personal contact for Discovery!, from their first question all the way into the training room. "
+    "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job.",
+    "It starts when someone fills in an \"I'm curious\" form on the website and asks to be called or texted. Each form is tied to one program, such as The Beginning or The Art of Us, "
+    "so only the Guides for that program get the alert (if a program has no Guides of its own, the \"Everything else\" group is alerted). "
     "The first Guide to claim the request becomes that person's Guide, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch.",
-    "From then on the same Guide handles the conversation. When the person is ready, the Guide sends the registration link, and after they reserve, the questionnaire link, "
-    "from the Guide's own page. Those are the other two Guide letters.",
+    "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave, so to speak, "
+    "to guide that person into the training room, including registration, payment and greeting them at the door. "
+    "A Guide needs to be gifted, with breadth and depth in communication skill.",
+    "When the person is ready, the Guide sends the registration link. After they reserve their seat, the Guide sends the questionnaire link, the payment request link, "
+    "the payment reminder and the what-to-bring letter.",
+    "Before the trainee shows up at the door, the Guide makes sure that the long-form contact information is complete, including a photo, "
+    "that the questionnaire is complete, and that payment has been received.",
 )
 
 
