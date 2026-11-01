@@ -714,20 +714,50 @@ SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_r
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
-def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
-                           partner=None, amount=None):
-    """(subject, html, text) for one session letter, or None for an unknown key."""
-    import html as _html
-    spec = SESSION_LETTERS.get(key)
-    if not spec:
+# ---- editable wording: the app registers a loader that returns the saved edit for a letter (or None) ----
+_OVERRIDE = {"loader": None}
+LETTER_FIELDS = ("first", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence")
+
+
+def set_override_loader(fn):
+    _OVERRIDE["loader"] = fn
+
+
+def saved_edit(key):
+    """The saved edit for a letter: {'subject','body','signoff','signer'} or None."""
+    fn = _OVERRIDE["loader"]
+    if not fn:
         return None
+    try:
+        return fn(key)
+    except Exception:
+        return None
+
+
+def spec_with_edit(key, edit):
+    spec = dict(SESSION_LETTERS[key])
+    if edit:
+        spec["subject"] = edit["subject"]
+        spec["paras"] = [x.strip() for x in (edit["body"] or "").replace("\r\n", "\n").split("\n\n") if x.strip()]
+        if edit.get("signoff") is not None:
+            spec["signoff"] = edit["signoff"]
+        if edit.get("signer") is not None:
+            spec["signer"] = edit["signer"]
+    return spec
+
+
+def original_body(key):
+    return "\n\n".join(SESSION_LETTERS[key]["paras"])
+
+
+def fill_for(first_name, training, dates, location=None, role=None, duties=None, link=None, partner=None, amount=None):
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
     duty_list = [d for d in (duties or []) if d and d != "Not confirmed"]
     if duty_list:
         duties_sentence = ("Your assignment is " if len(duty_list) == 1 else "Your assignments are ") + ", ".join(duty_list) + "."
     else:
         duties_sentence = "Your specific assignment will be confirmed before the training."
-    fill = {
+    return {
         "first": greeting, "training": training, "dates": dates,
         "where": f" at {location}" if location else "",
         "role": role or "a facilitator", "duties": duties_sentence,
@@ -737,6 +767,11 @@ def session_letter_content(key, first_name, training, dates, location=None, role
         "partner_sentence": (f"This payment covers you and {partner}, so you are both all set."
                              if partner else ""),
     }
+
+
+def render_spec(spec, fill, link=None):
+    import html as _html
+    greeting = fill["first"]
     subject = spec["subject"].format(**fill)
     paras = [p for p in (p.format(**fill) for p in spec["paras"]) if p.strip()]
     html_content = (
@@ -748,3 +783,19 @@ def session_letter_content(key, first_name, training, dates, location=None, role
     )
     text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\n{spec.get('signer', 'Kent Hafemann')}"
     return subject, html_content, text_content
+
+
+def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
+                           partner=None, amount=None):
+    """(subject, html, text) for one session letter, or None for an unknown key.
+    Uses the wording saved on the Correspondence page; falls back to the original if that wording cannot be used."""
+    if key not in SESSION_LETTERS:
+        return None
+    fill = fill_for(first_name, training, dates, location, role, duties, link, partner, amount)
+    edit = saved_edit(key)
+    if edit:
+        try:
+            return render_spec(spec_with_edit(key, edit), fill, link)
+        except Exception:
+            pass
+    return render_spec(SESSION_LETTERS[key], fill, link)

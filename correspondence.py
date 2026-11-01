@@ -15,6 +15,9 @@ import re
 
 from flask import abort, flash, redirect, render_template, request, session, url_for
 
+import string
+
+import email_templates as et
 from email_utils import send_email, EmailSendError
 
 # key -> (page title, who it goes to, picks people by session?)
@@ -146,7 +149,12 @@ def register(app, crm, get_db, h):
                                   "GROUP BY cohort_id, SUBSTR(sent_at, 1, 4)").fetchall():
                 counts.setdefault(r["cohort_id"], {})[r["yr"]] = r["n"]
             years = sorted({y for c in counts.values() for y in c}, reverse=True)
+            edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
+            keys = [k for k in et.SESSION_LETTER_ORDER if (k in et.SESSION_TRAINEE_LETTERS) == (kind == "trainees")]
+            letter_rows = [dict(key=k, title=et.SESSION_LETTERS[k]["title"], audience=et.SESSION_LETTERS[k]["audience"],
+                                edit=edits.get(k)) for k in keys]
             return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years, counts=counts,
+                                   letter_rows=letter_rows,
                                    labels=h["program_labels"], groups=GROUPS, team_groups=TEAM_GROUPS, live=live())
         finally:
             conn.close()
@@ -229,5 +237,88 @@ def register(app, crm, get_db, h):
                                    subject=subject, body=body, history=history, live=live(),
                                    years=sorted({(x["sent_at"] or "")[:4] for x in history if x["sent_at"]}, reverse=True),
                                    back=("correspondence_team" if group in TEAM_GROUPS else "correspondence_home"))
+        finally:
+            conn.close()
+
+
+    # ---------------------------------------------------------------- editing the wording of a session letter
+    SAMPLE = dict(first_name="Alex", training="The Art of Us", dates="Feb. 12, 2027 to Feb. 14, 2027",
+                  location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
+                  partner="Jordan", amount="$1,399 per couple")
+
+    def _problem(key, subject, body):
+        """A plain-English reason the wording cannot be saved, or None."""
+        if not subject.strip() or not body.strip():
+            return "Please write a subject and a message."
+        names = set()
+        try:
+            for text in [subject] + [x for x in body.replace("\r\n", "\n").split("\n\n")]:
+                for _lit, name, _spec, _conv in string.Formatter().parse(text):
+                    if name:
+                        names.add(name)
+        except ValueError:
+            return "A curly bracket { or } is not closed. Words in curly brackets, like {training}, must be spelled exactly as listed."
+        bad = sorted(names - set(et.LETTER_FIELDS))
+        if bad:
+            return "These are not recognized: " + ", ".join("{" + b + "}" for b in bad) + ". Use only the words listed on the right."
+        needs_link = "{link}" in et.original_body(key)
+        if needs_link and "link" not in names:
+            return "This letter must keep {link}, the person's private link."
+        return None
+
+    @crm.route("/correspondence/letters/<key>/edit", methods=["GET", "POST"])
+    @leadership_required
+    def correspondence_letter_edit(key):
+        if key not in et.SESSION_LETTERS:
+            abort(404)
+        conn = get_db()
+        try:
+            h["ensure_letters_table"](conn)
+            orig = et.SESSION_LETTERS[key]
+            saved = conn.execute("SELECT * FROM session_letter_text WHERE letter_key = ?", (key,)).fetchone()
+            cur = dict(subject=saved["subject"], body=saved["body"], signoff=saved["signoff"], signer=saved["signer"]) if saved else \
+                dict(subject=orig["subject"], body=et.original_body(key), signoff=orig["signoff"], signer=orig.get("signer", "Kent Hafemann"))
+            form = dict(cur)
+            error = None
+            if request.method == "POST":
+                action = request.form.get("action")
+                form = dict(subject=(request.form.get("subject") or "").strip(), body=(request.form.get("body") or "").strip(),
+                            signoff=(request.form.get("signoff") or "").strip(), signer=(request.form.get("signer") or "").strip())
+                if action == "reset":
+                    conn.execute("DELETE FROM session_letter_text WHERE letter_key = ?", (key,))
+                    conn.commit()
+                    flash("Back to the original wording.")
+                    return redirect(url_for(".correspondence_letter_edit", key=key))
+                error = _problem(key, form["subject"], form["body"])
+                if not error and action == "save":
+                    conn.execute(
+                        """INSERT INTO session_letter_text (letter_key, subject, body, signoff, signer, updated_by, updated_at)
+                           VALUES (?,?,?,?,?,?, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+                           ON CONFLICT (letter_key) DO UPDATE SET subject = EXCLUDED.subject, body = EXCLUDED.body,
+                             signoff = EXCLUDED.signoff, signer = EXCLUDED.signer, updated_by = EXCLUDED.updated_by,
+                             updated_at = EXCLUDED.updated_at""",
+                        (key, form["subject"], form["body"], form["signoff"], form["signer"], session.get("staff_name")))
+                    conn.commit()
+                    flash("Saved. Letters sent from now on use this wording. Letters already sent keep the wording they went out with.")
+                    return redirect(url_for(".correspondence_letter_edit", key=key))
+            subject = html = None
+            if not error:
+                try:
+                    fill = et.fill_for(SAMPLE["first_name"], SAMPLE["training"], SAMPLE["dates"], SAMPLE["location"],
+                                       SAMPLE["role"], SAMPLE["duties"], SAMPLE["link"], SAMPLE["partner"], SAMPLE["amount"])
+                    subject, html, text = et.render_spec(et.spec_with_edit(key, form), fill, SAMPLE["link"])
+                    if request.method == "POST" and request.form.get("action") == "test":
+                        me = h["staff_email"]()
+                        try:
+                            send_email(to_email=me, subject="[TEST] " + subject, html_content=html, text_content=text)
+                            flash(f"Test copy sent to you at {me}. Nothing was sent to anyone else.")
+                        except EmailSendError as e:
+                            flash(f"Couldn't send the test copy: {e}")
+                except Exception:
+                    error = "This wording can't be used. Check the curly-bracket words."
+            used = [f for f in et.LETTER_FIELDS if "{" + f + "}" in (orig["subject"] + " ".join(orig["paras"])) and f != "first"]
+            return render_template("correspondence_letter_edit.html", key=key, orig=orig, form=form, error=error,
+                                   saved=saved, preview_subject=subject, preview_html=html, used=used,
+                                   back=("correspondence_trainees" if key in et.SESSION_TRAINEE_LETTERS else "correspondence_team"))
         finally:
             conn.close()
