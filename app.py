@@ -15,6 +15,7 @@ from db import get_db, init_db
 from seed import seed
 import html as _html
 from config import PROGRAM_NAME
+import needs
 from email_utils import send_email, EmailSendError
 import call_flow
 from email_templates import (
@@ -2011,6 +2012,7 @@ def contact_edit(contact_id):
     contact, sponsor info, personal info, all of it (unlike the piecemeal
     Sponsor/Personal/Photo forms further down this contact's page)."""
     conn = get_db()
+    needs.ensure(conn)
     contact = conn.execute(
         f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)
     ).fetchone()
@@ -2045,6 +2047,7 @@ def contact_edit(contact_id):
             flash(f"Added {sp_name} as a new contact (on the Past sponsors list) and linked as the Sponsor.")
         conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact_id))
         conn.commit()
+        needs.save_from_form(conn, contact_id, request.form)
         photo_result = process_contact_photo(request.files.get("photo"))
         if photo_result:
             upsert_contact_photo(conn, contact_id, *photo_result)
@@ -2423,6 +2426,7 @@ def public_complete_profile(token):
     (see the autosave script in the template) so leaving mid-form loses
     nothing; the visible Submit button is just their "I'm done" moment."""
     conn = get_db()
+    needs.ensure(conn)
     contact = conn.execute(
         f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE profile_token = ?", (token,)
     ).fetchone()
@@ -2443,6 +2447,7 @@ def public_complete_profile(token):
         # Keep the Sponsor pipeline link in step with the typed sponsor name.
         link_id, _note = _resolve_sponsor_link(conn, contact["id"], values.get("sponsor_name") or "")
         conn.execute("UPDATE contacts SET sponsor_contact_id = ? WHERE id = ?", (link_id, contact["id"]))
+        needs.save_from_form(conn, contact["id"], request.form)
         if not request.form.get("autosave"):
             # They clicked Submit (not a background save): make sure their sponsor is a contact.
             _auto_link_or_add_sponsor(conn, contact["id"])
@@ -4454,6 +4459,7 @@ def _auto_link_couples(conn, cohort_id):
 def cohort_detail(cohort_id):
     _ensure_enrollment_extras()
     conn = get_db()
+    needs.ensure(conn)
     try:
         _auto_link_couples(conn, cohort_id)
     except Exception as e:
@@ -4478,6 +4484,13 @@ def cohort_detail(cohort_id):
         (cohort_id,),
     ).fetchall()
     partner_names = {e["id"]: e["full_name"] for e in roster}
+    needs_rows, needs_total = ([], 0)
+    if _is_leader():
+        try:
+            needs_rows, needs_total = needs.session_summary(conn, cohort_id, full_name_sql)
+        except Exception as e:
+            conn.rollback()
+            print(f"needs summary skipped: {e}", flush=True)
     pay_info = _payment_info_for_cohort(conn, cohort_id, roster)
     # Keep each couple together (alphabetical by the first of them) and shade every other group,
     # so a long list (80+ trainees) is easy to scan.
@@ -4563,6 +4576,7 @@ def cohort_detail(cohort_id):
         "cohort_detail.html",
         cohort=cohort,
         roster=roster, partner_names=partner_names, bands=bands, pay_info=pay_info,
+        needs_rows=needs_rows, needs_total=needs_total, needs_help=needs.HELP_TEXT,
         fee_default=TRAINING_FEES.get(cohort["code"]), payment_methods=PAYMENT_METHODS, today_iso=date.today().isoformat(),
         is_leader=_is_leader(), can_money=_can_handle_money(),
         small_groups=small_groups,
@@ -6504,7 +6518,7 @@ def public_whats_included(slug):
     names = {"the-art-of-us": "The Art of Us", "the-beginning": "The Beginning",
              "awakening": "Awakening", "vision": "Vision"}
     # Start/end times differ by program; update here once confirmed.
-    when = {"the-art-of-us": "Friday 10:00 am through Sunday 3:00 pm",
+    when = {"the-art-of-us": "Friday 7:00 pm through Sunday 1:30 pm",
             "the-beginning": "Friday 10:00 am through Sunday 3:00 pm"}.get(
         slug, "Three days (start and end times to be announced)")
     w = {"slug": slug, "name": names.get(slug, slug.title()), "when": when}
@@ -6517,6 +6531,7 @@ def public_questionnaire(token):
     nobody else (including their partner) can see the answers from here."""
     _ensure_enrollment_extras()
     conn = get_db()
+    needs.ensure(conn)
     enr = conn.execute(
         f"""SELECT e.*, ct.first_name, p.code, p.name AS program_name, c.session_number, c.session_date, c.end_date
             FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
@@ -6538,17 +6553,19 @@ def public_questionnaire(token):
         else:
             conn.execute(f"INSERT INTO training_profiles (enrollment_id, {', '.join(fields)}) "
                          f"VALUES (?, {', '.join('?' for _ in fields)})", (enr["id"], *values))
+        needs.save_from_form(conn, enr["contact_id"], request.form)
         if request.form.get("submit_done"):
             conn.execute("UPDATE enrollments SET questionnaire_completed_at = ? WHERE id = ?",
                          (date.today().isoformat(), enr["id"]))
             done = True
         conn.commit()
     profile = conn.execute("SELECT * FROM training_profiles WHERE enrollment_id = ?", (enr["id"],)).fetchone()
+    my_needs = needs.load(conn, enr["contact_id"])
     conn.close()
     if not done and enr["questionnaire_completed_at"]:
         done = True
     return render_template("public_questionnaire.html", enr=enr, profile=profile, is_couples=is_couples,
-                           done=done, saved=(request.method == "POST" and not done))
+                           done=done, saved=(request.method == "POST" and not done), my_needs=my_needs)
 
 
 PUBLIC_CALENDAR_START_YEAR = 2027  # first year the public Register calendar opens on
