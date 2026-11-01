@@ -3328,11 +3328,23 @@ def programs_list():
     sessions = conn.execute(
         """SELECT c.*, p.code, p.name AS program_name FROM cohorts c
            JOIN programs p ON p.id = c.program_id
-           WHERE COALESCE(c.end_date, c.session_date) >= date('now') AND c.status != 'Cancelled' AND p.code NOT IN ('D2','D3')
+           WHERE c.session_date >= '2026-01-01' AND c.status != 'Cancelled' AND p.code NOT IN ('D2','D3')
            ORDER BY c.session_date ASC, p.id ASC"""
     ).fetchall()
     conn.close()
-    return render_template("programs_home.html", programs=programs, upcoming=upcoming, sessions=sessions)
+    this_year = date.today().year
+    years = sorted({2026, this_year} | {int(c["session_date"][:4]) for c in sessions})
+    with_sessions = {int(c["session_date"][:4]) for c in sessions}
+    upcoming_years = sorted(y for y in with_sessions if y >= this_year)
+    default_year = this_year if this_year in with_sessions else (upcoming_years[0] if upcoming_years else (max(with_sessions) if with_sessions else this_year))
+    last = session.get("last_quick_schedule")
+    try:
+        if last and (datetime.now() - datetime.fromisoformat(last["at"])).total_seconds() > 7200:
+            last = None
+    except Exception:
+        last = None
+    return render_template("programs_home.html", programs=programs, upcoming=upcoming, sessions=sessions,
+                           years=years, default_year=default_year, today_iso=date.today().isoformat(), last_sched=last)
 
 
 @crm.route("/programs/quick-schedule", methods=["POST"])
@@ -3373,13 +3385,52 @@ def quick_schedule():
         )
         made.append(jname)
     conn.commit()
+    new_ids = []
+    for jpid, jcode, jname, s_, e_ in jobs:
+        if jname in made:
+            r_ = conn.execute("SELECT id FROM cohorts WHERE program_id = ? AND session_date = ?", (jpid, s_.isoformat())).fetchone()
+            if r_:
+                new_ids.append(r_["id"])
     conn.close()
     if not made:
         flash(f"{prog['name']} already has a session starting {fdate_text(start.isoformat())}. Nothing was added.")
         return redirect(url_for(".programs_list"))
+    session["last_quick_schedule"] = {"ids": new_ids, "label": f"{', '.join(made)}, {_short_span(start, end)}, {end.year}",
+                                      "at": datetime.now().isoformat()}
     note = "" if start.weekday() == 4 else f" (Heads up: {start.strftime('%A')} is not a Friday.)"
     which = ", ".join(made)
     flash(f"Scheduled {_short_span(start, end)}, {end.year}: {which}. It now shows on the website.{note}")
+    return redirect(url_for(".programs_list"))
+
+
+@crm.route("/programs/quick-schedule/undo", methods=["POST"])
+@leadership_required
+def quick_schedule_undo():
+    """Backs out the session(s) just added with Quick Schedule, or dismisses the Undo notice (action=keep).
+    Anything with enrolled people or contracts is never removed."""
+    last = session.pop("last_quick_schedule", None)
+    if request.form.get("action") != "undo" or not last:
+        return redirect(url_for(".programs_list"))
+    conn = get_db()
+    removed, kept = 0, 0
+    for cid in last.get("ids", []):
+        if not conn.execute("SELECT 1 FROM cohorts WHERE id = ?", (cid,)).fetchone():
+            continue
+        if conn.execute("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", (cid,)).fetchone()["n"] \
+           or conn.execute("SELECT COUNT(*) AS n FROM contracts WHERE originating_cohort_id = ?", (cid,)).fetchone()["n"]:
+            kept += 1
+            continue
+        conn.execute("DELETE FROM small_group_staffing WHERE small_group_id IN (SELECT id FROM small_groups WHERE cohort_id = ?)", (cid,))
+        conn.execute("DELETE FROM cohort_staffing WHERE cohort_id = ?", (cid,))
+        conn.execute("DELETE FROM small_groups WHERE cohort_id = ?", (cid,))
+        conn.execute("DELETE FROM cohorts WHERE id = ?", (cid,))
+        removed += 1
+    conn.commit()
+    conn.close()
+    msg = f"Undone. {removed} session{'' if removed == 1 else 's'} removed ({last.get('label', '')})."
+    if kept:
+        msg += f" {kept} could not be removed because people are already enrolled; use Change or delete on that session."
+    flash(msg)
     return redirect(url_for(".programs_list"))
 
 
