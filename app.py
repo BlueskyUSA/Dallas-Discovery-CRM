@@ -4974,7 +4974,51 @@ def _ensure_session_letters_table(conn):
         sent_by TEXT,
         UNIQUE (cohort_id, contact_id, letter_key)
     )""")
+    conn.execute("ALTER TABLE session_letters_sent ADD COLUMN IF NOT EXISTS snapshot_subject TEXT")
+    conn.execute("ALTER TABLE session_letters_sent ADD COLUMN IF NOT EXISTS snapshot_html TEXT")
+    conn.execute("""CREATE TABLE IF NOT EXISTS session_letter_text (
+        letter_key TEXT PRIMARY KEY,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        signoff TEXT,
+        signer TEXT,
+        updated_by TEXT,
+        updated_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )""")
     conn.commit()
+
+
+_letter_text_ready = False
+
+
+def _saved_letter_edit(key):
+    """The wording saved on the Correspondence page for a session letter, or None to use the original."""
+    global _letter_text_ready
+    conn = get_db()
+    try:
+        if not _letter_text_ready:
+            _ensure_session_letters_table(conn)
+            _letter_text_ready = True
+        row = conn.execute("SELECT subject, body, signoff, signer FROM session_letter_text WHERE letter_key = ?", (key,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+import email_templates as _et
+_et.set_override_loader(_saved_letter_edit)
+
+
+def _save_letter_snapshot(conn, cohort_id, contact_id, sent_key, subject, html_content):
+    """Keeps the letter exactly as it went out, so it can be shown later even if the wording is edited."""
+    try:
+        conn.execute("UPDATE session_letters_sent SET snapshot_subject = ?, snapshot_html = ? "
+                     "WHERE cohort_id = ? AND contact_id = ? AND letter_key = ?",
+                     (subject, html_content, cohort_id, contact_id, sent_key))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"letter snapshot not saved: {e}", flush=True)
 
 
 def _session_letters_live():
@@ -5105,8 +5149,9 @@ def session_letters(cohort_id):
     recipients = _session_letter_recipients(conn, cohort_id)
     sent = {(r["contact_id"], r["letter_key"]): r["sent_at"] for r in conn.execute(
         "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
+    edited = {r["letter_key"] for r in conn.execute("SELECT letter_key FROM session_letter_text").fetchall()}
     conn.close()
-    return render_template("session_letters.html", cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
+    return render_template("session_letters.html", edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
                            recipients=recipients, sent=sent, live=_session_letters_live(),
                            only=(request.args.get("only") if request.args.get("only") in ("trainees", "team") else None))
 
@@ -5142,6 +5187,26 @@ def session_letter_view(cohort_id, key):
     subject, html_content, _t = _session_letter_for(cohort, sample, key)
     return render_template("session_letter_view.html", cohort=cohort, spec=SESSION_LETTERS[key],
                            subject=subject, letter_html=html_content)
+
+
+@crm.route("/cohorts/<int:cohort_id>/letters/<key>/sent/<int:contact_id>")
+@area_required("contacts")
+@leadership_required
+def session_letter_sent_copy(cohort_id, key, contact_id):
+    """The letter exactly as it was sent to one person (the wording at the time, even if it has been edited since)."""
+    if key not in SESSION_LETTERS:
+        abort(404)
+    conn = get_db()
+    _ensure_session_letters_table(conn)
+    cohort = _letter_cohort(conn, cohort_id)
+    row = conn.execute(
+        f"""SELECT s.sent_at, s.sent_by, s.snapshot_subject, s.snapshot_html, ct.email, {full_name_sql('ct')} AS name
+            FROM session_letters_sent s JOIN contacts ct ON ct.id = s.contact_id
+            WHERE s.cohort_id = ? AND s.contact_id = ? AND s.letter_key = ?""", (cohort_id, contact_id, key)).fetchone()
+    conn.close()
+    if not row:
+        abort(404)
+    return render_template("session_letter_sent.html", cohort=cohort, key=key, spec=SESSION_LETTERS[key], row=row)
 
 
 def _staff_email():
@@ -5209,6 +5274,7 @@ def session_letter_send(cohort_id, key):
             send_email(to_email=p["email"], to_name=p["first_name"], subject=subject,
                        html_content=html_content, text_content=text_content)
             sent_n += 1
+            _save_letter_snapshot(conn, cohort_id, p["contact_id"], key, subject, html_content)
             print(f"SENT session letter {key} to contact {p['contact_id']} cohort {cohort_id} by {session.get('staff_name')}", flush=True)
         except EmailSendError as e:
             conn.execute("DELETE FROM session_letters_sent WHERE cohort_id = ? AND contact_id = ? AND letter_key = ?",
@@ -7695,6 +7761,7 @@ def _auto_letter_send(conn, cohort, person, sent_key, content_key):
     try:
         send_email(to_email=person["email"], to_name=person["first_name"], subject=subject,
                    html_content=html_content, text_content=text_content)
+        _save_letter_snapshot(conn, cohort["id"], person["contact_id"], sent_key, subject, html_content)
         print(f"SENT automatic letter {sent_key} to contact {person['contact_id']} cohort {cohort['id']}", flush=True)
         return True
     except EmailSendError as e:
