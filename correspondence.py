@@ -159,8 +159,9 @@ GUIDE_EXPLAINER = (
     "A Guide needs to be gifted, with breadth and depth in communication skill.",
     "When a Guide accepts the \"I'm curious\" request, that Guide is sent a link of their own, and an alert that carries the name of the client, so the Guide knows right away who it is about. "
     "The link opens a web page dedicated to that one client, which, by simply pressing buttons, makes it easy for the Guide to send pre-written correspondence to them. "
-    "For example, when the person is ready, the Guide will send the registration link. After the client registers, the Guide will send the questionnaire link, "
-    "the payment request link, the payment reminder and the what-to-bring letter. "
+    "For example, when the client is ready to register, the Guide will send the registration link. After the client registers, the Guide is notified to send the questionnaire link and a payment request link. "
+    "If the client delays payment, the Guide will be automatically notified every seven days that payment is delayed, and at the Guide's discretion, a payment reminder may be sent. "
+    "Once payment is made, a \"Thank you \u2013 We're so excited\" letter is automatically sent, followed by a \"What to bring\" letter seven days before the training begins.",
     "We request the Guide to keep us informed of each person's progress. After reaching out, the Guide chooses how it went from a drop-down "
     "(spoke with them, left a voicemail, texted and waiting for a reply, no answer and will try again, not interested, or wrong number) and dictates a note about what the person is hoping for, "
     "their questions and the next step. This shows on the Call requests page, along with whether the person has reserved a seat.",
