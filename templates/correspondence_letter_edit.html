@@ -2,6 +2,15 @@
 {% block title %}Edit letter: {{ orig.title }}{% endblock %}
 {% block content %}
 <p><a href="{{ url_for('.' ~ back) }}">&larr; {{ 'All Letters' if back == 'correspondence_all' else ('Trainee Correspondence' if back == 'correspondence_trainees' else 'Team Correspondence') }}</a></p>
+{% if guide_note %}
+<div class="card" id="guideNote" style="max-width:900px; border-left:4px solid #a8892f; background:#fff8e1; margin-bottom:12px">
+  <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start">
+    <strong>What is a Guide?</strong>
+    <button type="button" class="btn secondary" style="padding:2px 10px" onclick="document.getElementById('guideNote').style.display='none'">Got it</button>
+  </div>
+  {% include "_guide_explainer.html" %}
+</div>
+{% endif %}
 <h1>Edit letter: {{ orig.title }}</h1>
 <p class="muted">Goes to: {{ orig.audience }}.
   {% if saved %}Edited by {{ saved.updated_by or 'a team member' }} on {{ saved.updated_at[:10]|fdate }}.{% else %}This is the original wording.{% endif %}</p>

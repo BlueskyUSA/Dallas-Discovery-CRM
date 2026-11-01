@@ -80,7 +80,7 @@ SECTIONS = [
           "A visitor asks to be contacted by text or phone. The next Guide in turn is alerted, opens a private call page, makes the contact and can send the video link, the questionnaire and the reserve link from there. Unanswered requests move to the next Guide.",
           "call_requests, call_notices; alerts go out by Pushover and email."),
         E("Guides", "Admin > Guides", "Leadership", "Who the Guides are, their order and their hours.", "call volunteers."),
-        E("Call requests queue", "Admin > Call requests", "Contacts area", "Every request, who it went to, whether it was answered, with resend and close.", "call_requests."),
+        E("Call requests queue", "Admin > Call requests", "Contacts area", "Every request, who it went to, whether it was answered, with resend and close. On a claimed request, \"Hand to\u2026\" passes the person to a different Guide, who is emailed their own link.", "call_requests."),
         E("Interest report", "Admin > Interest report", "Contacts area", "A report of everyone who used the interest forms and whether anyone reached them.", "interest_log."),
         E("Guide training pages", "/cep-training and /cep-letters", "Guides", "Training and sample letters for Guides.", ""),
         E("Volunteer helper sign-up", "/volunteer-helper/join", "Past volunteers", "A page where a volunteer joins the helper team.", "call volunteers."),

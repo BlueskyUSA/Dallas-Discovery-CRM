@@ -145,6 +145,36 @@ def _preview_map():
     }
 
 
+# Plain-language note shown where the Guide letters appear, because most people don't know what a Guide is.
+GUIDE_EXPLAINER = (
+    "A Guide is a volunteer, usually a past trainee, who talks with people who are curious about Discovery! and answers their questions.",
+    "It starts when someone fills in the \"I'm curious\" form on the website and asks to be called or texted. Every Guide for that program gets an alert. "
+    "The first Guide to claim the request becomes that person's Guide, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch.",
+    "From then on the same Guide handles the conversation. When the person is ready, the Guide sends the registration link, and after they reserve, the questionnaire link, "
+    "from the Guide's own page. Those are the other two Guide letters.",
+)
+
+
+
+def guides_by_group(conn):
+    """Names of the active Guides, grouped the way the Guide team is organised. Empty if nothing is set up yet."""
+    try:
+        import call_flow as CF
+        rows = conn.execute("SELECT program_code, name FROM call_volunteers WHERE active = 1 ORDER BY id").fetchall()
+        out = []
+        for code, label in CF.POOLS:
+            names = [r["name"] for r in rows if r["program_code"] == code]
+            if names:
+                out.append((label, names))
+        return out
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return []
+
+
 def catalog():
     import email_templates as T
     sl = T.SESSION_LETTERS
@@ -235,7 +265,7 @@ def register(app, crm, get_db, h):
             edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
             nvers = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM letter_versions GROUP BY letter_key").fetchall()}
             sent = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM session_letters_sent GROUP BY letter_key").fetchall()}
-            return render_template("correspondence_all.html", cats=catalog(), edits=edits, nvers=nvers, sent=sent,
+            return render_template("correspondence_all.html", cats=catalog(), guide_note=GUIDE_EXPLAINER, guides=guides_by_group(conn), edits=edits, nvers=nvers, sent=sent,
                                    can_marketing=h["has_correspondence_access"](), live=live())
         finally:
             conn.close()
@@ -503,7 +533,7 @@ def register(app, crm, get_db, h):
             blob = orig["subject"] + " ".join(orig["paras"]) + orig.get("signer", "")
             used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
-            return render_template("correspondence_letter_edit.html", key=key, orig=orig, form=form, error=error,
+            return render_template("correspondence_letter_edit.html", key=key, guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else

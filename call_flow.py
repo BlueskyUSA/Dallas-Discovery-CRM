@@ -1406,6 +1406,8 @@ def register(app, crm, leadership_required, get_db):
             d["claimed_when"] = local_text(r["claimed_at"])
             d["waiting_hours"] = round((now - _parse(r["created_at"])).total_seconds() / 3600, 1)
             d["overdue"] = r["status"] in ("New", "Claimed") and d["waiting_hours"] > WINDOW_HOURS
+            d["others"] = ([v for v in _pool(conn, r["program_code"]) if v["id"] != r["claimed_by"]]
+                           if r["status"] == "Claimed" else [])
             items.append(d)
         pools = {c: conn.execute("SELECT COUNT(*) c FROM call_volunteers WHERE active = 1 AND program_code = ?", (c,)).fetchone()["c"]
                  for c, _ in POOLS}
@@ -1418,6 +1420,49 @@ def register(app, crm, leadership_required, get_db):
     def call_request_resend(request_id):
         status = dispatch(get_db, request_id, _base_url(), force=True)
         flash(f"Alert check: {status}.")
+        return redirect(url_for(".call_requests_queue"))
+
+    @crm.route("/call-requests/<int:request_id>/reassign", methods=["POST"])
+    @leadership_required
+    def call_request_reassign(request_id):
+        """Hand a claimed request to a different Guide. The new Guide gets their own link by email."""
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            req = conn.execute("SELECT r.*, c.first_name, c.last_name FROM call_requests r JOIN contacts c ON c.id = r.contact_id "
+                               "WHERE r.id = ?", (request_id,)).fetchone()
+            vid = request.form.get("volunteer_id", type=int)
+            vol = conn.execute("SELECT * FROM call_volunteers WHERE id = ? AND active = 1", (vid,)).fetchone() if vid else None
+            if not req or req["status"] != "Claimed" or not vol:
+                flash("That request can't be handed over (it must be claimed, and the Guide must be active).")
+                return redirect(url_for(".call_requests_queue"))
+            old = conn.execute("SELECT name FROM call_volunteers WHERE id = ?", (req["claimed_by"],)).fetchone()
+            conn.execute("UPDATE call_requests SET claimed_by = ?, claimed_at = ? WHERE id = ? AND status = 'Claimed'",
+                         (vol["id"], _ts(_utc_now()), request_id))
+            token = _notice_for(conn, request_id, vol["id"])
+            conn.commit()
+            url = f"{_base_url()}/call/{token}"
+            who = f"{req['first_name']} {(req['last_name'] or '')[:1]}.".replace(" .", "")
+            label = _program_label(req["program_code"])
+            first = vol["name"].split()[0]
+            sent = False
+            if alerts_live():
+                try:
+                    _send(vol["email"], f"{who} is now yours to follow up with \u2013 {label}",
+                          f"<p>Hi {first},</p><p>{who} asked to be reached about <strong>{label}</strong>"
+                          f"{(' and was being helped by ' + old['name']) if old else ''}. You are now their Guide. "
+                          f"Open your page to see the details, log your call and send the next link:<br><a href=\"{url}\">{url}</a></p>",
+                          f"Hi {first},\n\n{who} asked to be reached about {label}. You are now their Guide. Your page:\n{url}",
+                          to_name=vol["name"])
+                    sent = True
+                except Exception as e:
+                    print(f"Hand-over email failed: {e}", flush=True)
+            msg = f"{who} is now with {vol['name']}" + (f" (was {old['name']})." if old else ".")
+            msg += " They were emailed their link." if sent else f" No email was sent (sending is off or it failed); give them this link: {url}"
+            msg += " Note: the person was already told the first Guide's name."
+            flash(msg)
+        finally:
+            conn.close()
         return redirect(url_for(".call_requests_queue"))
 
     @crm.route("/call-requests/<int:request_id>/close", methods=["POST"])
