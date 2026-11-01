@@ -9,6 +9,7 @@
     {% for l in all_lists %}<option value="{{ l.id }}" {{ 'selected' if list_id == l.id }}>{{ l.name }}</option>{% endfor %}
   </select>
   <button class="btn secondary" type="submit">Search</button>
+  {% for ql in quick_lists %}<a class="btn {{ '' if list_id == ql.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=ql.id) }}">{{ ql.name }}s</a>{% endfor %}
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
 </form>
 

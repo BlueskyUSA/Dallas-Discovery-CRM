@@ -645,6 +645,48 @@ def client_progress(conn, req, base_url):
             "profile_link": prof["link"], "reserved": reserved, "paid": paid, "start": cohort_start}
 
 
+GUIDE_LIST = "Guides"
+LEAD_GUIDE_LIST = "Lead Guide"
+
+
+def sync_guide_lists(conn):
+    """Keeps two contact lists up to date from the Guides page: 'Guides' and 'Lead Guide' (matched by email).
+    Use the Lists filter on Contacts to see them. Never raises."""
+    try:
+        g, l = list_id_for(conn, GUIDE_LIST), list_id_for(conn, LEAD_GUIDE_LIST)
+        want = {g: set(), l: set()}
+        for v in conn.execute("SELECT program_code, email FROM call_volunteers WHERE active = 1").fetchall():
+            c = conn.execute("SELECT id FROM contacts WHERE LOWER(email) = LOWER(?) ORDER BY id LIMIT 1", (v["email"] or "",)).fetchone()
+            if c:
+                want[l if v["program_code"] == "CAPTAIN" else g].add(c["id"])
+        now = _ts(_utc_now())[:10]
+        for lid, ids in want.items():
+            have = {r["contact_id"] for r in conn.execute("SELECT contact_id FROM contact_list_members WHERE list_id = ?", (lid,)).fetchall()}
+            for cid in ids - have:
+                conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES (?, ?, ?)", (cid, lid, now))
+            for cid in have - ids:
+                conn.execute("DELETE FROM contact_list_members WHERE contact_id = ? AND list_id = ?", (cid, lid))
+        conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"Couldn't update the Guide lists: {e}", flush=True)
+
+
+def guide_for_email(conn, email):
+    """The active Guide whose email matches this contact's email, with a plain role label, or None."""
+    if not (email or "").strip():
+        return None
+    v = conn.execute("SELECT id, name, program_code FROM call_volunteers WHERE active = 1 AND LOWER(email) = LOWER(?) ORDER BY id LIMIT 1",
+                     (email.strip(),)).fetchone()
+    if not v:
+        return None
+    return dict(id=v["id"], name=v["name"], role="Lead Guide" if v["program_code"] == "CAPTAIN" else "Guide",
+                group=dict(POOLS).get(v["program_code"], v["program_code"]))
+
+
 # ---------------------------------------------------------------- creating a request
 def create_interest(get_db, form, source):
     """Saves a person from one of the public forms. Returns (ok, how_they_want_to_be_reached, error_message)."""
@@ -1732,6 +1774,41 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
         out.sort(key=lambda x: (not x["team"], "".join(chr(255 - ord(c)) for c in x["sort"]), x["name"].lower()))
         return jsonify(out[:60])
 
+    @crm.route("/call-volunteers/<int:vid>/email-training", methods=["POST"])
+    @leadership_required
+    def call_volunteer_email_training(vid):
+        """Emails the whole Guide Training (all modules) to one Guide. Sent right away; deliberate click by Leadership."""
+        import re as _re
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            v = conn.execute("SELECT id, name, email FROM call_volunteers WHERE id = ? AND active = 1", (vid,)).fetchone()
+            back = request.form.get("back") or url_for(".call_volunteers_page")
+            if not v or not (v["email"] or "").strip():
+                flash("That Guide has no email address on file.")
+                return redirect(back)
+            base = _base_url()
+            body = render_template("_guide_training_body.html", email_mode=True)
+            body = body.replace('src="/static', f'src="{base}/static').replace('href="/', f'href="{base}/')
+            body = _re.sub(r'class="cep-mod[^"]*"', 'style="border-top:2px solid #e3e8ee; padding:16px 0"', body)
+            body = _re.sub(r'class="(goal|muted|cep-top)"', '', body)
+            first = v["name"].split()[0]
+            html = (f"<p>Hi {first},</p><p>Here is the complete Guide Training for Discovery!, so you can read it at your own pace. "
+                    f"You can also open it any time here: <a href=\"{base}/cep-training\">{base}/cep-training</a>.</p>{body}"
+                    f"<p>Warmly,<br>The Discovery! Team</p>")
+            text = _re.sub(r"<[^>]+>", "", _re.sub(r"</(p|li|h3|h4|div)>", "\n", html))
+            text = _re.sub(r"\n{3,}", "\n\n", text)
+            try:
+                _send(v["email"], "Your Discovery! Guide Training", html, text, to_name=v["name"])
+            except Exception as e:
+                print(f"Couldn't email the Guide Training to {v['email']}: {e}", flush=True)
+                flash("The email didn't go through. Please try again in a moment.")
+                return redirect(back)
+            flash(f"The Guide Training was emailed to {v['name']} ({v['email']}).")
+            return redirect(back)
+        finally:
+            conn.close()
+
     @crm.route("/call-volunteers", methods=["GET", "POST"])
     @guides_required
     def call_volunteers_page():
@@ -1814,8 +1891,10 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
                     pm = "sent" if ok else "failed"
                 conn.close()
                 return redirect(url_for(".call_volunteers_page", pid=pid, pm=pm) + f"#v{pid}")
+            sync_guide_lists(conn)
             conn.close()
             return redirect(url_for(".call_volunteers_page"))
+        sync_guide_lists(conn)
         push_msgs = {
             "saved": ("ok", "Phone alerts saved. Now tap \u201cSend a test alert.\u201d"),
             "removed": ("ok", "Phone alerts removed."),

@@ -24,7 +24,8 @@
   <table>
     {% for v in g.vols %}
     <tr id="v{{ v.id }}"><td style="font-size:1.35rem; font-weight:700; line-height:1.2">{{ v.name }}</td><td>{{ v.phone_pretty }}</td><td>{{ v.email }}</td>
-      <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form></td></tr>
+      <td><form method="post" class="inline"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ v.id }}"><button class="btn secondary" type="submit" onclick="return confirm('Remove {{ v.name }} from this group?')">Remove</button></form>
+      <form method="post" action="{{ url_for('.call_volunteer_email_training', vid=v.id) }}" class="inline" style="margin-top:4px" onsubmit="return confirm('Email the complete Guide Training to {{ v.name }} ({{ v.email }}) now?');"><button class="btn secondary" type="submit">Email Guide Training</button></form></td></tr>
     <tr><td colspan="4" style="border-top:0; padding-top:0">
       <details{% if not v.consent_at or (push_pid == v.id and push_note and push_note[1].startswith('Permission')) %} open{% endif %}><summary class="muted" style="cursor:pointer; font-size:.88rem">Permission to share {{ v.name.split()[0] }}&rsquo;s name, cell and email: {% if v.consent_at %}<strong style="color:#2e7d32">given {{ v.consent_when }}</strong>{% else %}<strong style="color:#a15c00">not given yet</strong>{% endif %}</summary>
         <div style="margin:8px 0 6px; line-height:1.55; font-size:.92rem">

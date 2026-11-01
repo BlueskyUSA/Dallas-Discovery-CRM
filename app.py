@@ -1988,9 +1988,15 @@ def contacts_list():
         f"ORDER BY last_name, first_name {limit_sql}",
         params,
     ).fetchall()
+    try:
+        call_flow.ensure_tables(get_db)
+        call_flow.sync_guide_lists(conn)
+    except Exception:
+        pass
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
+    quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, all_lists=all_lists)
+    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, all_lists=all_lists, quick_lists=quick)
 
 
 @crm.route("/contacts/new", methods=["GET", "POST"])
@@ -2806,9 +2812,14 @@ def contact_detail(contact_id):
         ).fetchall()
     except Exception:
         letters_sent = []
+    try:
+        guide = call_flow.guide_for_email(conn, contact["email"]) if contact else None
+    except Exception:
+        guide = None
     conn.close()
     return render_template(
         "contact_detail.html",
+        guide=guide,
         meet_link=_get_setting("meet_link"),
         letters_sent=letters_sent, auto_letters_on=bool(_auto_letters_start()),
         member_lists=member_lists, linked_sponsors=linked_sponsors, sponsor_choices=sponsor_choices, sponsor_link=sponsor_link,
