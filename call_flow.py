@@ -219,7 +219,8 @@ def ensure_tables(get_db):
         for col in ("reserve_token TEXT", "link_sent_at TEXT", "link_sent_via TEXT", "reserved_at TEXT",
                     "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT",
                     "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT",
-                    "reserved_notified_at TEXT", "paid_notified_at TEXT"):
+                    "reserved_notified_at TEXT", "paid_notified_at TEXT",
+                    "longform_sent_at TEXT", "payment_sent_at TEXT", "payment_reminder_at TEXT", "pay_nudge_at TEXT"):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_topic TEXT")
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_user_key TEXT")
@@ -305,7 +306,7 @@ CLIENT_LETTERS = [
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
     ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
     ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,399 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
-    ("payment", "Payment reminder", "Sent automatically to the person who reserved: 3 days after they enroll, and again within 2 weeks of the session. Stops as soon as payment is made."),
+    ("payment", "Payment reminder", "No longer automatic. The Guide is nudged every 7 days while payment is late and sends the reminder if and when they choose."),
 ]
 
 
@@ -588,6 +589,60 @@ def questionnaire_links(conn, req, base_url):
             out["partner"] = {"name": f"{pc['first_name']} {pc['last_name'] or ''}".strip(), "first": pc["first_name"],
                               "email": pc["email"], "link": link_for(me["pe"])}
     return out
+
+
+def client_progress(conn, req, base_url):
+    """What the Guide sees for one client: a checklist filled in from the data, and the single best next step."""
+    steps = []
+    talked = bool(req["outcome"])
+    steps.append(("Talked with them", talked))
+    reserved = req["reserve_result"] == "Enrolled" and bool(req["reserve_cohort_id"])
+    steps.append(("Reserved a seat", reserved))
+    prof = {"complete": False, "photo": False, "link": None, "missing": []}
+    q_done = paid = False
+    cohort_start = None
+    if reserved:
+        c = conn.execute("SELECT * FROM contacts WHERE id = ?", (req["contact_id"],)).fetchone()
+        need = (("street_address", "street address"), ("city", "city"), ("state", "state"), ("zip", "zip"),
+                ("cell_phone", "cell phone"), ("emergency_contact_name", "emergency contact"),
+                ("emergency_contact_cell", "emergency contact phone"))
+        prof["missing"] = [lab for col, lab in need if c is None or not (c[col] or "").strip()]
+        prof["complete"] = not prof["missing"]
+        ph = conn.execute("SELECT 1 FROM contact_photos WHERE contact_id = ?", (req["contact_id"],)).fetchone()
+        prof["photo"] = bool(ph)
+        if c is not None and c["profile_token"]:
+            prof["link"] = f"{base_url}/complete-profile/{c['profile_token']}"
+        enr = conn.execute("SELECT questionnaire_completed_at AS q, payment_completed_at AS p FROM enrollments "
+                           "WHERE contact_id = ? AND cohort_id = ?", (req["contact_id"], req["reserve_cohort_id"])).fetchone()
+        q_done = bool(enr and enr["q"])
+        paid = bool(enr and enr["p"])
+        co = conn.execute("SELECT session_date FROM cohorts WHERE id = ?", (req["reserve_cohort_id"],)).fetchone()
+        cohort_start = co["session_date"] if co else None
+    steps.append(("Contact information complete" + (f" (still needed: {', '.join(prof['missing'])})" if reserved and prof["missing"] else ""),
+                  reserved and prof["complete"]))
+    steps.append(("Photo added", reserved and prof["photo"]))
+    steps.append(("Questionnaire complete", q_done))
+    steps.append(("Payment received", paid))
+    # the single best next step
+    if not talked:
+        nxt = ("Reach out", "Call or text them, then tell us how it went (below).", None)
+    elif not reserved:
+        nxt = ("Send the registration link", "When they are ready, send their personal link to reserve a seat.", "register")
+    elif not q_done and not req["questionnaire_sent_at"]:
+        nxt = ("Send the questionnaire", "They have reserved. Send the questionnaire link.", "questionnaire")
+    elif not paid and not req["payment_sent_at"]:
+        nxt = ("Send the payment request", "Their seat is held until payment arrives.", "payment")
+    elif not prof["complete"] or not prof["photo"]:
+        nxt = ("Ask for the long form and a photo", "Their contact information (and a photo) is not finished yet.", "longform")
+    elif not q_done:
+        nxt = ("Check in on the questionnaire", "It has been sent but is not finished.", "questionnaire")
+    elif not paid:
+        nxt = ("Follow up on payment", "Payment has not arrived. A friendly reminder is your call.", "payment_reminder")
+    else:
+        nxt = ("All done!", "Everything is complete. We will send the what-to-bring letter a week before the training.", None)
+    done_n = sum(1 for _, ok in steps if ok)
+    return {"steps": steps, "done": done_n, "total": len(steps), "next_title": nxt[0], "next_text": nxt[1], "next_kind": nxt[2],
+            "profile_link": prof["link"], "reserved": reserved, "paid": paid, "start": cohort_start}
 
 
 # ---------------------------------------------------------------- creating a request
@@ -900,6 +955,7 @@ def _notify_milestones(get_db):
                 if claim.rowcount == 1:
                     _milestone_mail(vol, f"{r['first_name']} has registered!",
                                     f"Hi {first},", f"Good news: <strong>{who}</strong> registered for {what}, thanks to your conversation. "
+                                    f"Please open your page for them to send the questionnaire link and the payment request: {_page_link(conn, r['id'], r['claimed_by'])} "
                                     f"Payment is still pending. We will let you know when it comes in.")
             if enr and enr["p"] and not r["paid_notified_at"]:
                 claim = conn.execute("UPDATE call_requests SET paid_notified_at = ? WHERE id = ? AND paid_notified_at IS NULL",
@@ -909,8 +965,42 @@ def _notify_milestones(get_db):
                     _milestone_mail(vol, f"{r['first_name']} has registered and paid!",
                                     f"Hi {first},", f"<strong>{who}</strong> has paid for {what}. Their spot is secure. "
                                     f"Thank you for helping them take this step!")
+        _payment_nudges(conn)
     finally:
         conn.close()
+
+
+def _page_link(conn, request_id, volunteer_id):
+    t = conn.execute("SELECT token FROM call_notices WHERE request_id = ? AND volunteer_id = ?", (request_id, volunteer_id)).fetchone()
+    return f"{_base_url()}/call/{t['token']}" if t else ""
+
+
+def _payment_nudges(conn):
+    """Every 7 days a registered client has not paid, the Guide gets a nudge. Sending the reminder is the Guide's choice."""
+    rows = conn.execute(
+        """SELECT r.id, r.claimed_by, r.reserved_at, r.pay_nudge_at, r.contact_id, r.reserve_cohort_id, c.first_name
+           FROM call_requests r JOIN contacts c ON c.id = r.contact_id
+           WHERE r.reserve_result = 'Enrolled' AND r.claimed_by IS NOT NULL AND r.reserve_cohort_id IS NOT NULL""").fetchall()
+    week_ago = _ts(_utc_now() - timedelta(days=7))
+    for r in rows:
+        last = r["pay_nudge_at"] or r["reserved_at"]
+        if not last or last > week_ago:
+            continue
+        enr = conn.execute("SELECT payment_completed_at AS p FROM enrollments WHERE contact_id = ? AND cohort_id = ?",
+                           (r["contact_id"], r["reserve_cohort_id"])).fetchone()
+        if not enr or enr["p"]:
+            continue
+        vol = conn.execute("SELECT id, name, email, push_user_key FROM call_volunteers WHERE id = ?", (r["claimed_by"],)).fetchone()
+        if not vol or not vol["email"]:
+            continue
+        got = conn.execute("UPDATE call_requests SET pay_nudge_at = ? WHERE id = ? AND COALESCE(pay_nudge_at, '') = COALESCE(?, '')",
+                           (_ts(_utc_now()), r["id"], r["pay_nudge_at"]))
+        conn.commit()
+        if got.rowcount == 1:
+            _milestone_mail(vol, f"{r['first_name']} has not paid yet",
+                            f"Hi {vol['name'].split()[0]},",
+                            f"{r['first_name']} reserved a seat but payment has not arrived. A friendly reminder may help, and it is your call. "
+                            f"Open your page for them and tap the payment reminder: {_page_link(conn, r['id'], vol['id'])}")
 
 
 def _milestone_mail(vol, subject, hello, body_html):
@@ -1188,7 +1278,17 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
             q_body = (f"Hi {req['first_name']}, it's {vol['name'].split()[0]} with Discovery! Here is your personal link to the "
                       f"questionnaire. You can stop and come back to it any time by opening the same link: {q['person']}") if q["person"] else None
             cap = conn.execute("SELECT name, cell_phone FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id LIMIT 1").fetchone()
-            return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer,
+            prog = client_progress(conn, req, _base_url()) if mine else None
+            vfirst = vol["name"].split()[0]
+            extra = {}
+            if prog and prog["profile_link"]:
+                extra["longform"] = f"Hi {req['first_name']}, it's {vfirst} with Discovery! Please take a few minutes to complete your information (and add a photo) here: {prog['profile_link']}"
+            if prog and prog["reserved"]:
+                extra["payment"] = (f"Hi {req['first_name']}, it's {vfirst} with Discovery! Your seat is reserved. The next step is payment "
+                                    f"($1,399 per couple). Call or text me at {pretty_phone(vol['cell_phone'])} and I'll walk you through it.")
+                extra["payment_reminder"] = (f"Hi {req['first_name']}, it's {vfirst} with Discovery! A friendly reminder that your payment has "
+                                             f"not come in yet. Your spot is held. Call or text me anytime if I can help.")
+            return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer, prog=prog, extra_sms=extra,
                                    captain=(dict(name=cap["name"], phone=pretty_phone(cap["cell_phone"])) if cap else None),
                                    link=link, sms_body=sms_body, q=q, q_body=q_body,
                                    need_permission=(not vol["consent_at"]),
@@ -1263,6 +1363,49 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
                 return redirect(url_for("public_call_claim", token=token))
             conn.execute("UPDATE call_requests SET link_sent_at = COALESCE(link_sent_at, ?), link_sent_via = COALESCE(link_sent_via, 'email') "
                          "WHERE id = ?", (_ts(_utc_now()), req["id"]))
+            conn.commit()
+            flash(f"Sent to {req['email']}.")
+            return redirect(url_for("public_call_claim", token=token))
+        finally:
+            conn.close()
+
+    @app.route("/call/<token>/send/<kind>", methods=["POST"])
+    def public_call_send_letter(token, kind):
+        """Guide taps 'Email it' for the long form, payment request or payment reminder; or 'sent by text' is noted."""
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"]:
+                abort(403)
+            cols = {"longform": ("guide_longform", "longform_sent_at"), "payment": ("guide_payment", "payment_sent_at"),
+                    "payment_reminder": ("guide_payment_reminder", "payment_reminder_at")}
+            if kind not in cols:
+                abort(404)
+            key, col = cols[kind]
+            if request.form.get("via") == "text":
+                conn.execute(f"UPDATE call_requests SET {col} = ? WHERE id = ?", (_ts(_utc_now()), req["id"]))
+                conn.commit()
+                return ("", 204)
+            if not alerts_live():
+                flash("Email sending is switched off right now, so nothing was sent. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            if not req["email"]:
+                flash("We don't have an email address for them. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            prog = client_progress(conn, req, _base_url())
+            link = prog["profile_link"] if kind == "longform" else None
+            if kind == "longform" and not link:
+                flash("Their form link isn't ready yet. Please use the text button or try again later.")
+                return redirect(url_for("public_call_claim", token=token))
+            from email_templates import guide_letter_content
+            subject, html, text = guide_letter_content(key, req["first_name"], _program_label(req["program_code"]), vol["name"],
+                                                       pretty_phone(vol["cell_phone"]), link=link)
+            try:
+                _send(req["email"], subject, html, text, to_name=req["first_name"])
+            except Exception as e:
+                print(f"Couldn't email {kind} for request {req['id']}: {e}", flush=True)
+                flash("The email didn't go through. Please use the text button.")
+                return redirect(url_for("public_call_claim", token=token))
+            conn.execute(f"UPDATE call_requests SET {col} = ? WHERE id = ?", (_ts(_utc_now()), req["id"]))
             conn.commit()
             flash(f"Sent to {req['email']}.")
             return redirect(url_for("public_call_claim", token=token))

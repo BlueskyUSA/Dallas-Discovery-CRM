@@ -7925,8 +7925,8 @@ def _auto_letter_send(conn, cohort, person, sent_key, content_key):
 def _auto_letters_sweep():
     """For people who reserved through a volunteer's personal link:
        - the Trainee Registration Confirmation goes to both partners right after they reserve;
-       - a payment reminder goes to the person who reserved 3 days after enrolling, and again within
-         2 weeks of the session, but only while payment has not been made.
+       - once payment is recorded, "Thank you - We're so excited" goes out, and "What to bring" one week before the training.
+         (Payment reminders are no longer automatic: the Guide is nudged every 7 days and decides.)
        OFF unless BOTH SESSION_LETTERS_LIVE=1 and AUTO_LETTERS_LIVE=1 are set. Only sends 8 am - 8 pm Central."""
     if not (_session_letters_live() and (os.environ.get("AUTO_LETTERS_LIVE") or "").strip() == "1"):
         return
@@ -7958,26 +7958,16 @@ def _auto_letters_sweep():
                 if person["contact_id"] in wanted:
                     _auto_letter_send(conn, cohort, person, "trainee_confirm", "trainee_confirm")
             if enr["p_at"]:
-                continue
-            person = next((x for x in rec["payment_reminder"] if x["contact_id"] == rq["contact_id"]), None)
-            if not person:
-                continue
-            try:
-                age = now - datetime.strptime(str(enr["created_at"])[:19], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                continue
-            if age >= timedelta(days=3):
-                _auto_letter_send(conn, cohort, person, "payment_reminder", "payment_reminder")
-                first = conn.execute("SELECT sent_at FROM session_letters_sent WHERE cohort_id = ? AND contact_id = ? "
-                                     "AND letter_key = 'payment_reminder'", (cohort["id"], person["contact_id"])).fetchone()
+                # paid: "Thank you - We're so excited" right away, and "What to bring" one week before the training
                 days_to = (datetime.strptime(str(cohort["session_date"])[:10], "%Y-%m-%d").date() - today).days
-                if first and days_to <= 14:
-                    try:
-                        gap = now - datetime.strptime(str(first["sent_at"])[:19], "%Y-%m-%d %H:%M:%S")
-                    except ValueError:
-                        continue
-                    if gap >= timedelta(days=3):
-                        _auto_letter_send(conn, cohort, person, "payment_reminder_2", "payment_reminder")
+                for person in rec["payment_received"]:
+                    if person["contact_id"] in wanted:
+                        _auto_letter_send(conn, cohort, person, "payment_received", "payment_received")
+                if days_to <= 7:
+                    for person in rec["what_to_bring"]:
+                        if person["contact_id"] in wanted:
+                            _auto_letter_send(conn, cohort, person, "what_to_bring", "what_to_bring")
+            # Not paid: the Guide is nudged every 7 days (see call_flow), and sends any payment reminder personally.
     finally:
         conn.close()
 

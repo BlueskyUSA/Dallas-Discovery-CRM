@@ -37,6 +37,17 @@ def live():
     return (os.environ.get("SESSION_LETTERS_LIVE") or "").strip() == "1"
 
 
+def switches():
+    """The four safety switches, as (name, is_on, what it controls). Status only: they are changed in Render's Environment."""
+    on = lambda n: (os.environ.get(n) or "").strip() == "1"
+    return [
+        ("SESSION_LETTERS_LIVE", on("SESSION_LETTERS_LIVE"), "Master switch: letters to trainees and the team (sent by hand or automatically). Off means nothing is sent."),
+        ("AUTO_LETTERS_LIVE", on("AUTO_LETTERS_LIVE"), "Automatic letters: confirmation after reserving, \u201cThank you \u2013 We\u2019re so excited\u201d, and What to bring. Also needs the master switch."),
+        ("CALL_ALERTS_LIVE", on("CALL_ALERTS_LIVE"), "Guide alerts, Guide-page emails, the 7-day payment nudges, and the reply to \u201cI\u2019m curious\u201d."),
+        ("BLASTS_LIVE", on("BLASTS_LIVE"), "Marketing & Email Blasts (excitement letters, volunteer and Guide emails)."),
+    ]
+
+
 def ensure_tables(get_db):
     global _ready
     if _ready:
@@ -231,19 +242,22 @@ def catalog():
             C("Video call link", "By hand, from a contact's record.", "Contacts"),
             E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
             E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
+            E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved"),
+            E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved"),
+            E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid"),
             V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
          ]),
         ("trainees", "Trainee Correspondence",
          "Letters and questionnaires for the people registered for a session. Each session's page shows who has received each letter. The questionnaires are the forms trainees fill in on their private link; their questions are fixed in the program code for now, and making them editable per program is the next piece.", [
             E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
             E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
-            E("payment_reminder", sl["payment_reminder"]["title"], "By hand; also automatically 3 days after a Guide's reservation and within 2 weeks of the session.", "Trainees who have not paid"),
-            E("payment_received", sl["payment_received"]["title"], "By hand from the session's letters page.", "Trainees who have paid"),
+            E("payment_reminder", sl["payment_reminder"]["title"], "By hand only. The Guide is nudged every 7 days while payment is late and decides whether to send a reminder.", "Trainees who have not paid"),
+            E("payment_received", sl["payment_received"]["title"], "Automatically when payment is recorded (for people who reserved through a Guide); also by hand from the session's letters page.", "Trainees who have paid"),
             E("questionnaire_reminder", sl["questionnaire_reminder"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire"),
             X("Questionnaire: The Art of Us (Relationship Training)", "Sent as a private link by the Guide's \"Email it\" or from the session page.", "Each partner of a couple, separately", "/cep-letters/q-rt"),
             X("Questionnaire: The Beginning", "Sent as a private link from the session page.", "Each person, separately. The Beginning's own questions are still to be written (shown as TBD).", "/cep-letters/q-d1"),
             C("Questionnaire: other programs", "Sent as a private link from the session page.", "Each person", "Awakening, Vision, Renew and Spiritual use a short standard set: first time attending, goals, food and access needs, injuries, anything else."),
-            E("what_to_bring", sl["what_to_bring"]["title"], "By hand from the session's letters page, as the training gets closer.", "Trainees"),
+            E("what_to_bring", sl["what_to_bring"]["title"], "Automatically 7 days before the training for people who have paid (reserved through a Guide); also by hand.", "Trainees"),
             V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
             V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
          ]),
@@ -384,7 +398,7 @@ def register(app, crm, get_db, h):
             letter_names = [e["name"] for _i, _t, _d, es in catalog() for e in es if e.get("kind") in ("edit", "view", "code", "ext")]
             return render_template("correspondence_all.html", is_owner=is_owner, sugg_new=sugg_new, sugg_done=sugg_done,
                                    letter_names=letter_names, cats=catalog(), guide_note=GUIDE_EXPLAINER, guides=guides_by_group(conn), edits=edits, nvers=nvers, sent=sent,
-                                   can_marketing=h["has_correspondence_access"](), live=live())
+                                   can_marketing=h["has_correspondence_access"](), live=live(), switches=switches())
         finally:
             conn.close()
 

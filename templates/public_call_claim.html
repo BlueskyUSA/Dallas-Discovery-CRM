@@ -21,6 +21,37 @@
         {% if req.note %}<p style="margin:0 0 6px">They wrote: &ldquo;{{ req.note }}&rdquo;</p>{% endif %}
         <p class="muted" style="margin:0">They said yes to being contacted this way. They have been told to expect to hear from you at your number.</p>
       </div>
+      {% if prog %}
+      <div class="card" style="padding:20px; background:#eef6ff; border:2px solid #9cc4f0; border-radius:14px; margin-top:20px">
+        <p class="muted" style="margin:0 0 4px; text-transform:uppercase; letter-spacing:.06em; font-size:.8rem">Your next step</p>
+        <h3 style="margin:0 0 6px">{{ prog.next_title }}</h3>
+        <p style="margin:0 0 10px">{{ prog.next_text }}</p>
+        {% set nk = prog.next_kind %}
+        {% if nk in ('longform','payment','payment_reminder') %}
+        <p style="margin:0">
+          <a class="pub-btn dark" href="sms:{{ tel }}?&amp;body={{ extra_sms[nk]|urlencode }}" onclick="try{var f=new FormData();f.append('via','text');navigator.sendBeacon('{{ url_for('public_call_send_letter', token=token, kind=nk) }}',f)}catch(e){}">Text it from my phone</a>
+          <form method="post" action="{{ url_for('public_call_send_letter', token=token, kind=nk) }}" style="display:inline"><button class="pub-btn secondary" type="submit">Email it</button></form>
+        </p>
+        {% elif nk in ('register','questionnaire') %}<p class="muted" style="margin:0">The button is in the box below.</p>{% endif %}
+      </div>
+      <div class="card" style="padding:20px; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.08); margin-top:20px">
+        <h3 style="margin-top:0">{{ req.first_name }}&rsquo;s checklist <span class="muted" style="font-weight:400; font-size:.9rem">({{ prog.done }} of {{ prog.total }} done)</span></h3>
+        <ul style="list-style:none; padding:0; margin:0">
+          {% for label_, ok in prog.steps %}
+          <li style="padding:6px 0; border-bottom:1px solid #eee">{% if ok %}<span style="color:#1f8a3b; font-weight:700">&#10003;</span>{% else %}<span style="color:#b0b0b0">&#9744;</span>{% endif %} {{ label_ }}</li>
+          {% endfor %}
+        </ul>
+        <p class="muted" style="margin:10px 0 0">This fills itself in as {{ req.first_name }} takes each step. You do not need to tick anything.{% if prog.reserved and not prog.paid %} If payment is late, we will nudge you every 7 days; sending a reminder is your call.{% endif %}</p>
+        {% if prog.reserved and not prog.paid %}
+        <details style="margin-top:10px"><summary>Other letters you can send</summary>
+          <p style="margin:10px 0 0">
+            {% for k, lab in (('longform','Long form &amp; photo'),('payment','Payment request'),('payment_reminder','Payment reminder')) %}
+            {% if extra_sms.get(k) %}<form method="post" action="{{ url_for('public_call_send_letter', token=token, kind=k) }}" style="display:inline"><button class="pub-btn secondary" type="submit">Email: {{ lab|safe }}</button></form> {% endif %}
+            {% endfor %}
+          </p></details>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if link %}
       <div class="card" style="padding:20px; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.08); margin-top:20px">
         <h3 style="margin-top:0">Ready to register? Send {{ req.first_name }} their link</h3>

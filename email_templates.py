@@ -632,11 +632,11 @@ SESSION_LETTERS = {
         "signoff": "Warmly,",
     },
     "payment_received": {
-        "title": "Payment received",
+        "title": "Thank you \u2013 We\u2019re so excited",
         "audience": "Trainees who have paid",
-        "subject": "Payment received for {training}",
+        "subject": "Thank you \u2013 we\u2019re so excited to see you at {training}!",
         "paras": [
-            "Thank you! We have received the payment for {training}, {dates}{where}.",
+            "Thank you! We have received the payment for {training}, {dates}{where}, and we are so excited that you are coming.",
             "{partner_sentence}",
             "Your place is secured. If you have any questions, just reply to this email.",
             "We look forward to seeing you.",
@@ -764,6 +764,49 @@ GUIDE_LETTERS = {
             "You can close it and pick up right where you left off by opening the same link again. "
             "This link is just for you, so please don\u2019t share it.",
             "Questions? Reply to this email or call {vfirst} at {vphone}.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "{vol_name} and the Discovery! Team",
+    },
+    "guide_longform": {
+        "title": "Complete your information (long form)",
+        "audience": "People who have reserved",
+        "greeting": "Hi",
+        "subject": "Please complete your information \u2013 {label}",
+        "paras": [
+            "Thank you for reserving your spot in **{label}**! One more thing before the training: please take a few minutes to "
+            "complete your contact information, including a photo, so we can welcome you properly.",
+            "{link}",
+            "You can stop at any time and pick up where you left off by opening the same link again.",
+            "Questions? Reply to this email or call {vfirst} at {vphone}.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "{vol_name} and the Discovery! Team",
+    },
+    "guide_payment": {
+        "title": "Payment request",
+        "audience": "People who have reserved",
+        "greeting": "Hi",
+        "subject": "Your payment for {label}",
+        "paras": [
+            "Thank you for reserving your spot in **{label}**! The next step is payment, which secures your place.",
+            "The training fee is $1,399 per couple (one payment covers both partners). Reply to this email or call {vfirst} at "
+            "{vphone} and we will walk you through the easy ways to pay.",
+            "Once your payment arrives, you will receive a confirmation from us.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "{vol_name} and the Discovery! Team",
+    },
+    "guide_payment_reminder": {
+        "title": "Payment reminder (from the Guide)",
+        "audience": "People who have reserved but not paid",
+        "greeting": "Hi",
+        "subject": "A friendly reminder about your payment \u2013 {label}",
+        "paras": [
+            "Just a friendly reminder that your payment for **{label}** has not come in yet. Your spot is held, and we are looking "
+            "forward to seeing you.",
+            "If you have any questions about paying, or if something is in the way, reply to this email or call {vfirst} at {vphone}. "
+            "We are glad to help.",
         ],
         "signoff": "Warmly,",
         "signer": "{vol_name} and the Discovery! Team",

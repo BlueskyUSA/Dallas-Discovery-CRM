@@ -17,7 +17,7 @@ import time
 from flask import render_template, request, redirect, url_for, flash, abort, session, current_app
 
 import call_flow as cf
-from email_templates import excitement_blast_content, EXCITEMENT_BLAST_SUBJECT
+from email_templates import excitement_blast_content, EXCITEMENT_BLAST_SUBJECT, preliminary_plan_content, PRELIMINARY_PLAN_SUBJECT
 
 PAUSE = 0.25          # seconds between emails, so the email service is never flooded
 _ready = False
@@ -168,6 +168,14 @@ def ensure_tables(get_db):
             if first_send:
                 conn.execute("UPDATE blast_letters SET sent_at = ? WHERE id = ?", (first_send["started_at"], lid))
                 conn.execute("UPDATE blast_sends SET letter_id = ? WHERE audience_id = ? AND letter_id IS NULL", (lid, au["id"]))
+        # The Preliminary Business Plan waits here as a draft (no recipients chosen, so nothing can go out until Kent picks an audience).
+        if not conn.execute("SELECT 1 FROM blast_audiences WHERE name = 'Preliminary business plan'").fetchone():
+            nowp = cf._ts(cf._utc_now())
+            conn.execute("INSERT INTO blast_audiences (name, kind, subject, body, sort_order, created_at) VALUES ('Preliminary business plan', 'text', ?, '', 70, ?)",
+                         (PRELIMINARY_PLAN_SUBJECT, nowp))
+            pid = conn.execute("SELECT id FROM blast_audiences WHERE name = 'Preliminary business plan'").fetchone()["id"]
+            conn.execute("INSERT INTO blast_letters (audience_id, title, kind, subject, body, created_at) VALUES (?, 'Preliminary business plan (waiting on the name and Keith)', 'html', ?, ?, ?)",
+                         (pid, PRELIMINARY_PLAN_SUBJECT, preliminary_plan_content("[First name]")[0], nowp))
         resp_id = cf.list_id_for(conn, cf.RESPONDED_LIST)
         old = conn.execute("SELECT l.id FROM contact_lists l WHERE LOWER(l.name) = 'discovery volunteers'").fetchone()
         if old:

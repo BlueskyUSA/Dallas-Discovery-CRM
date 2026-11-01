@@ -9,9 +9,17 @@
 <p class="muted" style="max-width:860px">Each of these documents may be viewed by all volunteers who have logins to this program, but only the owner of this program may make changes to a document. Every changed document is saved as a numbered version so, if necessary, we can go back to previous versions. The <strong>View</strong> button shows the most current correspondence available and indicates whether the document is automated or not.</p>
 <p class="muted" style="max-width:860px">At the top of this page a button is available to send the owner suggested changes to these documents. If the owner agrees, the changes will be made.</p>
 <p style="margin:12px 0"><a class="btn" href="#suggest" onclick="document.getElementById('suggestBox').style.display='block';">Suggest a change to a letter</a></p>
-{% if not live %}
-<div class="card" style="border-left:4px solid #b3261e; max-width:860px"><strong style="color:#b3261e">Sending to people is switched off.</strong> Nothing here goes to anyone until it is switched on.</div>
-{% endif %}
+<details class="card" style="max-width:860px" {{ 'open' if not live else '' }}>
+  <summary style="cursor:pointer; font-weight:700">Ready to go live? <span class="muted" style="font-weight:400">({{ switches|selectattr(1)|list|length }} of {{ switches|length }} switches on)</span></summary>
+  <p class="muted" style="margin:8px 0">These four switches decide whether anything is actually sent to real people. While a switch is off, that kind of letter is held back. They are changed in Render (Environment), not here; this panel only shows where things stand.</p>
+  {% for name, on, what in switches %}
+  <div style="display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--border)">
+    <span class="badge {{ 'good' if on else '' }}" style="min-width:42px; text-align:center">{{ 'ON' if on else 'OFF' }}</span>
+    <div><strong>{{ name }}</strong><div class="muted">{{ what }}</div></div>
+  </div>
+  {% endfor %}
+  <p class="muted" style="margin:8px 0 0">Letters also go out only between 8 am and 8 pm Central.</p>
+</details>
 {% if is_owner %}
 <details id="suggestions" class="card" style="max-width:860px; margin-top:14px" {{ 'open' if sugg_new else '' }}>
   <summary style="cursor:pointer; font-weight:700">Suggestions received from volunteers <span class="muted" style="font-weight:400">({{ sugg_new|length }} new &middot; only you see this)</span></summary>
