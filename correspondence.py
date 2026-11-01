@@ -201,6 +201,16 @@ def guides_by_group(conn):
         return []
 
 
+def delivery_of(when):
+    """"Automated", "By hand" or "Automated and by hand", read from the 'when it is sent' text."""
+    w = (when or "").lower()
+    auto = "automatic" in w
+    hand = ("by hand" in w) or ("by you" in w) or ("when you choose" in w) or ("written by you" in w)
+    if auto and hand:
+        return "Automated and by hand"
+    return "Automated" if auto else "By hand"
+
+
 def catalog():
     import email_templates as T
     sl = T.SESSION_LETTERS
@@ -208,7 +218,7 @@ def catalog():
     V = lambda slug, name, when, who: dict(kind="view", slug=slug, name=name, when=when, who=who)
     C = lambda name, when, who, note="": dict(kind="code", name=name, when=when, who=who, note=note)
     X = lambda name, when, who, url: dict(kind="ext", name=name, when=when, who=who, url=url)
-    return [
+    cats = [
         ("interested", "Interested people (before they register)",
          "What someone receives after they ask a question, ask to be called, or fill in a form on the website.", [
             V("welcome", "Welcome", "Automatically, when someone fills in the Discovery! form as an interested party.", "Interested parties"),
@@ -267,6 +277,10 @@ def catalog():
                  url="correspondence_note", label="Write a note", owner=True, group="accounting"),
          ]),
     ]
+    for _id, _t, _d, entries in cats:
+        for e in entries:
+            e["delivery"] = delivery_of(e.get("when"))
+    return cats
 
 
 SUGGEST_MAX = 2000
@@ -318,7 +332,6 @@ def register(app, crm, get_db, h):
         return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
 
     @crm.route("/correspondence/suggest", methods=["POST"])
-    @leadership_required
     def correspondence_suggest():
         ok, err = save_suggestion(get_db, request.form.get("letter_name"), _staff_name() or request.form.get("name"),
                                   h["staff_email"](), request.form.get("message"), "Correspondence page")
@@ -354,7 +367,6 @@ def register(app, crm, get_db, h):
         return redirect(back + "#suggest")
 
     @crm.route("/correspondence/all-letters")
-    @leadership_required
     def correspondence_all():
         ensure_tables(get_db)
         conn = get_db()
@@ -377,17 +389,17 @@ def register(app, crm, get_db, h):
             conn.close()
 
     @crm.route("/correspondence/letters/view/<slug>")
-    @leadership_required
     def correspondence_letter_view(slug):
         fn = _preview_map().get(slug)
         if not fn:
             abort(404)
-        name = next((e["name"] for _i, _t, _d, es in catalog() for e in es if e.get("slug") == slug), slug)
+        entry = next((e for _i, _t, _d, es in catalog() for e in es if e.get("slug") == slug), {})
+        name = entry.get("name", slug)
         try:
             subject, html = fn()
         except Exception:
             subject, html = None, None
-        return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html,
+        return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html, delivery=entry.get("delivery"), when=entry.get("when"),
                                short_note=(slug in ("welcome", "longform_followup")),
                                long_note=(slug in ("longform_followup", "longform_thankyou")))
 
@@ -559,11 +571,8 @@ def register(app, crm, get_db, h):
             (key, subject, body, signoff, signer, session.get("staff_name")))
 
     def _can_view_letter(key):
-        # Who may open a letter's wording page. Session letters: Leadership or Owner.
-        # Guide-call letters: the Owner, or anyone given Correspondence, or Leadership.
-        if key in et.GUIDE_LETTERS:
-            return h["has_correspondence_access"]() or _is_leader()
-        return _is_leader()
+        # Every login (volunteers included) can read any letter; only the Owner changes one.
+        return bool(session.get("staff_id"))
 
     def _can_edit_letter(key):
         # Only the Owner changes the wording of correspondence. Everyone else can read it and suggest changes.
@@ -576,7 +585,7 @@ def register(app, crm, get_db, h):
         if not _can_view_letter(key):
             flash("That page is restricted.")
             return redirect(url_for(".dashboard"))
-        can_edit = _can_edit_letter(key)
+        can_edit = _can_edit_letter(key) and not request.args.get("view")
         if request.method == "POST" and not can_edit:
             flash("Only the Owner can change a letter. You can use \"Suggest a change\" below.")
             return redirect(url_for(".correspondence_letter_edit", key=key))
@@ -650,7 +659,8 @@ def register(app, crm, get_db, h):
             blob = orig["subject"] + " ".join(orig["paras"]) + orig.get("signer", "")
             used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
-            return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
+            return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, is_owner=bool(session.get("is_owner")),
+                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else
