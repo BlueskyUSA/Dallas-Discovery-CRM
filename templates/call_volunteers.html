@@ -14,8 +14,11 @@
 </div>
 {% endif %}
 {% for g in groups %}
+{% set nice = {'D1': 'The Beginning (D1)', 'D4': 'The Art of Us \u2013 Relationship Training', 'ALL': 'Everything Else'} %}
+{% set collapse = g.code != 'CAPTAIN' %}
 <div class="card" style="margin-bottom:16px">
-  <h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ g.max }})</span></h3>
+  {% if collapse %}<details {{ 'open' if push_pid and g.vols|selectattr('id', 'equalto', push_pid)|list else '' }}><summary style="cursor:pointer; list-style-position:inside"><h3 style="display:inline; margin:0">{{ nice.get(g.code, g.label) }} <span class="muted" style="font-weight:400">({{ g.vols|length }} of {{ g.max }})</span></h3>{% if g.code == 'ALL' %}<div class="muted" style="font-size:.85rem; margin-top:4px">Also the back-up when a program has no Guides, or someone is &ldquo;Not sure&rdquo;.</div>{% endif %}</summary><div style="margin-top:12px">
+  {% else %}<h3 style="margin-top:0">{{ g.label }} <span class="muted">({{ g.vols|length }} of {{ g.max }})</span></h3>{% endif %}
   {% if g.code == 'CAPTAIN' %}
   <p style="margin:0 0 6px"><a class="btn secondary" href="{{ url_for('public_cep_training') }}">Training Modules</a></p>
   <p style="margin:0 0 4px" class="muted">Letters we send to clients (the Guides can read each one):</p>
@@ -84,6 +87,7 @@
     <input type="email" name="email" placeholder="Email" required><button class="btn" type="submit">Add</button>
   </form></details>
   {% endif %}
+  {% if collapse %}</div></details>{% endif %}
 </div>
 {% endfor %}
 <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
