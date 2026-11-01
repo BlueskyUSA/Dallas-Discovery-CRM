@@ -1,6 +1,13 @@
 {% extends "crm_base.html" %}
 {% block title %}{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence{% endblock %}
 {% block content %}
+<style>
+#sessTable th.sortkey{color:#1f5fbf; font-weight:800; text-decoration:underline; text-underline-offset:4px; cursor:pointer; background:#eef3fb; white-space:nowrap}
+#sessTable th.sortkey:hover{background:#dde8f8}
+#sessTable th.sortkey::after{content:" \21C5"; font-weight:400; opacity:.7}
+#sessTable th.sortkey.active::after{content:""}
+.sortnote{display:inline-block; background:#eef3fb; border:1px solid #c9d8f0; border-radius:6px; padding:4px 10px; margin:0 0 6px; color:#1f5fbf}
+</style>
 <p><a href="{{ url_for('.correspondence_home') }}">&larr; Correspondence</a></p>
 <h1>{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence</h1>
 {% if not live %}
@@ -36,12 +43,12 @@
   <button class="btn" type="submit">Open</button>
 </form>
 
-<p class="muted" style="margin:0 0 4px">Click a column heading to sort.</p>
+<p class="sortnote">&#8645; <strong>Click Program, Session or Dates</strong> to sort the list. Click again to reverse it.</p>
 <table id="sessTable">
   <thead><tr>
-    <th data-sort="text" style="cursor:pointer">Program</th>
-    <th data-sort="num" style="cursor:pointer">Session</th>
-    <th data-sort="text" style="cursor:pointer">Dates</th>
+    <th class="sortkey" data-sort="text" title="Click to sort by program">Program</th>
+    <th class="sortkey" data-sort="num" title="Click to sort by session number">Session</th>
+    <th class="sortkey" data-sort="text" title="Click to sort by date">Dates</th>
     <th data-sort="num" style="cursor:pointer">{{ 'Trainees' if kind == 'trainees' else 'Team members' }}</th>
     <th data-sort="num" style="cursor:pointer">Letters sent</th><th></th></tr></thead>
   <tbody>
@@ -90,8 +97,8 @@
         return asc?x.localeCompare(y):y.localeCompare(x);
       });
       rs.forEach(function(r){body.appendChild(r);});
-      Array.prototype.forEach.call(table.tHead.rows[0].cells,function(h){h.textContent=h.textContent.replace(/ [▲▼]$/,'');});
-      th.textContent+=asc?' \u25B2':' \u25BC';
+      Array.prototype.forEach.call(table.tHead.rows[0].cells,function(h){h.textContent=h.textContent.replace(/ [▲▼]$/,'');h.classList.remove('active');});
+      th.textContent+=asc?' \u25B2':' \u25BC'; th.classList.add('active');
     });
   });
   applyYear();
