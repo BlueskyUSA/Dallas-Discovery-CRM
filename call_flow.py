@@ -358,9 +358,10 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 <p><strong>Welcome to a Fantastic and Adventure Filled Weekend!</strong> We are delighted to confirm your registration for the Discovery! Relationship Training, {dates}.</p>
 <p>We\u2019re so glad you and {partner} are joining us for Relationship Training. Here is where we\u2019ll be, what\u2019s included, and how to get there, so there are no surprises and you can simply arrive ready to enjoy the weekend.</p>
 <h3>When</h3>
-<p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 3:00 pm</strong>. (Hotel check-in opens at 3:00 pm.)</p>
+<p><strong>Friday, [date], 7:00 pm</strong> through <strong>Sunday, [date], 1:30 pm</strong>. (Hotel check-in opens at 3:00 pm.)</p>
 <p><strong>Arrival:</strong> If possible, please come rested. It is best to arrive around <strong>5:30 pm</strong> to register at the hotel, find your room, get settled, relax, grab a bite to eat, and register at the Discovery! Relationship table situated in front of the training room. The training begins promptly at <strong>7:00 pm</strong>.</p>
-<p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 3:00 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
+<p><strong>Sunday check-out:</strong> hotel check-out is 12:00 noon, before we finish at 1:30 pm. Please check out Sunday morning and bring your bags with you; we will have a secure place to keep them during the final sessions.</p>
+<p><strong>Food, access and comfort needs:</strong> please tell us about any food allergies, dietary needs (such as vegetarian, vegan or gluten-free), accessibility needs (for example a wheelchair-accessible room), or injuries that limit everyday activities (such as sitting on the floor) as soon as you can. You can add them in your questionnaire, or simply reply to this email.</p>
 <h3>Where</h3>
 {('<p><img src="' + photo_url + '" alt="Four Points by Sheraton Dallas Fort Worth Airport North" width="393" style="max-width:100%;height:auto;border-radius:8px"></p>') if photo_url else ''}
 <p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>1580 Point West Boulevard, Coppell, Texas 75019<br>Hotel phone: 469-702-6311</p>
@@ -368,8 +369,7 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 <h3>What\u2019s included in your $1,399 per couple</h3>
 {('<p><img src="' + room_url + '" alt="A guest room at the hotel" width="389" style="max-width:100%;height:auto;border-radius:8px"></p>') if room_url else ''}
 <ul><li><strong>Two nights in the hotel</strong> (Friday and Saturday) in a room for the two of you</li>
-<li><strong>Friday night hors d\u2019oeuvres</strong> before the training begins at 7:00 pm</li>
-<li><strong>Saturday night hors d\u2019oeuvres, dinner and dance</strong>, a celebration you will remember</li>
+<li><strong>Saturday night dinner and dance</strong>, a celebration you will remember</li>
 <li><strong>Snacks, coffee, tea and water</strong> available throughout the weekend</li>
 <li><strong>All training sessions and materials</strong></li></ul>
 <h3>Getting there</h3>
