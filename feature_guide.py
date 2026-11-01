@@ -86,7 +86,15 @@ SECTIONS = [
         E("Volunteer helper sign-up", "/volunteer-helper/join", "Past volunteers", "A page where a volunteer joins the helper team.", "call volunteers."),
     ]),
     ("email", "Email and letters", "How we write to people.", [
-        E("Correspondence (email blasts)", "Admin > Correspondence", "Owner and anyone given Correspondence",
+        E("Trainee Correspondence", "Admin > Correspondence > Trainee Correspondence", "Leadership and Owner",
+          "Pick a program session and open its trainee letters: confirmations and reminders, with a preview, a test copy to yourself and a tick-box send. Each person gets each letter once.",
+          "session_letters_sent. Sending is off until SESSION_LETTERS_LIVE=1 is set."),
+        E("Team Correspondence", "Admin > Correspondence > Team Correspondence", "Leadership and Owner",
+          "Pick a session for the Facilitator, TA and Back-up TA letters, or write a free-form note to Facilitators, TA's, Support Team or Leadership (all sessions or one). Test copy to yourself first; typing SEND to confirm.",
+          "cohort_staffing, staff, team_notes (sent notes). Sending is off until SESSION_LETTERS_LIVE=1 is set."),
+        E("Accounting & Legal Correspondence", "Admin > Correspondence > Accounting & Legal", "Owner and anyone given Correspondence",
+          "A free-form note to the Accounting & Legal logins, with a test copy first and SEND to confirm.", "staff, team_notes."),
+        E("Marketing & Email Blasts", "Admin > Correspondence > Marketing & Email Blasts", "Owner and anyone given Correspondence",
           "Write a letter, choose the audience (a Data Source, program attendees, Guides, volunteers or the entire database), preview, send a test and send. Every blast includes an unsubscribe link.",
           "email_blasts and letters; sent through Brevo. See Brevo."),
         E("Excitement email and the long-form thank-you", "On a contact's record", "Contacts area", "Send the Excitement email, then the thank-you after someone completes the long form. The thank-you includes a testimonial invitation only for people who say they attended a Discovery training.", "contacts, testimonials."),
@@ -118,7 +126,7 @@ SECTIONS = [
     ]),
     ("owner", "Owner tools", "", [
         E("Database map", "Admin > Database map", "Owner", "A layered picture of how the database is organized, with live counts and a view of how site access is divided.", "Reads the live database."),
-        E("Database Features (this guide)", "Admin > Database Features", "Owner", "This page, with a PDF copy to share with an attorney, accountant or buyer. Kept current each time a feature is added.", "feature_guide.py."),
+        E("Database Features (this guide)", "Admin > Database Features > How the site works", "Owner", "This page, with a PDF copy to share with an attorney, accountant or buyer. Kept current each time a feature is added.", "feature_guide.py."),
         E("Download for Claude", "Admin > Download for Claude", "Owner", "Packages the program's information so a new working session with Claude can pick up where the last one stopped.", ""),
     ]),
 ]
