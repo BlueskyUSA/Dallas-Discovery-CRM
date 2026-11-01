@@ -1,0 +1,44 @@
+{% extends "crm_base.html" %}
+{% block title %}All Letters{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.correspondence_home') }}">&larr; Correspondence</a></p>
+<h1>All Letters</h1>
+<p class="muted">Every kind of email the program sends, grouped by who receives it. <strong>Edit wording</strong> opens a letter you can change here, and every change is saved as a numbered version you can go back to. <strong>View</strong> shows letters whose wording is still in the program code.</p>
+{% if not live %}
+<div class="card" style="border-left:4px solid #b3261e; max-width:860px"><strong style="color:#b3261e">Sending to people is switched off.</strong> Nothing here goes to anyone until it is switched on.</div>
+{% endif %}
+{% for cid, ctitle, cintro, entries in cats %}
+<h2 style="margin-top:26px">{{ ctitle }}</h2>
+<p class="muted" style="margin-top:0">{{ cintro }}</p>
+<table>
+  <tr><th>Letter</th><th>When it is sent</th><th>Who gets it</th><th>Wording</th></tr>
+  {% for e in entries %}
+  {% if not (e.owner and not can_marketing) %}
+  <tr>
+    <td style="font-weight:600">{{ e.name }}</td>
+    <td>{{ e.when }}</td>
+    <td>{{ e.who }}</td>
+    <td style="white-space:nowrap">
+      {% if e.kind == 'edit' %}
+        <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key) }}">Edit wording</a>
+        <div class="muted" style="font-size:.85rem; margin-top:4px">
+          {% if edits.get(e.key) %}Edited by {{ edits[e.key].updated_by or 'a team member' }}, {{ edits[e.key].updated_at[:10]|fdate }}{% else %}Original wording{% endif %}
+          {% if nvers.get(e.key) %} &middot; {{ nvers[e.key] }} version{{ '' if nvers[e.key] == 1 else 's' }}{% endif %}
+          {% if sent.get(e.key) %} &middot; {{ sent[e.key] }} sent{% endif %}
+        </div>
+      {% elif e.kind == 'view' %}
+        <a class="btn secondary" href="{{ url_for('.correspondence_letter_view', slug=e.slug) }}">View</a>
+        <div class="muted" style="font-size:.85rem; margin-top:4px">Wording is in the program code</div>
+      {% elif e.kind == 'link' %}
+        {% if e.group %}<a class="btn secondary" href="{{ url_for('.' ~ e.url, group=e.group) }}">{{ e.label }}</a>
+        {% else %}<a class="btn secondary" href="{{ url_for('.' ~ e.url) }}">{{ e.label }}</a>{% endif %}
+      {% else %}
+        <span class="muted">Wording is in the program code</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+</table>
+{% endfor %}
+{% endblock %}

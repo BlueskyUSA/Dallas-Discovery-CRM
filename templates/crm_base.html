@@ -39,6 +39,7 @@
         <summary>Correspondence &#9662;</summary>
         <div class="navmenu-items">
           {% if session.is_owner or is_lead %}
+          <a href="{{ url_for('.correspondence_all') }}">All Letters</a>
           <a href="{{ url_for('.correspondence_trainees') }}">Trainee Correspondence</a>
           <a href="{{ url_for('.correspondence_team') }}">Team Correspondence</a>
           {% endif %}

@@ -1,7 +1,7 @@
 {% extends "crm_base.html" %}
 {% block title %}Edit letter: {{ orig.title }}{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('.' ~ back) }}">&larr; {{ 'Trainee' if back == 'correspondence_trainees' else 'Team' }} Correspondence</a></p>
+<p><a href="{{ url_for('.' ~ back) }}">&larr; {{ 'All Letters' if back == 'correspondence_all' else ('Trainee Correspondence' if back == 'correspondence_trainees' else 'Team Correspondence') }}</a></p>
 <h1>Edit letter: {{ orig.title }}</h1>
 <p class="muted">Goes to: {{ orig.audience }}.
   {% if saved %}Edited by {{ saved.updated_by or 'a team member' }} on {{ saved.updated_at[:10]|fdate }}.{% else %}This is the original wording.{% endif %}</p>
@@ -21,6 +21,8 @@
     <label>Closing<br><input type="text" name="signoff" value="{{ form.signoff }}" style="padding:8px"></label>
     <label>Signed<br><input type="text" name="signer" value="{{ form.signer }}" style="padding:8px; min-width:260px"></label>
   </div>
+  <label style="display:block; margin-top:12px">Note about this change <span class="muted">(optional, kept in the history)</span><br>
+    <input type="text" name="note" value="{{ note }}" style="width:100%; padding:8px" maxlength="200" placeholder="Example: shortened the second paragraph"></label>
   <p style="margin-top:14px">
     <button class="btn secondary" type="submit" name="action" value="preview">Preview</button>
     <button class="btn secondary" type="submit" name="action" value="test">Send a test to me</button>
@@ -36,18 +38,41 @@
   <div class="card">
     <strong>Words that fill in by themselves</strong>
     <p class="muted" style="margin:4px 0 8px">Type them exactly, with the curly brackets.</p>
-    <p style="margin:2px 0"><code>{training}</code> the name of the training</p>
-    <p style="margin:2px 0"><code>{dates}</code> the session dates</p>
-    <p style="margin:2px 0"><code>{where}</code> " at" and the place, when there is one</p>
-    {% if 'link' in used %}<p style="margin:2px 0"><code>{link}</code> the person's private link (must stay)</p>{% endif %}
-    {% if 'role' in used %}<p style="margin:2px 0"><code>{role}</code> Lead Facilitator or Support Facilitator</p>{% endif %}
-    {% if 'duties' in used %}<p style="margin:2px 0"><code>{duties}</code> the person's assignment</p>{% endif %}
-    {% if 'amount_sentence' in used %}<p style="margin:2px 0"><code>{amount_sentence}</code> the fee sentence</p>{% endif %}
-    {% if 'friday_end' in used %}<p style="margin:2px 0"><code>{friday_end}</code> the Friday end time for that program (blank if none is set)</p>{% endif %}
-    {% if 'partner_sentence' in used %}<p style="margin:2px 0"><code>{partner_sentence}</code> the partner sentence</p>{% endif %}
+    {% for f in used %}<p style="margin:2px 0"><code>{{ '{' ~ f ~ '}' }}</code> {{ help.get(f, '') }}</p>{% endfor %}
   </div>
 </div>
 </div>
+
+<h2>History</h2>
+{% if versions %}
+<p class="muted">Every saved change is kept. Open a version to read it, or restore it to make it the wording used from now on.</p>
+<table style="max-width:900px">
+  <tr><th>Version</th><th>When</th><th>Who</th><th>Note</th><th></th></tr>
+  {% for v in versions %}
+  <tr>
+    <td>{{ v.version }}{% if current_version == v.version %} <span class="badge good">In use</span>{% endif %}</td>
+    <td>{{ v.changed_at[:16] }}</td><td>{{ v.changed_by or '' }}</td><td>{{ v.note or '' }}</td>
+    <td>
+      <details style="display:inline-block; vertical-align:top"><summary style="cursor:pointer; color:#1f5fbf">Read</summary>
+        <div style="margin:6px 0; max-width:560px; white-space:pre-wrap; background:#fffdf7; border:1px solid var(--border); border-radius:6px; padding:8px"><strong>{{ v.subject }}</strong>
+
+{{ v.body }}
+
+{{ v.signoff }}
+{{ v.signer }}</div>
+      </details>
+      {% if current_version != v.version %}
+      <form method="post" style="display:inline" onsubmit="return confirm('Make version {{ v.version }} the wording used from now on?');">
+        <input type="hidden" name="action" value="restore"><input type="hidden" name="version_id" value="{{ v.id }}">
+        <button class="btn secondary" type="submit">Restore</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No changes yet. The first time you save, the original wording is kept as version 1 and your change becomes version 2.</p>
+{% endif %}
 
 {% if preview_html %}
 <h2>How it will look</h2>
