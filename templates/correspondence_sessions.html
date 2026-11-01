@@ -37,7 +37,11 @@
 </table>
 
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
-<p style="margin:8px 0">Year letters were sent:
+<div id="sessYearTabs" style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0">
+  {% for y in session_years %}<button type="button" class="btn secondary sytab" data-syear="{{ y }}" style="font-size:1.05rem; font-weight:700">{{ y }}</button>{% endfor %}
+  <button type="button" class="btn secondary sytab" data-syear="" style="font-size:1.05rem">All years</button>
+</div>
+<p style="margin:8px 0">Letters sent in:
   <select id="yearFilter" style="padding:6px; font-size:1rem">
     <option value="">All sessions</option>
     {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
@@ -48,7 +52,7 @@
   <select style="min-width:360px; padding:8px; font-size:1rem">
     <option value="">Choose a program session&hellip;</option>
     {% for s in sessions %}
-    <option data-counts='{{ counts.get(s.id, {})|tojson }}' value="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">{{ labels.get(s.code, s.program_name) }} &mdash; Session #{{ s.session_number }}, {{ s|date_span }}</option>
+    <option data-syear="{{ s.session_date[:4] }}" data-counts='{{ counts.get(s.id, {})|tojson }}' value="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">{{ labels.get(s.code, s.program_name) }} &mdash; Session #{{ s.session_number }}, {{ s|date_span }}</option>
     {% endfor %}
   </select>
   <button class="btn" type="submit">Open</button>
@@ -64,7 +68,7 @@
     <th data-sort="num" style="cursor:pointer">Letters sent</th><th></th></tr></thead>
   <tbody>
   {% for s in sessions %}
-  <tr data-counts='{{ counts.get(s.id, {})|tojson }}' data-total="{{ s.n_sent }}">
+  <tr data-syear="{{ s.session_date[:4] }}" data-counts='{{ counts.get(s.id, {})|tojson }}' data-total="{{ s.n_sent }}">
     <td data-v="{{ labels.get(s.code, s.program_name) }}">{{ labels.get(s.code, s.program_name) }}</td>
     <td data-v="{{ s.session_number }}">#{{ s.session_number }}{% if s.status == 'Cancelled' %} <span class="badge warn">Cancelled</span>{% endif %}</td>
     <td data-v="{{ s.session_date }}">{{ s|date_span }}</td>
@@ -84,17 +88,22 @@
   function cnt_(el){try{return JSON.parse(el.getAttribute('data-counts'))||{};}catch(e){return {};}}
   function shown(el,y){var c=cnt_(el), tot=0; for(var k in c)tot+=c[k];
     if(!y)return true; if(y==='__none')return tot===0; return (c[y]||0)>0;}
+  var syear='{{ default_syear }}', tabs=document.querySelectorAll('.sytab');
+  var sc={}; rows().forEach(function(r){var y=r.getAttribute('data-syear'); sc[y]=(sc[y]||0)+1;});
+  tabs.forEach(function(t){var y=t.getAttribute('data-syear'); if(y)t.textContent=y+' ('+(sc[y]||0)+')';});
   function applyYear(){
     var y=sel.value, n=0;
     rows().forEach(function(r){
-      var show=shown(r,y); r.style.display=show?'':'none'; if(show)n++;
+      var show=shown(r,y) && (!syear||r.getAttribute('data-syear')===syear); r.style.display=show?'':'none'; if(show)n++;
       var c=cnt_(r), tot=0; for(var k in c)tot+=c[k];
       var v=(!y)?tot:(y==='__none'?0:(c[y]||0)), cell=r.querySelector('.sentCell');
       cell.textContent=v; cell.setAttribute('data-v',v);
     });
-    Array.prototype.forEach.call(document.querySelectorAll('option[data-counts]'),function(o){o.hidden=!shown(o,y);});
-    cnt.textContent=n+(n===1?' session':' sessions');
+    Array.prototype.forEach.call(document.querySelectorAll('option[data-counts]'),function(o){o.hidden=!(shown(o,y) && (!syear||o.getAttribute('data-syear')===syear));});
+    tabs.forEach(function(t){var on=t.getAttribute('data-syear')===syear; t.style.background=on?'#1f5fbf':''; t.style.color=on?'#fff':'';});
+    cnt.textContent=n+(n===1?' session':' sessions')+(n===0&&syear?' in '+syear:'');
   }
+  tabs.forEach(function(t){t.addEventListener('click',function(){syear=t.getAttribute('data-syear'); applyYear();});});
   sel.addEventListener('change',applyYear);
   var dir={};
   Array.prototype.forEach.call(table.tHead.rows[0].cells,function(th,i){
