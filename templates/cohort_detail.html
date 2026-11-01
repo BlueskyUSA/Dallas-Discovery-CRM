@@ -162,7 +162,7 @@
   <h3>Food, access and activity needs <span class="muted" style="font-size:.85rem;font-weight:400">(Leadership only; {{ needs_rows|length }} of {{ needs_total }} listed something)</span></h3>
   {% if needs_rows %}
   <table>
-    <tr><th>Name</th><th>Food allergies / dietary needs</th><th>Accessibility / room needs</th><th>Injuries or limits on activities</th></tr>
+    <tr><th>Name</th><th>Food allergies / dietary needs</th><th>Accessibility / room needs</th><th>Injuries that limit everyday activities</th></tr>
     {% for n in needs_rows %}
     <tr><td>{{ n.full_name }}</td><td>{{ n.dietary_needs or '' }}</td><td>{{ n.access_needs or '' }}</td><td>{{ n.activity_limits or '' }}</td></tr>
     {% endfor %}
