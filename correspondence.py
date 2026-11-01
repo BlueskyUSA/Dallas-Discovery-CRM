@@ -153,7 +153,14 @@ def register(app, crm, get_db, h):
             keys = [k for k in et.SESSION_LETTER_ORDER if (k in et.SESSION_TRAINEE_LETTERS) == (kind == "trainees")]
             letter_rows = [dict(key=k, title=et.SESSION_LETTERS[k]["title"], audience=et.SESSION_LETTERS[k]["audience"],
                                 edit=edits.get(k)) for k in keys]
+            from datetime import date as _date
+            this_year = _date.today().year
+            with_sessions = {int(x["session_date"][:4]) for x in sessions if x["session_date"]}
+            session_years = sorted({2026, this_year} | with_sessions)
+            ahead = sorted(y for y in with_sessions if y >= this_year)
+            default_syear = this_year if this_year in with_sessions else (ahead[0] if ahead else (max(with_sessions) if with_sessions else this_year))
             return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years, counts=counts,
+                                   session_years=session_years, default_syear=default_syear,
                                    letter_rows=letter_rows,
                                    labels=h["program_labels"], groups=GROUPS, team_groups=TEAM_GROUPS, live=live())
         finally:
