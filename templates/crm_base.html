@@ -47,7 +47,19 @@
           <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
           {% endif %}
           {% if is_lead %}<a href="{{ url_for('.testimonials_review') }}">Testimonials</a>{% endif %}
-          {% if has_correspondence_access %}<a href="{{ url_for('.email_blasts') }}">Correspondence</a>{% endif %}
+          {% if session.is_owner or is_lead or has_correspondence_access %}
+          <details class="subnav">
+            <summary>Correspondence &#9662;</summary>
+            {% if session.is_owner or is_lead %}
+            <a href="{{ url_for('.correspondence_trainees') }}" style="padding-left:30px">Trainee Correspondence</a>
+            <a href="{{ url_for('.correspondence_team') }}" style="padding-left:30px">Team Correspondence</a>
+            {% endif %}
+            {% if has_correspondence_access %}
+            <a href="{{ url_for('.correspondence_note', group='accounting') }}" style="padding-left:30px">Accounting &amp; Legal</a>
+            <a href="{{ url_for('.email_blasts') }}" style="padding-left:30px">Marketing &amp; Email Blasts</a>
+            {% endif %}
+          </details>
+          {% endif %}
           {% if show_finance or show_donations or session.is_owner or has_budgets_access %}
           <details class="subnav">
             <summary>Finance &#9662;</summary>

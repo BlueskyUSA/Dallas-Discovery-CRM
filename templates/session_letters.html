@@ -2,8 +2,10 @@
 {% block title %}Letters — {{ cohort.code }} #{{ cohort.session_number }}{% endblock %}
 {% block content %}
 {% set full_title = cohort.name if cohort.name.startswith(cohort.code) else (cohort.code ~ '-' ~ cohort.name) %}
-<p><a href="{{ url_for('.cohort_detail', cohort_id=cohort.id) }}">&larr; Back to the session</a></p>
-<h1>Letters &mdash; {{ full_title }} (Session # {{ cohort.session_number }})</h1>
+{% if only == 'trainees' %}<p><a href="{{ url_for('.correspondence_trainees') }}">&larr; Trainee Correspondence</a></p>
+{% elif only == 'team' %}<p><a href="{{ url_for('.correspondence_team') }}">&larr; Team Correspondence</a></p>
+{% else %}<p><a href="{{ url_for('.cohort_detail', cohort_id=cohort.id) }}">&larr; Back to the session</a></p>{% endif %}
+<h1>{{ 'Trainee letters' if only == 'trainees' else ('Team letters' if only == 'team' else 'Letters') }} &mdash; {{ full_title }} (Session # {{ cohort.session_number }})</h1>
 <p class="muted">{{ cohort|date_span }}{% if cohort.location %} &middot; {{ cohort.location }}{% endif %}</p>
 {% if not live %}
 <div class="card" style="border-left:4px solid #b3261e; max-width:760px">
@@ -12,7 +14,8 @@
 </div>
 {% endif %}
 
-<details style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
+{% if only != 'team' %}
+<details {{ 'open' if only }} style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
   <summary style="cursor:pointer; font-size:1.15rem; font-weight:700; color:#1f5fbf">Letters to Trainees</summary>
   {% for key in order if key in trainee_keys %}
 {% set spec = letters[key] %}
@@ -52,7 +55,9 @@
 </details>
   {% endfor %}
 </details>
-<details style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
+{% endif %}
+{% if only != 'trainees' %}
+<details {{ 'open' if only }} style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
   <summary style="cursor:pointer; font-size:1.15rem; font-weight:700; color:#1f5fbf">Letters to Team</summary>
   {% for key in order if key == 'facilitator_confirm' or key == 'ta_confirm' or key == 'backup_confirm' %}
 {% set spec = letters[key] %}
@@ -92,5 +97,6 @@
 </details>
   {% endfor %}
 </details>
-<p class="muted">The Support Team does not receive these letters.</p>
+<p class="muted">The Support Team does not receive these letters. Write to them from <a href="{{ url_for('.correspondence_note', group='support') }}">Team Correspondence</a>.</p>
+{% endif %}
 {% endblock %}
