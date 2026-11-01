@@ -5060,6 +5060,18 @@ def _ensure_session_letters_table(conn):
     )""")
     conn.execute("ALTER TABLE session_letters_sent ADD COLUMN IF NOT EXISTS snapshot_subject TEXT")
     conn.execute("ALTER TABLE session_letters_sent ADD COLUMN IF NOT EXISTS snapshot_html TEXT")
+    conn.execute("""CREATE TABLE IF NOT EXISTS letter_versions (
+        id SERIAL PRIMARY KEY,
+        letter_key TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        subject TEXT,
+        body TEXT,
+        signoff TEXT,
+        signer TEXT,
+        changed_by TEXT,
+        note TEXT,
+        changed_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS session_letter_text (
         letter_key TEXT PRIMARY KEY,
         subject TEXT NOT NULL,
