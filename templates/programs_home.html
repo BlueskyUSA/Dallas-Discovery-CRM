@@ -44,7 +44,7 @@ r.textContent=a.toLocaleDateString('en-US',o)+' \u2192 '+b.toLocaleDateString('e
 d.addEventListener('change',upd);d.form.program_id.addEventListener('change',upd);})();
 </script>
 {% if sessions %}
-<div class="card">
+<div class="card" id="by-year">
   <h3 style="margin-top:0">Scheduled sessions</h3>
   <div id="yearTabs" style="display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px">
     {% for y in years %}<button type="button" class="btn secondary yrtab" data-year="{{ y }}" style="font-size:1.05rem; font-weight:700">{{ y }}</button>{% endfor %}
