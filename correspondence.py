@@ -305,7 +305,8 @@ def register(app, crm, get_db, h):
             if not error:
                 try:
                     fill = et.fill_for(SAMPLE["first_name"], SAMPLE["training"], SAMPLE["dates"], SAMPLE["location"],
-                                       SAMPLE["role"], SAMPLE["duties"], SAMPLE["link"], SAMPLE["partner"], SAMPLE["amount"])
+                                       SAMPLE["role"], SAMPLE["duties"], SAMPLE["link"], SAMPLE["partner"], SAMPLE["amount"],
+                                       "The Friday session ends by 11:00 pm at the latest.")
                     subject, html, text = et.render_spec(et.spec_with_edit(key, form), fill, SAMPLE["link"])
                     if request.method == "POST" and request.form.get("action") == "test":
                         me = h["staff_email"]()

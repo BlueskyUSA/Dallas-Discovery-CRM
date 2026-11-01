@@ -662,11 +662,12 @@ SESSION_LETTERS = {
         "audience": "Trainees",
         "subject": "What to bring to {training}",
         "paras": [
-            "{training} begins soon, {dates}{where}. Here is what to bring so you are comfortable and ready:",
-            "[Kent: list the items to bring here, for example: comfortable clothing, a notebook and pen, "
-            "a water bottle, any medications you need.]",
-            "Please arrive a little early so we can begin on time. If you have any questions, reply to this email.",
-            "We look forward to seeing you.",
+            "{training} begins soon, {dates}{where}. Here is how to be comfortable and ready.",
+            "What to wear: Please wear comfortable, casual clothing and shoes. Tennis shoes are perfect. "
+            "The training rooms are sometimes cool, so bring something warm to put on. If it is raining, bring an umbrella.",
+            "Arriving: The training starts promptly, so please be at the training room door at least 10 minutes before the training starts.",
+            "Friday: Come rested, hydrated and well nourished. {friday_end}",
+            "If you have any questions, just reply to this email. We look forward to seeing you.",
         ],
         "signoff": "Warmly,",
     },
@@ -716,7 +717,7 @@ SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_con
 
 # ---- editable wording: the app registers a loader that returns the saved edit for a letter (or None) ----
 _OVERRIDE = {"loader": None}
-LETTER_FIELDS = ("first", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence")
+LETTER_FIELDS = ("first", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
 
 
 def set_override_loader(fn):
@@ -750,7 +751,7 @@ def original_body(key):
     return "\n\n".join(SESSION_LETTERS[key]["paras"])
 
 
-def fill_for(first_name, training, dates, location=None, role=None, duties=None, link=None, partner=None, amount=None):
+def fill_for(first_name, training, dates, location=None, role=None, duties=None, link=None, partner=None, amount=None, friday_end=None):
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
     duty_list = [d for d in (duties or []) if d and d != "Not confirmed"]
     if duty_list:
@@ -766,6 +767,7 @@ def fill_for(first_name, training, dates, location=None, role=None, duties=None,
                             if amount else ""),
         "partner_sentence": (f"This payment covers you and {partner}, so you are both all set."
                              if partner else ""),
+        "friday_end": friday_end or "",
     }
 
 
@@ -773,7 +775,7 @@ def render_spec(spec, fill, link=None):
     import html as _html
     greeting = fill["first"]
     subject = spec["subject"].format(**fill)
-    paras = [p for p in (p.format(**fill) for p in spec["paras"]) if p.strip()]
+    paras = [p for p in (p.format(**fill).strip() for p in spec["paras"]) if p]
     html_content = (
         f"<p>Dear {_html.escape(greeting)},</p>"
         + "".join(
@@ -786,12 +788,12 @@ def render_spec(spec, fill, link=None):
 
 
 def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
-                           partner=None, amount=None):
+                           partner=None, amount=None, friday_end=None):
     """(subject, html, text) for one session letter, or None for an unknown key.
     Uses the wording saved on the Correspondence page; falls back to the original if that wording cannot be used."""
     if key not in SESSION_LETTERS:
         return None
-    fill = fill_for(first_name, training, dates, location, role, duties, link, partner, amount)
+    fill = fill_for(first_name, training, dates, location, role, duties, link, partner, amount, friday_end)
     edit = saved_edit(key)
     if edit:
         try:
