@@ -70,7 +70,7 @@ SECTIONS = [
           "program_materials, program_playlists, playlist_songs, program_movies."),
         E("Session letters", "Programs > a session > Letters", "Leadership with Contacts access", "Preview, test and send the letters that go to the people in a session (welcome, venue, reminders).", "Email through Brevo."),
         E("Food, access and activity needs", "Asked on the long profile form and on each trainee's questionnaire; shown on a session page under the roster", "Entered by the person or by staff on Edit Contact; the session summary is for Leadership only",
-          "Food allergies and dietary needs, accessibility or room needs (such as a wheelchair-accessible room), and injuries that limit everyday activities (such as sitting on the floor). The session page lists everyone who gave an answer, for the hotel's meal counts and room requests. The venue letter also asks couples to share these.",
+          "Food allergies and dietary needs, accessibility or room needs (such as a wheelchair-accessible room), and injuries or conditions that limit everyday activities (such as sitting on the floor). The session page lists everyone who gave an answer, for the hotel's meal counts and room requests. The venue letter also asks couples to share these.",
           "contacts (dietary_needs, access_needs, activity_limits); the venue letter in Programs > a session > Letters."),
         E("Feedback", "Leadership area", "Leadership", "The feedback and questionnaire answers people gave after trainings.", "feedback_responses."),
         E("Contracts and business plan", "Reached from the Contacts area", "Contracts area", "The agreements people sign and the earlier versions, and the business plan page.", "contracts, contract_revisions."),
