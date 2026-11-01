@@ -151,7 +151,7 @@ GUIDE_EXPLAINER = (
     "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. "
     "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning.",
     "It starts when someone fills in an \"I'm curious\" form on the website and asks to be called or texted. Each form is tied to one program, such as The Beginning or The Art of Us, "
-    "so only the Guides for that program get the alert (if a program has no Guides of its own, the \"Everything else\" group is alerted). "
+    "so only the Guides for that program get the alert (if a person selects \"Not sure\" about which program they are interested in, or if a program has no Guides of its own, such as Awakening or Vision, the \"Everything else\" group is alerted). "
     "The first Guide to claim the request becomes that person's Guide, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch.",
     "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave, so to speak, "
     "to guide that person into the training room, including registration, payment and greeting them at the door. "
@@ -289,7 +289,8 @@ def register(app, crm, get_db, h):
             subject, html = fn()
         except Exception:
             subject, html = None, None
-        return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html)
+        return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html,
+                               forms_note=(slug in ("welcome", "longform_followup", "longform_thankyou")))
 
     @crm.route("/correspondence")
     @leadership_required
