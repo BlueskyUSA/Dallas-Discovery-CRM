@@ -233,6 +233,11 @@
         </select>
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>If you intend to Volunteer, please describe overall health and health limitations/injuries, if any.</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
+      {% if contact %}
+      <div class="field" style="grid-column: 1 / -1"><label>Food allergies or dietary needs (for example vegetarian, vegan, gluten-free, a food allergy)</label><textarea name="dietary_needs" rows="2" style="width:100%">{{ contact.dietary_needs if contact and contact.dietary_needs else '' }}</textarea></div>
+      <div class="field" style="grid-column: 1 / -1"><label>Accessibility or room needs (for example a wheelchair-accessible room, mobility, hearing or vision needs)</label><textarea name="access_needs" rows="2" style="width:100%">{{ contact.access_needs if contact and contact.access_needs else '' }}</textarea><div class="muted" style="font-size:.85rem;margin-top:4px">Optional. We share this only with the people planning your meals, rooms and activities.</div></div>
+      <div class="field" style="grid-column: 1 / -1"><label>Injuries or health conditions that limit everyday activities (for example sitting on the floor, standing for long periods, stairs)</label><textarea name="activity_limits" rows="2" style="width:100%">{{ contact.activity_limits if contact and contact.activity_limits else '' }}</textarea></div>
+      {% endif %}
       </div>
     </div>
 

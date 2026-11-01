@@ -79,6 +79,13 @@
     <div class="q"><label for="song_feelings">{% if personal %}TBD (to be determined){% else %}Briefly describe how the song above makes you feel toward your partner.{% endif %}</label>
       <textarea id="song_feelings" name="song_feelings" rows="3">{{ profile.song_feelings if profile and profile.song_feelings else '' }}</textarea></div>
     {% endif %}
+    <div class="q"><label for="dietary_needs">Food allergies or dietary needs (for example vegetarian, vegan, gluten-free, a food allergy)</label>
+      <textarea id="dietary_needs" name="dietary_needs" rows="2">{{ my_needs.dietary_needs if my_needs else '' }}</textarea></div>
+    <div class="q"><label for="access_needs">Accessibility or room needs (for example a wheelchair-accessible room, mobility, hearing or vision needs)</label>
+      <textarea id="access_needs" name="access_needs" rows="2">{{ my_needs.access_needs if my_needs else '' }}</textarea>
+      <div class="muted" style="font-size:.88rem;margin-top:4px">Optional. We share this only with the people planning your meals, rooms and activities.</div></div>
+    <div class="q"><label for="activity_limits">Injuries or health conditions that limit everyday activities (for example sitting on the floor, standing for long periods, stairs)</label>
+      <textarea id="activity_limits" name="activity_limits" rows="2">{{ my_needs.activity_limits if my_needs else '' }}</textarea></div>
     <div class="q"><label for="other_info">{% if personal %}Please provide any other information you believe is important for us to know about you.{% else %}Please provide other information you believe is important to this relationship.{% endif %}</label>
       <textarea id="other_info" name="other_info" rows="3">{{ profile.other_info if profile and profile.other_info else '' }}</textarea></div>
     <div class="qn-actions">
