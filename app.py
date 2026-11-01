@@ -1914,6 +1914,32 @@ def mission_page():
 
 
 # ---------- dashboard ----------
+NAV_PROGRAM_LABEL = {"D1": "The Beginning", "D4": "The Art of Us", "D5": "Renew", "D6": "Spiritual"}
+
+
+def _upcoming_sessions(conn, limit):
+    """The next sessions that have not finished, soonest first (Awakening and Vision ride along with The Beginning,
+    so they are not listed on their own). Each: id, label, span, days_away, enrolled."""
+    rows = conn.execute(
+        """SELECT c.id, c.session_date, c.end_date, p.code, p.name,
+                  (SELECT COUNT(*) FROM enrollments e WHERE e.cohort_id = c.id) AS enrolled
+           FROM cohorts c JOIN programs p ON p.id = c.program_id
+           WHERE COALESCE(c.end_date, c.session_date) >= ? AND COALESCE(c.status, '') <> 'Cancelled'
+             AND p.code NOT IN ('D2','D3')
+           ORDER BY c.session_date ASC, p.id ASC LIMIT ?""", (date.today().isoformat(), limit)).fetchall()
+    out = []
+    for r in rows:
+        try:
+            start = date.fromisoformat(r["session_date"])
+            last = date.fromisoformat(r["end_date"]) if r["end_date"] else start
+        except ValueError:
+            continue
+        out.append({"id": r["id"], "label": NAV_PROGRAM_LABEL.get(r["code"], r["name"]), "code": r["code"],
+                    "span": f"{_short_span(start, last)}, {last.year}", "days_away": (start - date.today()).days,
+                    "enrolled": r["enrolled"]})
+    return out
+
+
 
 @crm.route("/")
 def dashboard():
@@ -1926,8 +1952,15 @@ def dashboard():
            ORDER BY c.session_date ASC LIMIT 10"""
     ).fetchall()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
+    try:
+        next_sessions = _upcoming_sessions(conn, 3)
+    except Exception as e:
+        conn.rollback()
+        print(f"dashboard next sessions skipped: {e}", flush=True)
+        next_sessions = []
     conn.close()
-    return render_template("dashboard.html", contact_count=contact_count, upcoming=upcoming, programs=programs)
+    return render_template("dashboard.html", contact_count=contact_count, upcoming=upcoming, programs=programs,
+                           next_sessions=next_sessions)
 
 
 # ---------- contacts ----------
@@ -7313,7 +7346,7 @@ def inject_area_access():
     if not session.get("staff_id"):
         return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False,
                 "has_contracts_access": False, "has_accounting_access": False,
-                "has_correspondence_access": False, "has_budgets_access": False}
+                "has_correspondence_access": False, "has_budgets_access": False, "nav_sessions": []}
     return {
         "has_contacts_access": _has_area_access("contacts"),
         "has_program_access": _has_any_program_access(),
@@ -7322,7 +7355,24 @@ def inject_area_access():
         "has_accounting_access": _has_area_access("accounting"),
         "has_correspondence_access": _has_area_access("correspondence"),
         "has_budgets_access": _has_area_access("budgets"),
+        "nav_sessions": _nav_sessions(),
     }
+
+
+def _nav_sessions():
+    """The next few sessions for the Programs drop-down (only for logins that can open a session)."""
+    try:
+        if not (session.get("is_owner") or session.get("staff_role") == "Leadership" or _has_area_access("contacts")):
+            return []
+        if session.get("staff_role") == ACCOUNTING_ROLE and not session.get("is_owner"):
+            return []
+        conn = get_db()
+        try:
+            return _upcoming_sessions(conn, 6)
+        finally:
+            conn.close()
+    except Exception:
+        return []
 
 
 app.jinja_env.globals["role_label"] = role_label
