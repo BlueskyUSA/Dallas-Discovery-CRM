@@ -45,11 +45,14 @@ details.catblock .catbody{padding:0 16px 14px}
       {% elif e.kind == 'view' %}
         <a class="btn secondary" href="{{ url_for('.correspondence_letter_view', slug=e.slug) }}">View</a>
         <div class="muted" style="font-size:.85rem; margin-top:4px">Wording is in the program code</div>
+      {% elif e.kind == 'ext' %}
+        <a class="btn secondary" href="{{ e.url }}" target="_blank" rel="noopener">View questionnaire</a>
+        <div class="muted" style="font-size:.85rem; margin-top:4px">Read-only preview, opens in a new tab</div>
       {% elif e.kind == 'link' %}
         {% if e.group %}<a class="btn secondary" href="{{ url_for('.' ~ e.url, group=e.group) }}">{{ e.label }}</a>
         {% else %}<a class="btn secondary" href="{{ url_for('.' ~ e.url) }}">{{ e.label }}</a>{% endif %}
       {% else %}
-        <span class="muted">Wording is in the program code</span>
+        <span class="muted">{% if e.note %}{{ e.note }}{% else %}Wording is in the program code{% endif %}</span>
       {% endif %}
     </td>
   </tr>

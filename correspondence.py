@@ -151,6 +151,7 @@ def catalog():
     E = lambda key, name, when, who: dict(kind="edit", key=key, name=name, when=when, who=who)
     V = lambda slug, name, when, who: dict(kind="view", slug=slug, name=name, when=when, who=who)
     C = lambda name, when, who, note="": dict(kind="code", name=name, when=when, who=who, note=note)
+    X = lambda name, when, who, url: dict(kind="ext", name=name, when=when, who=who, url=url)
     return [
         ("interested", "Interested people (before they register)",
          "What someone receives after they ask a question, ask to be called, or fill in a form on the website.", [
@@ -176,6 +177,12 @@ def catalog():
             E("what_to_bring", sl["what_to_bring"]["title"], "By hand from the session's letters page, as the training gets closer.", "Trainees"),
             V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
             V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
+         ]),
+        ("questionnaires", "Questionnaires",
+         "The questions each trainee answers on their private link before the training. Right now each program's questions are fixed in the program code; making them editable per program is the next piece.", [
+            X("Questionnaire: The Art of Us (Relationship Training)", "Sent as a private link by the Guide's \"Email it\" or from the session page.", "Each partner of a couple, separately", "/cep-letters/q-rt"),
+            X("Questionnaire: The Beginning", "Sent as a private link from the session page.", "Each person, separately. The Beginning's own questions are still to be written (shown as TBD).", "/cep-letters/q-d1"),
+            C("Questionnaire: other programs", "Sent as a private link from the session page.", "Each person", "Awakening, Vision, Renew and Spiritual use a short standard set: first time attending, goals, food and access needs, injuries, anything else."),
          ]),
         ("team", "Team (Facilitators, TA's, Support Team, Leadership)",
          "Letters to the people who run a session.", [
