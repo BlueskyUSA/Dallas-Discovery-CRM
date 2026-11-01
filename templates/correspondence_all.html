@@ -3,10 +3,44 @@
 {% block content %}
 <p><a href="{{ url_for('.correspondence_home') }}">&larr; Correspondence</a></p>
 <h1>All Letters</h1>
+{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
 <p class="muted">Every kind of email the program sends, grouped by who receives it. <strong>Edit wording</strong> opens a letter you can change here, and every change is saved as a numbered version you can go back to. <strong>View</strong> shows letters whose wording is still in the program code.</p>
+<div class="card" style="max-width:860px; border-left:4px solid #a8892f; background:#fff8e1">
+  <strong>Who can change a letter.</strong> Only the Owner can make changes to automated correspondence. Suggested changes are welcomed: if you see a letter that could say something better, use the button below and your suggestion goes straight to the Owner.
+  <p style="margin:10px 0 0"><a class="btn secondary" href="#suggest" onclick="var d=document.getElementById('suggestBox'); d.open=true;">Suggest a change to a letter</a></p>
+</div>
 {% if not live %}
 <div class="card" style="border-left:4px solid #b3261e; max-width:860px"><strong style="color:#b3261e">Sending to people is switched off.</strong> Nothing here goes to anyone until it is switched on.</div>
 {% endif %}
+{% if is_owner %}
+<details id="suggestions" class="card" style="max-width:860px; margin-top:14px" {{ 'open' if sugg_new else '' }}>
+  <summary style="cursor:pointer; font-weight:700">Suggested changes <span class="muted" style="font-weight:400">({{ sugg_new|length }} new)</span></summary>
+  {% for s in sugg_new %}
+  <div style="border-top:1px solid var(--border); padding:10px 0">
+    <strong>{{ s.letter_name or 'A letter' }}</strong>
+    <span class="muted">&middot; {{ s.name }}{% if s.email %} ({{ s.email }}){% endif %} &middot; {{ s.created_at[:16] }} &middot; {{ s.source }}</span>
+    <div style="white-space:pre-wrap; margin-top:4px">{{ s.message }}</div>
+    <form method="post" action="{{ url_for('.correspondence_suggestion_done', sid=s.id) }}" style="margin-top:6px"><button class="btn secondary" type="submit">Mark as handled</button></form>
+  </div>
+  {% else %}<p class="muted" style="margin:8px 0 0">No new suggestions.</p>{% endfor %}
+  {% if sugg_done %}
+  <details style="margin-top:10px"><summary style="cursor:pointer" class="muted">Handled suggestions</summary>
+    {% for s in sugg_done %}
+    <div style="border-top:1px solid var(--border); padding:8px 0">
+      <strong>{{ s.letter_name or 'A letter' }}</strong> <span class="muted">&middot; {{ s.name }} &middot; {{ s.created_at[:10] }}</span>
+      <div style="white-space:pre-wrap; margin-top:2px">{{ s.message }}</div>
+      <form method="post" action="{{ url_for('.correspondence_suggestion_done', sid=s.id) }}" style="margin-top:4px"><input type="hidden" name="action" value="reopen"><button class="btn secondary" type="submit">Reopen</button></form>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</details>
+{% endif %}
+<details id="suggestBox" class="card" style="max-width:860px; margin-top:14px">
+  <summary id="suggest" style="cursor:pointer; font-weight:700">Suggest a change to a letter</summary>
+  {% set suggest_action = url_for('.correspondence_suggest') %}{% set suggest_letters = letter_names %}{% set suggest_pick = '' %}{% set suggest_public = false %}{% set suggest_back = '' %}{% set suggest_fixed = '' %}
+  {% include "_suggest_form.html" %}
+</details>
 <p style="margin:14px 0">
   <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=true})">Open all</button>
   <button type="button" class="btn secondary" onclick="document.querySelectorAll('details.catblock').forEach(function(d){d.open=false})">Close all</button>
@@ -60,7 +94,7 @@ details.catblock .catbody{padding:0 16px 14px}
     <td>{{ e.who }}</td>
     <td style="white-space:nowrap">
       {% if e.kind == 'edit' %}
-        <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key) }}">Edit wording</a>
+        <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key) }}">{{ 'Edit wording' if is_owner else 'View wording' }}</a>
         <div class="muted" style="font-size:.85rem; margin-top:4px">
           {% if edits.get(e.key) %}Edited by {{ edits[e.key].updated_by or 'a team member' }}, {{ edits[e.key].updated_at[:10]|fdate }}{% else %}Original wording{% endif %}
           {% if nvers.get(e.key) %} &middot; {{ nvers[e.key] }} version{{ '' if nvers[e.key] == 1 else 's' }}{% endif %}
@@ -78,6 +112,7 @@ details.catblock .catbody{padding:0 16px 14px}
       {% else %}
         <span class="muted">{% if e.note %}{{ e.note }}{% else %}Wording is in the program code{% endif %}</span>
       {% endif %}
+      {% if e.kind != 'link' %}<div style="margin-top:4px"><a href="#suggest" class="suggestLink" data-letter="{{ e.name }}" style="font-size:.85rem">Suggest a change</a></div>{% endif %}
     </td>
   </tr>
   {% endif %}
@@ -86,4 +121,12 @@ details.catblock .catbody{padding:0 16px 14px}
 </div>
 </details>
 {% endfor %}
+<script>
+document.querySelectorAll('.suggestLink').forEach(function (l) {
+  l.addEventListener('click', function () {
+    var d = document.getElementById('suggestBox'); d.open = true;
+    var s = document.getElementById('suggestLetter'); if (s) { s.value = l.getAttribute('data-letter'); }
+  });
+});
+</script>
 {% endblock %}

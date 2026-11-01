@@ -32,7 +32,7 @@ table.sessTable th.sortkey.active::after{content:""}
   {% for l in letter_rows %}
   <tr><td>{{ l.title }}</td><td>{{ l.audience }}</td>
       <td>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</td>
-      <td><a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">Edit wording</a></td></tr>
+      <td><a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}</a></td></tr>
   {% endfor %}
 </table>
 

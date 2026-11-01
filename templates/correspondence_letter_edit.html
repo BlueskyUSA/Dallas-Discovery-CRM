@@ -11,9 +11,15 @@
   {% include "_guide_explainer.html" %}
 </div>
 {% endif %}
-<h1>Edit letter: {{ orig.title }}</h1>
+<h1>{{ 'Edit letter' if can_edit else 'Letter' }}: {{ orig.title }}</h1>
 <p class="muted">Goes to: {{ orig.audience }}.
   {% if saved %}Edited by {{ saved.updated_by or 'a team member' }} on {{ saved.updated_at[:10]|fdate }}.{% else %}This is the original wording.{% endif %}</p>
+{% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+{% if not can_edit %}
+<div class="card" style="max-width:900px; border-left:4px solid #a8892f; background:#fff8e1; margin-bottom:10px">
+  <strong>Only the Owner can change this letter.</strong> You can read the wording below, and suggested changes are welcomed. Use <a href="#suggest">Suggest a change</a> at the bottom of the page.
+</div>
+{% endif %}
 <div class="card" style="max-width:900px; border-left:4px solid #1f5fbf">
   Changes apply to letters sent <strong>from now on</strong>, for every session. Letters already sent are not changed:
   each one is kept exactly as it went out.
@@ -22,6 +28,7 @@
 
 <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:14px">
 <form method="post" style="flex:1 1 520px; max-width:640px">
+  <fieldset {{ '' if can_edit else 'disabled' }} style="border:0; padding:0; margin:0">
   <label>Subject<br><input type="text" name="subject" value="{{ form.subject }}" style="width:100%; padding:8px" maxlength="250"></label>
   <label style="display:block; margin-top:10px">Letter<br>
     <textarea name="body" rows="16" style="width:100%; padding:8px; line-height:1.45">{{ form.body }}</textarea></label>
@@ -32,6 +39,7 @@
   </div>
   <label style="display:block; margin-top:12px">Note about this change <span class="muted">(optional, kept in the history)</span><br>
     <input type="text" name="note" value="{{ note }}" style="width:100%; padding:8px" maxlength="200" placeholder="Example: shortened the second paragraph"></label>
+  {% if can_edit %}
   <p style="margin-top:14px">
     <button class="btn secondary" type="submit" name="action" value="preview">Preview</button>
     <button class="btn secondary" type="submit" name="action" value="test">Send a test to me</button>
@@ -41,6 +49,8 @@
   <p><button class="btn secondary" type="submit" name="action" value="reset"
      onclick="return confirm('Go back to the original wording? Your edits to this letter will be removed.');">Go back to the original wording</button></p>
   {% endif %}
+  {% endif %}
+  </fieldset>
 </form>
 
 <div style="flex:1 1 300px; max-width:420px">
@@ -70,7 +80,7 @@
 {{ v.signoff }}
 {{ v.signer }}</div>
       </details>
-      {% if current_version != v.version %}
+      {% if can_edit and current_version != v.version %}
       <form method="post" style="display:inline" onsubmit="return confirm('Make version {{ v.version }} the wording used from now on?');">
         <input type="hidden" name="action" value="restore"><input type="hidden" name="version_id" value="{{ v.id }}">
         <button class="btn secondary" type="submit">Restore</button></form>
@@ -91,5 +101,12 @@
   <hr style="border:0; border-top:1px solid var(--border); margin:0 0 14px">
   <div style="line-height:1.55">{{ preview_html|safe }}</div>
 </div>
+{% endif %}
+
+<h2 id="suggest">Suggest a change</h2>
+<p class="muted">{{ 'Anyone with a login can suggest a change; it goes to the Owner.' if not can_edit else 'Suggestions from your team appear under All Letters.' }}</p>
+{% if not can_edit %}
+{% set suggest_action = url_for('.correspondence_suggest') %}{% set suggest_letters = [] %}{% set suggest_pick = '' %}{% set suggest_public = false %}{% set suggest_back = '' %}{% set suggest_fixed = orig.title %}
+{% include "_suggest_form.html" %}
 {% endif %}
 {% endblock %}

@@ -53,6 +53,17 @@ def ensure_tables(get_db):
             sent_count INTEGER NOT NULL DEFAULT 0,
             skipped TEXT,
             sent_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS letter_suggestions (
+            id SERIAL PRIMARY KEY,
+            letter_name TEXT,
+            name TEXT,
+            email TEXT,
+            message TEXT,
+            source TEXT,
+            status TEXT NOT NULL DEFAULT 'New',
+            created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+            handled_by TEXT,
+            handled_at TEXT)""")
         conn.commit()
         _ready = True
     finally:
@@ -258,6 +269,42 @@ def catalog():
     ]
 
 
+SUGGEST_MAX = 2000
+SUGGEST_DAILY_CAP = 30
+
+
+def save_suggestion(get_db, letter_name, name, email, message, source):
+    """Store a suggested change and tell the Owner by email (best effort). Returns (ok, error_text)."""
+    ensure_tables(get_db)
+    letter_name = (letter_name or "").strip()[:200]
+    name = (name or "").strip()[:120]
+    email = (email or "").strip()[:200]
+    message = (message or "").strip()[:SUGGEST_MAX]
+    if not name:
+        return False, "Please tell us your name so we know who to thank."
+    if len(message) < 5:
+        return False, "Please type your suggestion."
+    conn = get_db()
+    try:
+        today = conn.execute("SELECT COUNT(*) AS n FROM letter_suggestions WHERE created_at >= to_char(now() - interval '1 day', 'YYYY-MM-DD HH24:MI:SS')").fetchone()["n"]
+        if today >= SUGGEST_DAILY_CAP:
+            return False, "We have received a lot of suggestions today. Please try again tomorrow."
+        conn.execute("INSERT INTO letter_suggestions (letter_name, name, email, message, source) VALUES (?, ?, ?, ?, ?)",
+                     (letter_name, name, email or None, message, source))
+        conn.commit()
+    finally:
+        conn.close()
+    try:
+        to = (os.environ.get("EMAIL_FROM_ADDRESS") or "kent@blueskyusa.net").strip()
+        body = (f"{name}{' (' + email + ')' if email else ''} suggested a change to: {letter_name or 'a letter'}\n\n{message}\n\n"
+                "You can see and mark off suggestions under Correspondence > All Letters.")
+        send_email(to_email=to, subject=f"Suggested letter change: {letter_name or 'a letter'}",
+                   html_content="<p>" + _html.escape(body).replace("\n\n", "</p><p>").replace("\n", "<br>") + "</p>", text_content=body)
+    except Exception as e:
+        print(f"Couldn't email the letter suggestion: {e}", flush=True)
+    return True, None
+
+
 def register(app, crm, get_db, h):
     """h: dict of helpers from app.py: leadership_required, correspondence_access, area_required, staff_email,
     ensure_letters_table, program_label (code -> display name)."""
@@ -270,6 +317,42 @@ def register(app, crm, get_db, h):
     def _is_leader():
         return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
 
+    @crm.route("/correspondence/suggest", methods=["POST"])
+    @leadership_required
+    def correspondence_suggest():
+        ok, err = save_suggestion(get_db, request.form.get("letter_name"), _staff_name() or request.form.get("name"),
+                                  h["staff_email"](), request.form.get("message"), "Correspondence page")
+        flash("Thank you. Your suggestion was sent to the Owner." if ok else err)
+        return redirect(url_for(".correspondence_all") + "#suggest")
+
+    @crm.route("/correspondence/suggestions/<int:sid>/done", methods=["POST"])
+    def correspondence_suggestion_done(sid):
+        if not session.get("is_owner"):
+            flash("Only the Owner can do that.")
+            return redirect(url_for(".dashboard"))
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            conn.execute("UPDATE letter_suggestions SET status = ?, handled_by = ?, handled_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE id = ?",
+                         ("New" if request.form.get("action") == "reopen" else "Handled", _staff_name(), sid))
+            conn.commit()
+        finally:
+            conn.close()
+        return redirect(url_for(".correspondence_all") + "#suggestions")
+
+    @app.route("/cep-letters/suggest", methods=["POST"])
+    def public_letter_suggest():
+        """Guides and volunteers (no login) can suggest a change to a letter. Only the Owner changes letters."""
+        back = request.form.get("back") or url_for("public_cep_letters")
+        if not back.startswith("/"):
+            back = url_for("public_cep_letters")
+        if request.form.get("website"):          # a hidden field only a robot fills in
+            return redirect(back)
+        ok, err = save_suggestion(get_db, request.form.get("letter_name"), request.form.get("name"),
+                                  request.form.get("email"), request.form.get("message"), "Guide letters page")
+        flash("Thank you. Your suggestion was sent to the Owner." if ok else err)
+        return redirect(back + "#suggest")
+
     @crm.route("/correspondence/all-letters")
     @leadership_required
     def correspondence_all():
@@ -280,7 +363,15 @@ def register(app, crm, get_db, h):
             edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
             nvers = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM letter_versions GROUP BY letter_key").fetchall()}
             sent = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM session_letters_sent GROUP BY letter_key").fetchall()}
-            return render_template("correspondence_all.html", cats=catalog(), guide_note=GUIDE_EXPLAINER, guides=guides_by_group(conn), edits=edits, nvers=nvers, sent=sent,
+            ensure_tables(get_db)
+            is_owner = bool(session.get("is_owner"))
+            sugg_new, sugg_done = [], []
+            if is_owner:
+                sugg_new = conn.execute("SELECT * FROM letter_suggestions WHERE status = 'New' ORDER BY id DESC").fetchall()
+                sugg_done = conn.execute("SELECT * FROM letter_suggestions WHERE status <> 'New' ORDER BY id DESC LIMIT 30").fetchall()
+            letter_names = [e["name"] for _i, _t, _d, es in catalog() for e in es if e.get("kind") in ("edit", "view", "code", "ext")]
+            return render_template("correspondence_all.html", is_owner=is_owner, sugg_new=sugg_new, sugg_done=sugg_done,
+                                   letter_names=letter_names, cats=catalog(), guide_note=GUIDE_EXPLAINER, guides=guides_by_group(conn), edits=edits, nvers=nvers, sent=sent,
                                    can_marketing=h["has_correspondence_access"](), live=live())
         finally:
             conn.close()
@@ -467,19 +558,28 @@ def register(app, crm, get_db, h):
                  updated_at = EXCLUDED.updated_at""",
             (key, subject, body, signoff, signer, session.get("staff_name")))
 
-    def _can_edit_letter(key):
-        # Session letters: Leadership or Owner. Guide-call letters: the Owner, or anyone given Correspondence.
+    def _can_view_letter(key):
+        # Who may open a letter's wording page. Session letters: Leadership or Owner.
+        # Guide-call letters: the Owner, or anyone given Correspondence, or Leadership.
         if key in et.GUIDE_LETTERS:
             return h["has_correspondence_access"]() or _is_leader()
         return _is_leader()
+
+    def _can_edit_letter(key):
+        # Only the Owner changes the wording of correspondence. Everyone else can read it and suggest changes.
+        return bool(session.get("is_owner"))
 
     @crm.route("/correspondence/letters/<key>/edit", methods=["GET", "POST"])
     def correspondence_letter_edit(key):
         if key not in et.ALL_LETTERS:
             abort(404)
-        if not _can_edit_letter(key):
+        if not _can_view_letter(key):
             flash("That page is restricted.")
             return redirect(url_for(".dashboard"))
+        can_edit = _can_edit_letter(key)
+        if request.method == "POST" and not can_edit:
+            flash("Only the Owner can change a letter. You can use \"Suggest a change\" below.")
+            return redirect(url_for(".correspondence_letter_edit", key=key))
         conn = get_db()
         try:
             h["ensure_letters_table"](conn)
@@ -550,7 +650,7 @@ def register(app, crm, get_db, h):
             blob = orig["subject"] + " ".join(orig["paras"]) + orig.get("signer", "")
             used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
-            return render_template("correspondence_letter_edit.html", key=key, guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
+            return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else
