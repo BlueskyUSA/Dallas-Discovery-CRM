@@ -44,12 +44,56 @@
 </form>
 
 <h2>Sent notes</h2>
-<table>
-  <tr><th>When</th><th>Session</th><th>Subject</th><th>Sent to</th><th>By</th></tr>
+<p>Year:
+  <select id="yearFilter" style="padding:6px; font-size:1rem">
+    <option value="">All years</option>
+    {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+  </select>
+  <span class="muted" id="rowCount" style="margin-left:10px"></span>
+  <span class="muted" style="margin-left:10px">Click a column heading to sort.</span></p>
+<table id="sessTable">
+  <thead><tr>
+    <th data-sort="text" style="cursor:pointer">When</th>
+    <th data-sort="text" style="cursor:pointer">Session</th>
+    <th data-sort="text" style="cursor:pointer">Subject</th>
+    <th data-sort="num" style="cursor:pointer">Sent to</th>
+    <th data-sort="text" style="cursor:pointer">By</th></tr></thead>
+  <tbody>
   {% for n in history %}
-  <tr><td>{{ n.sent_at[:10]|fdate }}</td>
-      <td>{% if n.session_number %}{{ n.code }} #{{ n.session_number }}{% else %}<span class="muted">All</span>{% endif %}</td>
-      <td>{{ n.subject }}</td><td>{{ n.sent_count }}{% if n.skipped %} <span class="badge warn" title="{{ n.skipped }}">some failed</span>{% endif %}</td><td>{{ n.sent_by }}</td></tr>
+  <tr data-year="{{ n.sent_at[:4] }}"><td data-v="{{ n.sent_at }}">{{ n.sent_at[:10]|fdate }}</td>
+      <td data-v="{{ (n.code ~ ' #' ~ n.session_number) if n.session_number else 'All' }}">{% if n.session_number %}{{ n.code }} #{{ n.session_number }}{% else %}<span class="muted">All</span>{% endif %}</td>
+      <td data-v="{{ n.subject }}">{{ n.subject }}</td>
+      <td data-v="{{ n.sent_count }}">{{ n.sent_count }}{% if n.skipped %} <span class="badge warn" title="{{ n.skipped }}">some failed</span>{% endif %}</td>
+      <td data-v="{{ n.sent_by or '' }}">{{ n.sent_by }}</td></tr>
   {% else %}<tr><td colspan="5" class="muted">Nothing sent yet.</td></tr>{% endfor %}
+  </tbody>
 </table>
+<script>
+(function(){
+  var table=document.getElementById('sessTable'), body=table.tBodies[0], sel=document.getElementById('yearFilter'), cnt=document.getElementById('rowCount');
+  function rows(){return Array.prototype.filter.call(body.rows,function(r){return r.hasAttribute('data-year');});}
+  function applyYear(){
+    var y=sel.value, n=0;
+    rows().forEach(function(r){var show=!y||r.getAttribute('data-year')===y; r.style.display=show?'':'none'; if(show)n++;});
+    cnt.textContent=n+(n===1?' note':' notes');
+  }
+  sel.addEventListener('change',applyYear);
+  var dir={};
+  Array.prototype.forEach.call(table.tHead.rows[0].cells,function(th,i){
+    th.addEventListener('click',function(){
+      var num=th.getAttribute('data-sort')==='num', asc=dir[i]!==true; dir={}; dir[i]=asc;
+      var rs=rows();
+      rs.sort(function(a,b){
+        var x=a.cells[i].getAttribute('data-v'), y=b.cells[i].getAttribute('data-v');
+        if(num){x=parseFloat(x)||0;y=parseFloat(y)||0;return asc?x-y:y-x;}
+        return asc?x.localeCompare(y):y.localeCompare(x);
+      });
+      rs.forEach(function(r){body.appendChild(r);});
+      Array.prototype.forEach.call(table.tHead.rows[0].cells,function(h){h.textContent=h.textContent.replace(/ [\u25B2\u25BC]$/,'');});
+      th.textContent+=asc?' \u25B2':' \u25BC';
+    });
+  });
+  applyYear();
+})();
+</script>
 {% endblock %}
