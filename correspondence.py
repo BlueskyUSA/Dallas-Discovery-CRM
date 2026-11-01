@@ -166,7 +166,7 @@ def catalog():
             E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
             V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
          ]),
-        ("trainees", "Trainees",
+        ("trainees", "Trainee Correspondence",
          "Letters to the people registered for a session. Each session's page shows who has received each one.", [
             E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
             E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
