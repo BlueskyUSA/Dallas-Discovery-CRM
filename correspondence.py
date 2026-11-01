@@ -171,7 +171,7 @@ def _preview_map():
 GUIDE_EXPLAINER = (
     "A Guide is a volunteer who becomes one person's personal contact for Discovery!, from their first question all the way into the training room. "
     "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. "
-    "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning.",
+    "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning. Training modules for a Guide are found in the Admin / Guides Menu.",
     "## How it works",
     "When someone fills out an \"I'm curious\" form, and let's say they are interested in The Art of Us, an alert is sent to all 6 of the Guides for that program. "
     "The first Guide to respond to the request is assigned to that contact, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch. "
