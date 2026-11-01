@@ -141,8 +141,12 @@ def register(app, crm, get_db, h):
         try:
             h["ensure_letters_table"](conn)
             sessions = sessions_with_counts(conn)
-            years = sorted({(x["session_date"] or "")[:4] for x in sessions if x["session_date"]}, reverse=True)
-            return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years,
+            counts = {}
+            for r in conn.execute("SELECT cohort_id, SUBSTR(sent_at, 1, 4) AS yr, COUNT(*) AS n FROM session_letters_sent "
+                                  "GROUP BY cohort_id, SUBSTR(sent_at, 1, 4)").fetchall():
+                counts.setdefault(r["cohort_id"], {})[r["yr"]] = r["n"]
+            years = sorted({y for c in counts.values() for y in c}, reverse=True)
+            return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years, counts=counts,
                                    labels=h["program_labels"], groups=GROUPS, team_groups=TEAM_GROUPS, live=live())
         finally:
             conn.close()
