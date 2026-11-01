@@ -4,7 +4,7 @@ the training questionnaire, edited on the staff Edit Contact form, and summarize
 
 _ready = False
 FOOD_LABEL = "Food allergies or dietary needs (for example vegetarian, vegan, gluten-free, a food allergy)"
-LIMITS_LABEL = "Injuries or health conditions that limit everyday activities (for example sitting on the floor, standing for long periods, stairs)"
+LIMITS_LABEL = "Injuries that limit everyday activities (for example sitting on the floor, standing for long periods, stairs)"
 ACCESS_LABEL = "Accessibility or room needs (for example a wheelchair-accessible room, mobility, hearing or vision needs)"
 HELP_TEXT = "Optional. We share this only with the people planning your meals, rooms and activities."
 
