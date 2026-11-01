@@ -19,30 +19,83 @@
 {% endif %}
 
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
+<p style="margin:8px 0">Year letters were sent:
+  <select id="yearFilter" style="padding:6px; font-size:1rem">
+    <option value="">All sessions</option>
+    {% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+    <option value="__none">No letters sent yet</option>
+  </select>
+  <span class="muted" id="rowCount" style="margin-left:10px"></span></p>
 <form onsubmit="var s=this.querySelector('select'); if(!s.value){return false;} window.location=s.value; return false;" style="margin:8px 0 16px">
   <select style="min-width:360px; padding:8px; font-size:1rem">
     <option value="">Choose a program session&hellip;</option>
     {% for s in sessions %}
-    <option value="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">{{ labels.get(s.code, s.program_name) }} &mdash; Session #{{ s.session_number }}, {{ s|date_span }}</option>
+    <option data-counts='{{ counts.get(s.id, {})|tojson }}' value="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">{{ labels.get(s.code, s.program_name) }} &mdash; Session #{{ s.session_number }}, {{ s|date_span }}</option>
     {% endfor %}
   </select>
   <button class="btn" type="submit">Open</button>
 </form>
 
-<table>
-  <tr><th>Program</th><th>Session</th><th>Dates</th><th>{{ 'Trainees' if kind == 'trainees' else 'Team members' }}</th><th>Letters sent</th><th></th></tr>
+<p class="muted" style="margin:0 0 4px">Click a column heading to sort.</p>
+<table id="sessTable">
+  <thead><tr>
+    <th data-sort="text" style="cursor:pointer">Program</th>
+    <th data-sort="num" style="cursor:pointer">Session</th>
+    <th data-sort="text" style="cursor:pointer">Dates</th>
+    <th data-sort="num" style="cursor:pointer">{{ 'Trainees' if kind == 'trainees' else 'Team members' }}</th>
+    <th data-sort="num" style="cursor:pointer">Letters sent</th><th></th></tr></thead>
+  <tbody>
   {% for s in sessions %}
-  <tr>
-    <td>{{ labels.get(s.code, s.program_name) }}</td>
-    <td>#{{ s.session_number }}{% if s.status == 'Cancelled' %} <span class="badge warn">Cancelled</span>{% endif %}</td>
-    <td>{{ s|date_span }}</td>
-    <td>{{ s.n_trainees if kind == 'trainees' else s.n_team }}</td>
-    <td>{{ s.n_sent }}</td>
+  <tr data-counts='{{ counts.get(s.id, {})|tojson }}' data-total="{{ s.n_sent }}">
+    <td data-v="{{ labels.get(s.code, s.program_name) }}">{{ labels.get(s.code, s.program_name) }}</td>
+    <td data-v="{{ s.session_number }}">#{{ s.session_number }}{% if s.status == 'Cancelled' %} <span class="badge warn">Cancelled</span>{% endif %}</td>
+    <td data-v="{{ s.session_date }}">{{ s|date_span }}</td>
+    <td data-v="{{ s.n_trainees if kind == 'trainees' else s.n_team }}">{{ s.n_trainees if kind == 'trainees' else s.n_team }}</td>
+    <td class="sentCell" data-v="{{ s.n_sent }}">{{ s.n_sent }}</td>
     <td><a href="{{ url_for('.session_letters', cohort_id=s.id, only=kind) }}">Open letters</a></td>
   </tr>
   {% else %}
   <tr><td colspan="6" class="muted">No program sessions yet.</td></tr>
   {% endfor %}
+  </tbody>
 </table>
+<script>
+(function(){
+  var table=document.getElementById('sessTable'), body=table.tBodies[0], sel=document.getElementById('yearFilter'), cnt=document.getElementById('rowCount');
+  function rows(){return Array.prototype.filter.call(body.rows,function(r){return r.hasAttribute('data-counts');});}
+  function cnt_(el){try{return JSON.parse(el.getAttribute('data-counts'))||{};}catch(e){return {};}}
+  function shown(el,y){var c=cnt_(el), tot=0; for(var k in c)tot+=c[k];
+    if(!y)return true; if(y==='__none')return tot===0; return (c[y]||0)>0;}
+  function applyYear(){
+    var y=sel.value, n=0;
+    rows().forEach(function(r){
+      var show=shown(r,y); r.style.display=show?'':'none'; if(show)n++;
+      var c=cnt_(r), tot=0; for(var k in c)tot+=c[k];
+      var v=(!y)?tot:(y==='__none'?0:(c[y]||0)), cell=r.querySelector('.sentCell');
+      cell.textContent=v; cell.setAttribute('data-v',v);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('option[data-counts]'),function(o){o.hidden=!shown(o,y);});
+    cnt.textContent=n+(n===1?' session':' sessions');
+  }
+  sel.addEventListener('change',applyYear);
+  var dir={};
+  Array.prototype.forEach.call(table.tHead.rows[0].cells,function(th,i){
+    if(!th.getAttribute('data-sort'))return;
+    th.addEventListener('click',function(){
+      var num=th.getAttribute('data-sort')==='num', asc=dir[i]!==true; dir={}; dir[i]=asc;
+      var rs=rows();
+      rs.sort(function(a,b){
+        var x=a.cells[i].getAttribute('data-v'), y=b.cells[i].getAttribute('data-v');
+        if(num){x=parseFloat(x)||0;y=parseFloat(y)||0;return asc?x-y:y-x;}
+        return asc?x.localeCompare(y):y.localeCompare(x);
+      });
+      rs.forEach(function(r){body.appendChild(r);});
+      Array.prototype.forEach.call(table.tHead.rows[0].cells,function(h){h.textContent=h.textContent.replace(/ [▲▼]$/,'');});
+      th.textContent+=asc?' \u25B2':' \u25BC';
+    });
+  });
+  applyYear();
+})();
+</script>
 {% if kind == 'team' %}<p class="muted">The Support Team has no session letters; write to them with a note above.</p>{% endif %}
 {% endblock %}
