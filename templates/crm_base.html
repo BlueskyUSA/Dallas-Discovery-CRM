@@ -56,7 +56,7 @@
         <div class="navmenu-items">
           {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Leadership (Website)</a>{% endif %}
           {% if show_contacts %}
-          {% if is_lead %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
+          {% if has_guides_access %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
           <a href="{{ url_for('.interest_report') }}">Interest report</a>

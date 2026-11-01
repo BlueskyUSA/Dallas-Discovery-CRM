@@ -319,6 +319,7 @@ FIXED_ACCESS_AREAS = [
     ("accounting", "Accounting"),
     ("marketing", "Marketing"),
     ("correspondence", "Correspondence"),
+    ("guides", "Guides (choose and change who the Guides are)"),
     ("contacts", "Contacts"),
     ("donations", "Donations"),
     ("contracts", "Contracts & business plan"),
@@ -330,8 +331,8 @@ FIXED_ACCESS_AREAS = [
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
-FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence", "budgets")
-UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "budgets"}
+FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence", "guides", "budgets")
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "guides", "budgets"}
 
 
 def _can_see_session_part(part):
@@ -797,7 +798,8 @@ def staff_list():
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
         ownership_areas=[("accounting", "Accounting"), ("donations", "Donations"),
                          ("contracts", "Legal (Contracts & business plan)"), ("marketing", "Marketing"),
-                         ("correspondence", "Correspondence")],
+                         ("correspondence", "Correspondence"),
+                         ("guides", "Guides (choose and change who the Guides are)")],
         general_areas=[a for a in all_areas if a[0] not in FULL_ACCESS_EXCLUDED_AREAS],
         fixed_areas=FIXED_ACCESS_AREAS, program_groups=program_groups,
         door_staff_ids={g["staff_id"] for g in grants if g["area_key"] == ACCOUNTING_LOGIN_GRANT},
@@ -7388,7 +7390,35 @@ def _nav_sessions():
 
 
 app.jinja_env.globals["role_label"] = role_label
-call_flow.register(app, crm, leadership_required, get_db)
+def _has_guides_access():
+    """Choosing and changing the Guides: the Owner always; a Leadership account only when the Owner has
+    ticked Guides for them under Site Access."""
+    if session.get("is_owner"):
+        return True
+    if session.get("staff_role") != "Leadership" or not session.get("staff_id"):
+        return False
+    return _has_area_access("guides")
+
+
+def guides_access(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if _has_guides_access():
+            return view(*args, **kwargs)
+        flash("Choosing and changing Guides is limited to the Owner and the Leadership accounts the Owner has chosen.")
+        return redirect(url_for(".dashboard"))
+    return wrapped
+
+
+@app.context_processor
+def _inject_guides_access():
+    try:
+        return {"has_guides_access": _has_guides_access() if session.get("staff_id") else False}
+    except Exception:
+        return {"has_guides_access": False}
+
+
+call_flow.register(app, crm, leadership_required, get_db, guides_access)
 import testimonials
 testimonials.register(app, crm, leadership_required, get_db, send_email, full_name_sql, PROGRAM_NAME)
 
@@ -7744,6 +7774,7 @@ import correspondence
 correspondence.register(app, crm, get_db, {
     "leadership_required": leadership_required, "correspondence_access": correspondence_access,
     "has_correspondence_access": lambda: _has_area_access("correspondence"),
+    "has_guides_access": lambda: _has_guides_access(),
     "staff_email": _staff_email, "ensure_letters_table": _ensure_session_letters_table,
     "program_labels": PROGRAM_LABELS})
 import dbmap

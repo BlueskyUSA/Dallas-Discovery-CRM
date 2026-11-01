@@ -80,7 +80,7 @@ SECTIONS = [
           "A visitor asks to be contacted by text or phone. The next Guide in turn is alerted, opens a private call page, makes the contact and can send the video link, the questionnaire and the reserve link from there. Unanswered requests move to the next Guide.",
           "call_requests, call_notices; alerts go out by Pushover and email."),
         E("Guides", "Admin > Guides", "Leadership", "Who the Guides are, their order and their hours.", "call volunteers."),
-        E("Call requests queue", "Admin > Call requests", "Contacts area", "Every request, who it went to, whether it was answered, with resend and close. On a claimed request, \"Hand to\u2026\" passes the person to a different Guide, who is emailed their own link.", "call_requests."),
+        E("Call requests queue", "Admin > Call requests", "Contacts area", "Every request, who it went to, whether it was answered, with resend and close. On a claimed request, \"Hand to\u2026\" passes the person to a different Guide, who is emailed their own link. Choosing and changing Guides (this, and the Guides page) is limited to the Owner and the Leadership accounts the Owner has ticked Guides for.", "call_requests."),
         E("Interest report", "Admin > Interest report", "Contacts area", "A report of everyone who used the interest forms and whether anyone reached them.", "interest_log."),
         E("Guide training pages", "/cep-training and /cep-letters", "Guides", "Training and sample letters for Guides.", ""),
         E("Volunteer helper sign-up", "/volunteer-helper/join", "Past volunteers", "A page where a volunteer joins the helper team.", "call volunteers."),
@@ -128,7 +128,7 @@ SECTIONS = [
     ("access", "Team and access", "Who can see and do what.", [
         E("Roles", "Four login doors", "Owner decides", "Volunteer Team, Leadership, Accounting & Legal (view only) and Owner. Leadership sees confidential areas only after the Owner grants them. Only the Owner transfers ownership, changes access areas and assigns Accounting & Legal logins.", "staff, access_grants."),
         E("Site Access", "Site Access (main menu)", "Owner and Leadership", "Add people, reset passwords, link a login to a contact, deactivate and reactivate.", "staff."),
-        E("Authorized users (access areas)", "From Site Access", "Owner", "Hands out the fixed areas (Accounting, Marketing, Correspondence, Contacts, Donations, Contracts, Budgets and others) and each program's four headings.", "access_grants."),
+        E("Authorized users (access areas)", "From Site Access", "Owner", "Hands out the fixed areas (Accounting, Marketing, Correspondence, Guides, Contacts, Donations, Contracts, Budgets and others) and each program's four headings.", "access_grants."),
         E("Leadership (Website)", "Admin > Leadership (Website)", "Owner and Leadership", "Controls who appears on the public team page.", "website_team."),
         E("Chat Room", "Main menu", "People given chat access", "Discussion topics and a live room for the team.", "chat tables."),
         E("Mission and Dashboard", "Main menu", "Everyone logged in", "The mission statement and the home screen with upcoming sessions.", ""),

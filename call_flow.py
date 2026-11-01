@@ -927,7 +927,8 @@ def _milestone_mail(vol, subject, hello, body_html):
 
 
 # ---------------------------------------------------------------- routes
-def register(app, crm, leadership_required, get_db):
+def register(app, crm, leadership_required, get_db, guides_required=None):
+    guides_required = guides_required or leadership_required
     @app.context_processor
     def _inject():
         now = time.time()
@@ -1423,7 +1424,7 @@ def register(app, crm, leadership_required, get_db):
         return redirect(url_for(".call_requests_queue"))
 
     @crm.route("/call-requests/<int:request_id>/reassign", methods=["POST"])
-    @leadership_required
+    @guides_required
     def call_request_reassign(request_id):
         """Hand a claimed request to a different Guide. The new Guide gets their own link by email."""
         ensure_tables(get_db)
@@ -1538,7 +1539,7 @@ def register(app, crm, leadership_required, get_db):
                                day_rows=list(by_day.items())[-14:][::-1], days=days)
 
     @crm.route("/call-volunteers/people")
-    @leadership_required
+    @guides_required
     def call_volunteer_people():
         """Type-ahead / browse list for choosing a volunteer: team members first, then anyone in Contacts."""
         from flask import jsonify
@@ -1589,7 +1590,7 @@ def register(app, crm, leadership_required, get_db):
         return jsonify(out[:60])
 
     @crm.route("/call-volunteers", methods=["GET", "POST"])
-    @leadership_required
+    @guides_required
     def call_volunteers_page():
         ensure_tables(get_db)
         conn = get_db()

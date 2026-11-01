@@ -26,18 +26,20 @@ details.catblock .catbody{padding:0 16px 14px}
 <summary>{{ ctitle }}<span class="cnt">{{ vis|length }} letter{{ '' if vis|length == 1 else 's' }}</span></summary>
 <div class="catbody">
 <p class="muted" style="margin-top:0">{{ cintro }}</p>
-{% if cid == 'interested' %}
-<details style="margin:0 0 12px; background:#fff8e1; border:1px solid #e3d29a; border-radius:6px; padding:8px 12px">
-  <summary style="cursor:pointer; font-weight:600">What is a Guide?</summary>
-  {% include "_guide_explainer.html" %}
-</details>
-{% endif %}
 <table>
   <tr><th>Letter</th><th>When it is sent</th><th>Who gets it</th><th>Wording</th></tr>
   {% for e in entries %}
   {% if not (e.owner and not can_marketing) %}
   <tr>
-    <td style="font-weight:600">{{ e.name }}</td>
+    <td style="font-weight:600">{{ e.name }}
+      {% if e.key == 'guide_curious' %}
+      <details style="margin-top:6px; font-weight:400">
+        <summary style="cursor:pointer; color:#1f5fbf; font-size:.9rem">What is a Guide?</summary>
+        <div style="background:#fff8e1; border:1px solid #e3d29a; border-radius:6px; padding:4px 12px 10px; margin-top:6px; min-width:380px; max-width:560px">
+          {% include "_guide_explainer.html" %}
+        </div>
+      </details>
+      {% endif %}</td>
     <td>{{ e.when }}</td>
     <td>{{ e.who }}</td>
     <td style="white-space:nowrap">
