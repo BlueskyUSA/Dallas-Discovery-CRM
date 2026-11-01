@@ -141,7 +141,8 @@ def register(app, crm, get_db, h):
         try:
             h["ensure_letters_table"](conn)
             sessions = sessions_with_counts(conn)
-            return render_template("correspondence_sessions.html", kind=kind, sessions=sessions,
+            years = sorted({(x["session_date"] or "")[:4] for x in sessions if x["session_date"]}, reverse=True)
+            return render_template("correspondence_sessions.html", kind=kind, sessions=sessions, years=years,
                                    labels=h["program_labels"], groups=GROUPS, team_groups=TEAM_GROUPS, live=live())
         finally:
             conn.close()
@@ -222,6 +223,7 @@ def register(app, crm, get_db, h):
             return render_template("correspondence_note.html", group=group, title=title, who=who, by_session=by_session,
                                    people=people, cohort_id=cohort_id, sessions=sessions, labels=h["program_labels"],
                                    subject=subject, body=body, history=history, live=live(),
+                                   years=sorted({(x["sent_at"] or "")[:4] for x in history if x["sent_at"]}, reverse=True),
                                    back=("correspondence_team" if group in TEAM_GROUPS else "correspondence_home"))
         finally:
             conn.close()
