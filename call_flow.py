@@ -263,32 +263,8 @@ def ensure_tables(get_db):
 
 # ---------------------------------------------------------------- the letters people receive (one place, so the Guides can read exactly what is sent)
 def letter_curious(first, label, vol_name, vphone, pw):
-    vfirst = vol_name.split()[0]
-    subject = f"{vfirst} from Discovery! will {pw} you soon"
-    html = (f"<p>Hi {first},</p>"
-            f"<p>Thank you for your interest in {label}. We&rsquo;re so glad you&rsquo;re curious!</p>"
-            f"<p><strong>{vol_name}</strong>, an experienced Discovery! volunteer, will {pw} you from <strong>{vphone}</strong>, "
-            f"usually within a few hours. We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear "
-            f"from {vfirst} the next morning. For your security, here is their name and number, so you will know it is us.</p>"
-            f"<p>There is no pressure at all. It&rsquo;s just a conversation with someone who has been through this training and is "
-            f"excited to share how it changed their life. Ask anything you like.</p>"
-            f"<p>If it isn&rsquo;t a good time, just reply to this email and we&rsquo;ll find a better one.</p>"
-            f"<p>If you decide you&rsquo;re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
-            f"already filled in, and you only choose a date. Payment comes later. After you register, you&rsquo;ll receive a separate "
-            f"email with a private link to a questionnaire. You can close it and pick up where you left off at any time.</p>"
-            f"<p>We&rsquo;re looking forward to meeting you!</p><p>Warmly,<br>The Discovery! Team</p>")
-    text = (f"Hi {first},\n\nThank you for your interest in {label}. We're so glad you're curious!\n\n"
-            f"{vol_name}, an experienced Discovery! volunteer, will {pw} you from {vphone}, usually within a few hours. "
-            f"We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
-            f"For your security, here is their name and number, so you will know it is us.\n\n"
-            f"There is no pressure at all. It's just a conversation with someone who has been through this training and is excited to "
-            f"share how it changed their life. Ask anything you like.\n\n"
-            f"If it isn't a good time, just reply to this email and we'll find a better one.\n\n"
-            f"If you decide you're ready, {vfirst} can send you a personal link to reserve your spot. Your information is already filled "
-            f"in, and you only choose a date. Payment comes later. After you register, you'll receive a separate email with a private link "
-            f"to a questionnaire. You can close it and pick up where you left off at any time.\n\n"
-            f"We're looking forward to meeting you!\n\nWarmly,\nThe Discovery! Team")
-    return subject, html, text
+    from email_templates import guide_letter_content
+    return guide_letter_content("guide_curious", first, label, vol_name, vphone, pw=pw)
 
 
 def letter_helper_welcome(first, page_link, profile_link=None, returning=False):
@@ -314,32 +290,13 @@ def letter_helper_welcome(first, page_link, profile_link=None, returning=False):
 
 
 def letter_reserve_link(first, label, link, vol_name, vphone):
-    vfirst = vol_name.split()[0]
-    subject = f"Your personal link to reserve your spot \u2013 {label}"
-    html = (f"<p>Hi {first},</p><p>It was good to connect. As promised, here is your personal link to reserve your spot in "
-            f"<strong>{label}</strong>:</p><p><a href=\"{link}\">{link}</a></p>"
-            f"<p>It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.</p>"
-            f"<p>If you have any questions, reply to this email or call {vfirst} at {vphone}.</p>"
-            f"<p>Warmly,<br>{vol_name} and the Discovery! Team</p>")
-    text = (f"Hi {first},\n\nIt was good to connect. Here is your personal link to reserve your spot in {label}:\n{link}\n\n"
-            f"It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.\n\n"
-            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery! Team")
-    return subject, html, text
+    from email_templates import guide_letter_content
+    return guide_letter_content("guide_register", first, label, vol_name, vphone, link=link)
 
 
 def letter_questionnaire(first, label, link, vol_name, vphone):
-    vfirst = vol_name.split()[0]
-    subject = f"Your personal questionnaire link \u2013 {label}"
-    html = (f"<p>Hi {first},</p><p>Here is your personal link to the questionnaire for <strong>{label}</strong>. "
-            f"Please take your time and answer it thoughtfully.</p><p><a href=\"{link}\">{link}</a></p>"
-            f"<p>You can close it and pick up right where you left off by opening the same link again. "
-            f"This link is just for you, so please don&rsquo;t share it.</p>"
-            f"<p>Questions? Reply to this email or call {vfirst} at {vphone}.</p>"
-            f"<p>Warmly,<br>{vol_name} and the Discovery! Team</p>")
-    text = (f"Hi {first},\n\nHere is your personal link to the questionnaire for {label}. Please take your time and answer it thoughtfully.\n{link}\n\n"
-            f"You can close it and pick up right where you left off by opening the same link again. This link is just for you, so please don't share it.\n\n"
-            f"Questions? Reply to this email or call {vfirst} at {vphone}.\n\nWarmly,\n{vol_name} and the Discovery! Team")
-    return subject, html, text
+    from email_templates import guide_letter_content
+    return guide_letter_content("guide_questionnaire", first, label, vol_name, vphone, link=link)
 
 
 CLIENT_LETTERS = [

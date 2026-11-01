@@ -715,6 +715,68 @@ SESSION_TRAINEE_LETTERS = ["trainee_confirm", "seminar_registration", "payment_r
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
+# The letters the Guide-call flow sends. Same shape as the session letters, so they can be edited the same way.
+# "greeting" is the word before the name; {vol_name} etc. fill in from the Guide who took the request.
+GUIDE_LETTERS = {
+    "guide_curious": {
+        "title": "Reply to \"I'm curious\"",
+        "audience": "People who ask to be called",
+        "greeting": "Hi",
+        "subject": "{vfirst} from Discovery! will {pw} you soon",
+        "paras": [
+            "Thank you for your interest in {label}. We\u2019re so glad you\u2019re curious!",
+            "**{vol_name}**, an experienced Discovery! volunteer, will {pw} you from **{vphone}**, usually within a few hours. "
+            "We reach out between 8 am and 8 pm Central, so if you asked in the evening, expect to hear from {vfirst} the next morning. "
+            "For your security, here is their name and number, so you will know it is us.",
+            "There is no pressure at all. It\u2019s just a conversation with someone who has been through this training and is "
+            "excited to share how it changed their life. Ask anything you like.",
+            "If it isn\u2019t a good time, just reply to this email and we\u2019ll find a better one.",
+            "If you decide you\u2019re ready, {vfirst} can send you a personal link to reserve your spot. Your information is "
+            "already filled in, and you only choose a date. Payment comes later. After you register, you\u2019ll receive a separate "
+            "email with a private link to a questionnaire. You can close it and pick up where you left off at any time.",
+            "We\u2019re looking forward to meeting you!",
+        ],
+        "signoff": "Warmly,",
+        "signer": "The Discovery! Team",
+    },
+    "guide_register": {
+        "title": "Registration link",
+        "audience": "People a Guide has talked with",
+        "greeting": "Hi",
+        "subject": "Your personal link to reserve your spot \u2013 {label}",
+        "paras": [
+            "It was good to connect. As promised, here is your personal link to reserve your spot in **{label}**:",
+            "{link}",
+            "It already has your information filled in. Just choose your date and confirm. Payment comes later; we will send you the details.",
+            "If you have any questions, reply to this email or call {vfirst} at {vphone}.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "{vol_name} and the Discovery! Team",
+    },
+    "guide_questionnaire": {
+        "title": "Questionnaire link",
+        "audience": "People who have reserved",
+        "greeting": "Hi",
+        "subject": "Your personal questionnaire link \u2013 {label}",
+        "paras": [
+            "Here is your personal link to the questionnaire for **{label}**. Please take your time and answer it thoughtfully.",
+            "{link}",
+            "You can close it and pick up right where you left off by opening the same link again. "
+            "This link is just for you, so please don\u2019t share it.",
+            "Questions? Reply to this email or call {vfirst} at {vphone}.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "{vol_name} and the Discovery! Team",
+    },
+}
+GUIDE_FIELDS = ("label", "vol_name", "vfirst", "vphone", "link", "pw", "first")
+ALL_LETTERS = {**SESSION_LETTERS, **GUIDE_LETTERS}
+
+
+def allowed_fields(key):
+    return GUIDE_FIELDS if key in GUIDE_LETTERS else LETTER_FIELDS
+
+
 # ---- editable wording: the app registers a loader that returns the saved edit for a letter (or None) ----
 _OVERRIDE = {"loader": None}
 LETTER_FIELDS = ("first", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
@@ -736,7 +798,7 @@ def saved_edit(key):
 
 
 def spec_with_edit(key, edit):
-    spec = dict(SESSION_LETTERS[key])
+    spec = dict(ALL_LETTERS[key])
     if edit:
         spec["subject"] = edit["subject"]
         spec["paras"] = [x.strip() for x in (edit["body"] or "").replace("\r\n", "\n").split("\n\n") if x.strip()]
@@ -748,7 +810,7 @@ def spec_with_edit(key, edit):
 
 
 def original_body(key):
-    return "\n\n".join(SESSION_LETTERS[key]["paras"])
+    return "\n\n".join(ALL_LETTERS[key]["paras"])
 
 
 def fill_for(first_name, training, dates, location=None, role=None, duties=None, link=None, partner=None, amount=None, friday_end=None):
@@ -773,18 +835,40 @@ def fill_for(first_name, training, dates, location=None, role=None, duties=None,
 
 def render_spec(spec, fill, link=None):
     import html as _html
+    import re as _re
     greeting = fill["first"]
+    word = spec.get("greeting", "Dear")
     subject = spec["subject"].format(**fill)
+    signoff = spec["signoff"].format(**fill)
+    signer = spec.get("signer", "Kent Hafemann").format(**fill)
     paras = [p for p in (p.format(**fill).strip() for p in spec["paras"]) if p]
+
+    def h(p):
+        return _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", _html.escape(p))
     html_content = (
-        f"<p>Dear {_html.escape(greeting)},</p>"
+        f"<p>{_html.escape(word)} {_html.escape(greeting)},</p>"
         + "".join(
             (f'<p><a href="{_html.escape(link)}">{_html.escape(link)}</a></p>' if (link and p == link)
-             else f"<p>{_html.escape(p)}</p>") for p in paras)
-        + f"<p>{_html.escape(spec['signoff'])}<br>{_html.escape(spec.get('signer', 'Kent Hafemann'))}</p>"
+             else f"<p>{h(p)}</p>") for p in paras)
+        + f"<p>{_html.escape(signoff)}<br>{_html.escape(signer)}</p>"
     )
-    text_content = f"Dear {greeting},\n\n" + "\n\n".join(paras) + f"\n\n{spec['signoff']}\n{spec.get('signer', 'Kent Hafemann')}"
+    text_content = (f"{word} {greeting},\n\n" + "\n\n".join(p.replace("**", "") for p in paras)
+                    + f"\n\n{signoff}\n{signer}")
     return subject, html_content, text_content
+
+
+def guide_letter_content(key, first, label, vol_name, vphone, pw=None, link=None):
+    """(subject, html, text) for a Guide-call letter, using any saved edit and falling back to the original."""
+    vfirst = (vol_name or "").split()[0] if (vol_name or "").strip() else ""
+    fill = {"first": first, "label": label, "vol_name": vol_name, "vfirst": vfirst, "vphone": vphone,
+            "link": link or "", "pw": pw or "call or text"}
+    edit = saved_edit(key)
+    if edit:
+        try:
+            return render_spec(spec_with_edit(key, edit), fill, link)
+        except Exception:
+            pass
+    return render_spec(GUIDE_LETTERS[key], fill, link)
 
 
 def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,

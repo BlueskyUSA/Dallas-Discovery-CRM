@@ -120,6 +120,95 @@ def sessions_with_counts(conn):
            ORDER BY co.session_date DESC""").fetchall()
 
 
+# ---------------------------------------------------------------- the catalog of every letter the program sends
+# kind: "edit" (wording can be edited here), "view" (shown read-only; wording is in the program code), "code" (no preview),
+# "link" (managed on another page). Each entry: name, when it is sent, who gets it.
+def _prev(fn):
+    return fn
+
+
+def _preview_map():
+    import email_templates as T
+    import call_flow as C
+    P = "[First name]"
+    return {
+        "venue": lambda: (lambda r: (r[0], r[1]))(C.letter_venue(P, "[partner's name]", "[Guide name]", "[Guide phone]")),
+        "welcome": lambda: (T.INTERESTED_PARTY_WELCOME_SUBJECT, T.interested_party_welcome_content(P)[0]),
+        "longform_followup": lambda: (T.LONGFORM_FOLLOWUP_SUBJECT, T.longform_followup_content(P, "#")[0]),
+        "longform_thankyou": lambda: (T.LONGFORM_THANKYOU_SUBJECT, T.longform_thankyou_content(P, "#", "#")[0]),
+        "connect": lambda: (T.CONNECT_REQUEST_SUBJECT, T.connect_request_confirmation_content(P, "call")[0]),
+        "plan": lambda: (T.PRELIMINARY_PLAN_SUBJECT, T.preliminary_plan_content(P)[0]),
+        "excitement": lambda: (T.EXCITEMENT_BLAST_SUBJECT, T.excitement_blast_content(P)[0]),
+        "contract": lambda: (T.CONTRACT_REQUEST_SUBJECT, T.contract_request_content(P, "#")[0]),
+        "completion": lambda: (lambda r: (r[0], r[1]))(T.completion_letter_content(P, "#", "D4", "The Art of Us")),
+        "helper_welcome": lambda: (lambda r: (r[0], r[1]))(C.letter_helper_welcome(P, "#", "#")),
+    }
+
+
+def catalog():
+    import email_templates as T
+    sl = T.SESSION_LETTERS
+    E = lambda key, name, when, who: dict(kind="edit", key=key, name=name, when=when, who=who)
+    V = lambda slug, name, when, who: dict(kind="view", slug=slug, name=name, when=when, who=who)
+    C = lambda name, when, who, note="": dict(kind="code", name=name, when=when, who=who, note=note)
+    return [
+        ("interested", "Interested people (before they register)",
+         "What someone receives after they ask a question, ask to be called, or fill in a form on the website.", [
+            E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called"),
+            E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
+            E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
+            V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
+            V("welcome", "Welcome", "Automatically, when someone fills in the Discovery! form as an interested party.", "Interested parties"),
+            V("longform_followup", "Long-form follow-up", "Automatically, when someone fills in the Discovery! form and checks Volunteer.", "Past volunteers"),
+            V("longform_thankyou", "Long-form thank-you", "Automatically, when someone finishes their long form.", "People who completed the long form"),
+            V("connect", "Connect-request confirmation", "Automatically, when someone asks us to reach out from their private link.", "People who asked to connect"),
+            V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
+            V("excitement", "Excitement email", "By hand, from a contact's record.", "Contacts"),
+            C("Video call link", "By hand, from a contact's record.", "Contacts"),
+         ]),
+        ("trainees", "Trainees",
+         "Letters to the people registered for a session. Each session's page shows who has received each one.", [
+            E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
+            E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
+            E("payment_reminder", sl["payment_reminder"]["title"], "By hand; also automatically 3 days after a Guide's reservation and within 2 weeks of the session.", "Trainees who have not paid"),
+            E("payment_received", sl["payment_received"]["title"], "By hand from the session's letters page.", "Trainees who have paid"),
+            E("questionnaire_reminder", sl["questionnaire_reminder"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire"),
+            E("what_to_bring", sl["what_to_bring"]["title"], "By hand from the session's letters page, as the training gets closer.", "Trainees"),
+            V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
+            V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
+         ]),
+        ("team", "Team (Facilitators, TA's, Support Team, Leadership)",
+         "Letters to the people who run a session.", [
+            E("facilitator_confirm", sl["facilitator_confirm"]["title"], "By hand from the session's letters page.", "Facilitators"),
+            E("ta_confirm", sl["ta_confirm"]["title"], "By hand from the session's letters page.", "TA's"),
+            E("backup_confirm", sl["backup_confirm"]["title"], "By hand from the session's letters page.", "Back-up TA's"),
+            dict(kind="link", name="Team notes", when="Written by you each time, to Facilitators, TA's, Support Team or Leadership.",
+                 who="The group you choose", url="correspondence_team", label="Team Correspondence"),
+            C("Welcome to a new login", "Automatically, when a login is created or a password is reset.", "New team members"),
+         ]),
+        ("guides", "Guides (volunteers)", "What the people who make the calls receive.", [
+            V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers"),
+            C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program"),
+            C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you"),
+            C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides"),
+         ]),
+        ("testimonials", "Testimonials", "Inviting and checking what people say about the program.", [
+            C("Share your Discovery! experience", "By hand, from the Testimonials page.", "Past trainees"),
+            C("Please check your story before we share it", "By hand, once a story is ready.", "People who sent a testimonial"),
+            C("A new testimonial is ready to review", "Automatically, when a testimonial comes in.", "Leadership"),
+         ]),
+        ("marketing", "Marketing & Email Blasts", "Announcements to your wider community, with the test, SEND and unsubscribe safeguards.", [
+            dict(kind="link", name="Marketing & Email Blasts", when="By you, when you choose.", who="The audience you choose",
+                 url="email_blasts", label="Open Marketing & Email Blasts", owner=True),
+         ]),
+        ("internal", "Internal (to you and Accounting & Legal)", "Notes that stay inside the organization.", [
+            C("Budget emails and change requests", "By hand, from a budget page.", "The people named on that budget"),
+            dict(kind="link", name="Accounting & Legal notes", when="Written by you each time.", who="Accounting & Legal logins",
+                 url="correspondence_note", label="Write a note", owner=True, group="accounting"),
+         ]),
+    ]
+
+
 def register(app, crm, get_db, h):
     """h: dict of helpers from app.py: leadership_required, correspondence_access, area_required, staff_email,
     ensure_letters_table, program_label (code -> display name)."""
@@ -131,6 +220,34 @@ def register(app, crm, get_db, h):
 
     def _is_leader():
         return bool(session.get("is_owner")) or session.get("staff_role") == "Leadership"
+
+    @crm.route("/correspondence/all-letters")
+    @leadership_required
+    def correspondence_all():
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            h["ensure_letters_table"](conn)
+            edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
+            nvers = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM letter_versions GROUP BY letter_key").fetchall()}
+            sent = {r["letter_key"]: r["n"] for r in conn.execute("SELECT letter_key, COUNT(*) AS n FROM session_letters_sent GROUP BY letter_key").fetchall()}
+            return render_template("correspondence_all.html", cats=catalog(), edits=edits, nvers=nvers, sent=sent,
+                                   can_marketing=h["has_correspondence_access"](), live=live())
+        finally:
+            conn.close()
+
+    @crm.route("/correspondence/letters/view/<slug>")
+    @leadership_required
+    def correspondence_letter_view(slug):
+        fn = _preview_map().get(slug)
+        if not fn:
+            abort(404)
+        name = next((e["name"] for _i, _t, _d, es in catalog() for e in es if e.get("slug") == slug), slug)
+        try:
+            subject, html = fn()
+        except Exception:
+            subject, html = None, None
+        return render_template("correspondence_letter_view.html", name=name, subject=subject, letter_html=html)
 
     @crm.route("/correspondence")
     @leadership_required
@@ -249,73 +366,126 @@ def register(app, crm, get_db, h):
             conn.close()
 
 
-    # ---------------------------------------------------------------- editing the wording of a session letter
-    SAMPLE = dict(first_name="Alex", training="The Art of Us", dates="Feb. 12, 2027 to Feb. 14, 2027",
-                  location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
-                  partner="Jordan", amount="$1,399 per couple")
+    # ---------------------------------------------------------------- editing the wording of a letter (with history)
+    SESSION_SAMPLE = dict(first_name="Alex", training="The Art of Us", dates="Feb. 12, 2027 to Feb. 14, 2027",
+                          location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
+                          partner="Jordan", amount="$1,399 per couple")
+    GUIDE_SAMPLE = dict(first="Alex", label="Relationship Training", vol_name="Pat Smith", vfirst="Pat", vphone="469-555-0100",
+                        link="https://example.org/your-link", pw="call or text")
+    FIELD_HELP = {
+        "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
+        "link": "the person's private link (must stay)", "role": "Lead Facilitator or Support Facilitator",
+        "duties": "the person's assignment", "amount_sentence": "the fee sentence", "partner_sentence": "the partner sentence",
+        "friday_end": "the Friday end time for that program (blank if none is set)",
+        "label": "the name of the training", "vol_name": "the Guide's full name", "vfirst": "the Guide's first name",
+        "vphone": "the Guide's phone number", "pw": "\"call\", \"text\" or \"call or text\"",
+    }
 
-    def _problem(key, subject, body):
+    def _problem(key, subject, body, signoff="", signer=""):
         """A plain-English reason the wording cannot be saved, or None."""
         if not subject.strip() or not body.strip():
             return "Please write a subject and a message."
         names = set()
         try:
-            for text in [subject] + [x for x in body.replace("\r\n", "\n").split("\n\n")]:
+            for text in [subject, signoff or "", signer or ""] + [x for x in body.replace("\r\n", "\n").split("\n\n")]:
                 for _lit, name, _spec, _conv in string.Formatter().parse(text):
                     if name:
                         names.add(name)
         except ValueError:
             return "A curly bracket { or } is not closed. Words in curly brackets, like {training}, must be spelled exactly as listed."
-        bad = sorted(names - set(et.LETTER_FIELDS))
+        bad = sorted(names - set(et.allowed_fields(key)))
         if bad:
             return "These are not recognized: " + ", ".join("{" + b + "}" for b in bad) + ". Use only the words listed on the right."
-        needs_link = "{link}" in et.original_body(key)
-        if needs_link and "link" not in names:
+        if "{link}" in et.original_body(key) and "link" not in names:
             return "This letter must keep {link}, the person's private link."
         return None
 
+    def _record_version(conn, key, subject, body, signoff, signer, note):
+        n = conn.execute("SELECT COALESCE(MAX(version), 0) + 1 AS n FROM letter_versions WHERE letter_key = ?", (key,)).fetchone()["n"]
+        conn.execute("INSERT INTO letter_versions (letter_key, version, subject, body, signoff, signer, changed_by, note, changed_at) "
+                     "VALUES (?,?,?,?,?,?,?,?, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))",
+                     (key, n, subject, body, signoff, signer, session.get("staff_name"), note))
+        return n
+
+    def _store_current(conn, key, subject, body, signoff, signer):
+        conn.execute(
+            """INSERT INTO session_letter_text (letter_key, subject, body, signoff, signer, updated_by, updated_at)
+               VALUES (?,?,?,?,?,?, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+               ON CONFLICT (letter_key) DO UPDATE SET subject = EXCLUDED.subject, body = EXCLUDED.body,
+                 signoff = EXCLUDED.signoff, signer = EXCLUDED.signer, updated_by = EXCLUDED.updated_by,
+                 updated_at = EXCLUDED.updated_at""",
+            (key, subject, body, signoff, signer, session.get("staff_name")))
+
+    def _can_edit_letter(key):
+        # Session letters: Leadership or Owner. Guide-call letters: the Owner, or anyone given Correspondence.
+        if key in et.GUIDE_LETTERS:
+            return h["has_correspondence_access"]() or _is_leader()
+        return _is_leader()
+
     @crm.route("/correspondence/letters/<key>/edit", methods=["GET", "POST"])
-    @leadership_required
     def correspondence_letter_edit(key):
-        if key not in et.SESSION_LETTERS:
+        if key not in et.ALL_LETTERS:
             abort(404)
+        if not _can_edit_letter(key):
+            flash("That page is restricted.")
+            return redirect(url_for(".dashboard"))
         conn = get_db()
         try:
             h["ensure_letters_table"](conn)
-            orig = et.SESSION_LETTERS[key]
+            orig = et.ALL_LETTERS[key]
             saved = conn.execute("SELECT * FROM session_letter_text WHERE letter_key = ?", (key,)).fetchone()
-            cur = dict(subject=saved["subject"], body=saved["body"], signoff=saved["signoff"], signer=saved["signer"]) if saved else \
-                dict(subject=orig["subject"], body=et.original_body(key), signoff=orig["signoff"], signer=orig.get("signer", "Kent Hafemann"))
-            form = dict(cur)
-            error = None
+            orig_vals = dict(subject=orig["subject"], body=et.original_body(key), signoff=orig["signoff"], signer=orig.get("signer", "Kent Hafemann"))
+            cur = dict(subject=saved["subject"], body=saved["body"], signoff=saved["signoff"], signer=saved["signer"]) if saved else dict(orig_vals)
+            form, error, note = dict(cur), None, ""
+
+            def seed_original():
+                """First time a letter is saved: keep the original wording as version 1 so it is never lost."""
+                if not conn.execute("SELECT 1 FROM letter_versions WHERE letter_key = ?", (key,)).fetchone():
+                    _record_version(conn, key, orig_vals["subject"], orig_vals["body"], orig_vals["signoff"], orig_vals["signer"], "Original wording")
+
             if request.method == "POST":
                 action = request.form.get("action")
+                note = (request.form.get("note") or "").strip()[:200]
                 form = dict(subject=(request.form.get("subject") or "").strip(), body=(request.form.get("body") or "").strip(),
                             signoff=(request.form.get("signoff") or "").strip(), signer=(request.form.get("signer") or "").strip())
                 if action == "reset":
+                    seed_original()
+                    _record_version(conn, key, orig_vals["subject"], orig_vals["body"], orig_vals["signoff"], orig_vals["signer"], "Returned to the original wording")
                     conn.execute("DELETE FROM session_letter_text WHERE letter_key = ?", (key,))
                     conn.commit()
                     flash("Back to the original wording.")
                     return redirect(url_for(".correspondence_letter_edit", key=key))
-                error = _problem(key, form["subject"], form["body"])
+                if action == "restore":
+                    v = conn.execute("SELECT * FROM letter_versions WHERE id = ? AND letter_key = ?",
+                                     (request.form.get("version_id", type=int), key)).fetchone()
+                    if v:
+                        seed_original()
+                        _store_current(conn, key, v["subject"], v["body"], v["signoff"], v["signer"])
+                        _record_version(conn, key, v["subject"], v["body"], v["signoff"], v["signer"], f"Restored version {v['version']}")
+                        conn.commit()
+                        flash(f"Restored version {v['version']}. Letters sent from now on use it.")
+                    return redirect(url_for(".correspondence_letter_edit", key=key))
+                error = _problem(key, form["subject"], form["body"], form["signoff"], form["signer"])
                 if not error and action == "save":
-                    conn.execute(
-                        """INSERT INTO session_letter_text (letter_key, subject, body, signoff, signer, updated_by, updated_at)
-                           VALUES (?,?,?,?,?,?, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
-                           ON CONFLICT (letter_key) DO UPDATE SET subject = EXCLUDED.subject, body = EXCLUDED.body,
-                             signoff = EXCLUDED.signoff, signer = EXCLUDED.signer, updated_by = EXCLUDED.updated_by,
-                             updated_at = EXCLUDED.updated_at""",
-                        (key, form["subject"], form["body"], form["signoff"], form["signer"], session.get("staff_name")))
+                    if form == cur and not saved:
+                        flash("Nothing was changed.")
+                        return redirect(url_for(".correspondence_letter_edit", key=key))
+                    seed_original()
+                    _store_current(conn, key, form["subject"], form["body"], form["signoff"], form["signer"])
+                    _record_version(conn, key, form["subject"], form["body"], form["signoff"], form["signer"], note or None)
                     conn.commit()
                     flash("Saved. Letters sent from now on use this wording. Letters already sent keep the wording they went out with.")
                     return redirect(url_for(".correspondence_letter_edit", key=key))
             subject = html = None
             if not error:
                 try:
-                    fill = et.fill_for(SAMPLE["first_name"], SAMPLE["training"], SAMPLE["dates"], SAMPLE["location"],
-                                       SAMPLE["role"], SAMPLE["duties"], SAMPLE["link"], SAMPLE["partner"], SAMPLE["amount"],
-                                       "The Friday session ends by 11:00 pm at the latest.")
-                    subject, html, text = et.render_spec(et.spec_with_edit(key, form), fill, SAMPLE["link"])
+                    if key in et.GUIDE_LETTERS:
+                        fill = dict(GUIDE_SAMPLE)
+                    else:
+                        S = SESSION_SAMPLE
+                        fill = et.fill_for(S["first_name"], S["training"], S["dates"], S["location"], S["role"], S["duties"],
+                                           S["link"], S["partner"], S["amount"], "The Friday session ends by 11:00 pm at the latest.")
+                    subject, html, text = et.render_spec(et.spec_with_edit(key, form), fill, GUIDE_SAMPLE["link"] if key in et.GUIDE_LETTERS else SESSION_SAMPLE["link"])
                     if request.method == "POST" and request.form.get("action") == "test":
                         me = h["staff_email"]()
                         try:
@@ -325,9 +495,14 @@ def register(app, crm, get_db, h):
                             flash(f"Couldn't send the test copy: {e}")
                 except Exception:
                     error = "This wording can't be used. Check the curly-bracket words."
-            used = [f for f in et.LETTER_FIELDS if "{" + f + "}" in (orig["subject"] + " ".join(orig["paras"])) and f != "first"]
+            fields = et.allowed_fields(key)
+            blob = orig["subject"] + " ".join(orig["paras"]) + orig.get("signer", "")
+            used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
+            versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
             return render_template("correspondence_letter_edit.html", key=key, orig=orig, form=form, error=error,
-                                   saved=saved, preview_subject=subject, preview_html=html, used=used,
-                                   back=("correspondence_trainees" if key in et.SESSION_TRAINEE_LETTERS else "correspondence_team"))
+                                   saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
+                                   versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
+                                   back=("correspondence_all" if key in et.GUIDE_LETTERS else
+                                         ("correspondence_trainees" if key in et.SESSION_TRAINEE_LETTERS else "correspondence_team")))
         finally:
             conn.close()
