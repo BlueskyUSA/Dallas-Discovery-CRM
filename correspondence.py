@@ -682,7 +682,7 @@ def register(app, crm, get_db, h):
             used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
             return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, is_owner=bool(session.get("is_owner")),
-                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
+                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key != "sponsor_welcome" else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else
