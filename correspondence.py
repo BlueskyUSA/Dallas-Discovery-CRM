@@ -225,9 +225,9 @@ def delivery_of(when):
 def catalog():
     import email_templates as T
     sl = T.SESSION_LETTERS
-    E = lambda key, name, when, who: dict(kind="edit", key=key, name=name, when=when, who=who)
-    V = lambda slug, name, when, who: dict(kind="view", slug=slug, name=name, when=when, who=who)
-    C = lambda name, when, who, note="": dict(kind="code", name=name, when=when, who=who, note=note)
+    E = lambda key, name, when, who, sub="": dict(kind="edit", key=key, name=name, when=when, who=who, sub=sub)
+    V = lambda slug, name, when, who, sub="": dict(kind="view", slug=slug, name=name, when=when, who=who, sub=sub)
+    C = lambda name, when, who, note="", sub="": dict(kind="code", name=name, when=when, who=who, note=note, sub=sub)
     X = lambda name, when, who, url: dict(kind="ext", name=name, when=when, who=who, url=url)
     cats = [
         ("interested", "Interested people (before they register)",
@@ -236,16 +236,9 @@ def catalog():
             V("longform_followup", "Long-form follow-up", "Automatically, when someone fills in the Discovery! form and checks Volunteer.", "Past volunteers"),
             V("longform_thankyou", "Long-form thank-you", "Automatically, when someone finishes their long form.", "People who completed the long form"),
             V("connect", "Connect-request confirmation", "Automatically, when someone asks us to reach out from their private link.", "People who asked to connect"),
-            E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called"),
             V("excitement", "Excitement email", "By hand, from a contact's record.", "Contacts"),
             V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
             C("Video call link", "By hand, from a contact's record.", "Contacts"),
-            E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
-            E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
-            E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone"),
-            E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved"),
-            E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved"),
-            E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid"),
             V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
          ]),
         ("trainees", "Trainee Correspondence",
@@ -272,10 +265,18 @@ def catalog():
             C("Welcome to a new login", "Automatically, when a login is created or a password is reset.", "New team members"),
          ]),
         ("guides", "Volunteers", "What the people who make the calls receive.", [
-            V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers"),
-            C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program"),
-            C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you"),
-            C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides"),
+            V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Guides"),
+            E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called", sub="Guides"),
+            E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with", sub="Guides"),
+            E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved", sub="Guides"),
+            E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved", sub="Guides"),
+            E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved", sub="Guides"),
+            E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid", sub="Guides"),
+            C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program", sub="Guides"),
+            C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you", sub="Guides"),
+            C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides", sub="Guides"),
+         
+            E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
          ]),
         ("testimonials", "Testimonials", "Inviting and checking what people say about the program.", [
             C("Share your Discovery! experience", "By hand, from the Testimonials page.", "Past trainees"),
@@ -294,6 +295,7 @@ def catalog():
     ]
     for _id, _t, _d, entries in cats:
         for e in entries:
+            e.setdefault("sub", "")
             e["delivery"] = delivery_of(e.get("when"))
     return cats
 

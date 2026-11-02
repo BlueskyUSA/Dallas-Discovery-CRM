@@ -61,6 +61,8 @@ details.catblock>summary::before{content:"\25B8";display:inline-block;width:1.2e
 details.catblock[open]>summary::before{content:"\25BE"}
 details.catblock .cnt{font-weight:400;font-size:.9rem;color:#6b6b5e;margin-left:8px}
 details.catblock .catbody{padding:0 16px 14px}
+details.subblock{background:#fff;margin:14px 0}
+details.subblock>summary{font-size:1.05rem}
 </style>
 {% for cid, ctitle, cintro, entries in cats %}
 {% set vis = entries|rejectattr('owner')|list if not can_marketing else entries %}
@@ -68,9 +70,13 @@ details.catblock .catbody{padding:0 16px 14px}
 <summary>{{ ctitle }}<span class="cnt">{{ vis|length }} letter{{ '' if vis|length == 1 else 's' }}</span></summary>
 <div class="catbody">
 <p class="muted" style="margin-top:0">{{ cintro }}</p>
+{% set subnames = entries|map(attribute='sub')|unique|list %}
+{% for sn in subnames %}
+{% set grp = entries|selectattr('sub','equalto',sn)|list %}
+{% if sn %}<details class="catblock subblock" open><summary>{{ sn }}<span class="cnt">{{ grp|length }} letter{{ '' if grp|length == 1 else 's' }}</span></summary><div class="catbody">{% endif %}
 <table>
   <tr><th>Letter</th><th>When it is sent</th><th>Who gets it</th><th>Wording</th></tr>
-  {% for e in entries %}
+  {% for e in grp %}
   {% if not (e.owner and not can_marketing) %}
   <tr>
     <td style="font-weight:600">{{ e.name }}
@@ -128,6 +134,8 @@ details.catblock .catbody{padding:0 16px 14px}
   {% endif %}
   {% endfor %}
 </table>
+{% if sn %}</div></details>{% endif %}
+{% endfor %}
 </div>
 </details>
 {% endfor %}
