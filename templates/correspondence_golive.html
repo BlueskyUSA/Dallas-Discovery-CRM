@@ -14,6 +14,39 @@
   <p class="muted" style="margin:8px 0 0">Letters also go out only between 8 am and 8 pm Central.</p>
 </details>
 <div class="card" style="max-width:860px; line-height:1.55">
+  <h2 style="margin-top:0">What is live right now</h2>
+  <p><strong>Switched ON:</strong></p>
+  {% set on_list = switches|selectattr(1)|list %}
+  {% if on_list %}
+  <ul style="padding-left:20px; margin-top:4px">
+    {% for name, on, what in on_list %}<li><strong>{{ name }}</strong> &ndash; {{ what }}</li>{% endfor %}
+  </ul>
+  {% else %}<p class="muted" style="margin-top:4px">None of the four switches is on.</p>{% endif %}
+  <p><strong>Always live (no switch controls these):</strong></p>
+  <p class="muted" style="margin:0 0 4px">Sent automatically when someone uses the public website:</p>
+  <ul style="padding-left:20px; margin-top:0">
+    <li>Discovery form, past volunteer: the long-form link email.</li>
+    <li>Discovery form, interested party: the welcome letter.</li>
+    <li>Finishing the long form: the thank-you letter.</li>
+    <li>Using a &ldquo;reach out to me&rdquo; link: the confirmation letter.</li>
+    <li>Requesting the preliminary business plan: the plan email.</li>
+  </ul>
+  <p class="muted" style="margin:0 0 4px">Sent only when a person on the team clicks a button:</p>
+  <ul style="padding-left:20px; margin-top:0">
+    <li>From a contact&rsquo;s record: Excitement email, video call link, preliminary business plan, contract information request.</li>
+    <li>Testimonials: the request, and &ldquo;Please check your story before we share it&rdquo;.</li>
+    <li>Budget emails and budget change requests.</li>
+    <li>New login and password-reset emails to team members.</li>
+    <li>Email Guide Training, from the Guides page.</li>
+    <li>Test copies sent to yourself.</li>
+  </ul>
+  <p class="muted" style="margin:0 0 4px">Notices sent to you or Leadership:</p>
+  <ul style="padding-left:20px; margin-top:0">
+    <li>&ldquo;A new testimonial is ready to review&rdquo;, and suggested letter changes from volunteers.</li>
+  </ul>
+  <p class="muted">This list comes from a review of the program on Nov 2, 2026. If a new kind of email is added later, it will need to be added here.</p>
+</div>
+<div class="card" style="max-width:860px; line-height:1.55">
   <h2 style="margin-top:0">How to turn sending on or off</h2>
   <p>Nothing on this page can be clicked to turn sending on. Only the person who can log in to Render (the Owner) can change a switch. This page just shows where each one stands.</p>
   <ol style="padding-left:20px">
