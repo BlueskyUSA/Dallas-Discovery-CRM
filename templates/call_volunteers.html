@@ -4,9 +4,10 @@
 {% from "_letter_buttons.html" import letter_buttons %}
 <h1>Guides</h1>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+<p style="max-width:860px; margin:8px 0 14px">{{ guide_note[0] }}</p>
 <details class="card" style="max-width:860px; margin-bottom:16px">
-  <summary style="cursor:pointer; font-weight:700">What is a Guide?</summary>
-  {% for p in guide_note %}{% if p.startswith('## ') %}<p style="margin:14px 0 0"><strong>{{ p[3:] }}</strong></p>{% else %}<p style="margin:8px 0 0">{{ p }}</p>{% endif %}{% endfor %}
+  <summary style="cursor:pointer; font-weight:700">How it Works</summary>
+  {% for p in guide_note[1:] %}{% if not p.startswith('## ') %}<p style="margin:8px 0 0">{{ p }}</p>{% endif %}{% endfor %}
 </details>
 {% if welcome_video %}
 <div class="card" style="max-width:760px">
