@@ -561,6 +561,7 @@ def register(app, crm, get_db, h):
     GUIDE_SAMPLE = dict(first="Alex", label="Relationship Training", vol_name="Pat Smith", vfirst="Pat", vphone="469-555-0100",
                         link="https://example.org/your-link", pw="call or text", client="Jordan Lee", page_link="https://example.org/your-page")
     FIELD_HELP = {
+        "First name": "the person's first name (the letter already opens with \"Dear [first name],\" by itself)",
         "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
         "link": "the person's private link (must stay)", "role": "Lead Facilitator or Support Facilitator",
         "duties": "the person's assignment", "amount_sentence": "the fee sentence", "partner_sentence": "the partner sentence",
@@ -691,7 +692,7 @@ def register(app, crm, get_db, h):
                     error = "This wording can't be used. Check the curly-bracket words."
             fields = et.allowed_fields(key)
             blob = orig["subject"] + " ".join(orig["paras"]) + orig.get("signer", "")
-            used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
+            used = [f for f in fields if "{" + f + "}" in blob and f not in ("first", "First name")]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
             return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, is_owner=bool(session.get("is_owner")),
                                    entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key not in ("sponsor_welcome", "sponsor_page") else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
