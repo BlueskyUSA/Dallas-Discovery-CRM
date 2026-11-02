@@ -129,6 +129,13 @@ details.subblock>summary{font-size:1.05rem}
 </details>
 {% endfor %}
 <script>
+(function () {
+  var h = location.hash;
+  if (h && h.indexOf('#cat-') === 0) {
+    var d = document.getElementById(h.slice(1));
+    if (d && d.tagName === 'DETAILS') { d.open = true; d.scrollIntoView(); }
+  }
+})();
 document.querySelectorAll('.suggestLink').forEach(function (l) {
   l.addEventListener('click', function () {
     document.getElementById('suggestBox').style.display = 'block';
