@@ -215,3 +215,4 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   table.stack td:last-child { padding-top: 8px; }
 }
 @media (max-width: 700px) { table.stack td[style*="nowrap"] { white-space: normal !important; } }
+@media (max-width: 700px) { table.stack td.ph { display: none; } }
