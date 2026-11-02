@@ -214,3 +214,4 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   table.stack td[data-label]::before { content: attr(data-label) ": "; color: #6b6b5e; font-weight: 400; }
   table.stack td:last-child { padding-top: 8px; }
 }
+@media (max-width: 700px) { table.stack td[style*="nowrap"] { white-space: normal !important; } }

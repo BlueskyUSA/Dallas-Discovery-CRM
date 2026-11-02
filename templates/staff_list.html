@@ -31,7 +31,7 @@
   </select>
 </div>
 <div class="card">
-  <table id="staffTable">
+  <table id="staffTable" class="stack">
     <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Access</th><th></th></tr>
     {% for s in staff if s.active %}
     <tr data-staff="{{ s.id }}">
@@ -44,10 +44,10 @@
         <a href="{{ url_for('.staff_link_contact_search', staff_id=s.id) }}" style="font-size:0.82rem">Link to contact</a>
         {% endif %}
       </td>
-      <td>{{ s.email }}</td>
-      <td>{{ role_label(s.role) }}</td>
-      <td>{% if s.active %}<span class="badge good">Active</span>{% else %}<span class="badge">Deactivated</span>{% endif %}</td>
-      <td>
+      <td data-label="Email">{{ s.email }}</td>
+      <td data-label="Role">{{ role_label(s.role) }}</td>
+      <td data-label="Status">{% if s.active %}<span class="badge good">Active</span>{% else %}<span class="badge">Deactivated</span>{% endif %}</td>
+      <td data-label="Access">
         {% if s.is_owner %}
         <span class="muted">Everything (Owner)</span>
         {% else %}
