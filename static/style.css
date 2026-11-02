@@ -227,3 +227,11 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
 }
 @media (max-width: 700px) { table.stack.nohead tr:first-child { display: block; } table.stack.nohead td { word-break: break-word; } table.stack.nohead tr { border-bottom: 0; padding: 4px 0; } }
 @media (max-width: 700px) { #qs-form select, #qs-form input[type=date] { flex: 1 1 100%; width: 100%; box-sizing: border-box; min-height: 44px; } }
+@media (max-width: 700px) {
+  form.datesform { display: block; }
+  form.datesform label { display: block; margin-top: 10px !important; }
+  form.datesform input[type=date], form.datesform input[type=text] { width: 100% !important; box-sizing: border-box; min-height: 44px; }
+  form.datesform .btn { margin-top: 12px; }
+  table.stack td select { max-width: 100% !important; }
+  table.stack td[data-label="Actions"]::before, table.stack td[data-label="Paid"]::before { display: block; margin-bottom: 4px; }
+}

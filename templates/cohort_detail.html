@@ -17,13 +17,13 @@
 <h1>{{ full_title }} (Session # {{ cohort.session_number }})</h1>
 <p class="muted">{{ cohort|date_span }}{% if cohort.location %} &middot; {{ cohort.location }}{% endif %} &middot; <span class="badge">{{ cohort.status }}</span></p>
 {% if session.is_owner or session.staff_role == 'Leadership' %}
-<form class="inline" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=cohort.id) }}" style="margin:0 0 10px">
+<form class="inline datesform" method="post" action="{{ url_for('.cohort_update_dates', cohort_id=cohort.id) }}" style="margin:0 0 10px">
   <label style="margin:0">Starts:</label>
   <input type="date" name="session_date" value="{{ cohort.session_date }}" required>
   <label style="margin:0">through (optional):</label>
   <input type="date" name="end_date" value="{{ cohort.end_date or '' }}">
   <label style="margin:0">Location:</label>
-  <input type="text" name="location" value="{{ cohort.location or '' }}" style="width:200px">
+  <input type="text" name="location" value="{{ cohort.location or '' }}" style="width:200px; max-width:100%">
   <button class="btn secondary" type="submit">Save dates</button>
 </form>
 {% endif %}
@@ -36,12 +36,12 @@
     <input type="search" id="roster-q" placeholder="Find a trainee by name…" autocomplete="off">
     <span class="muted" id="roster-count">{{ roster|length }} trainees</span>
   </div>
-  <table class="sticky-head" id="roster-table">
+  <table class="sticky-head stack" id="roster-table">
     <tr><th>Trainee</th><th>Partner</th><th>Sponsor</th>{% if show_small_groups %}<th>Group</th>{% endif %}<th>Questionnaire</th><th>Paid</th><th>Attended</th><th>Actions</th><th>Feedback form</th></tr>
     {% for e in roster %}
     <tr class="{{ 'band' if bands[e.id] }}" data-name="{{ (e.full_name ~ ' ' ~ (partner_names.get(e.partner_enrollment_id) or ''))|lower }}">
-      <td><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
-      <td>
+      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=e.contact_id) }}">{{ e.full_name }}</a></td>
+      <td data-label="Partner">
         <form class="inline" method="post" action="{{ url_for('.enrollment_partner', enrollment_id=e.id) }}" style="margin:0">
           <select name="partner_enrollment_id" onchange="this.form.submit()" style="max-width:170px">
             <option value="">{{ '— none —' if not e.partner_enrollment_id else '— separate —' }}</option>
@@ -51,7 +51,7 @@
           </select>
         </form>
       </td>
-      <td>
+      <td data-label="Sponsor">
         <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
           <input type="hidden" name="set_enrolled_by" value="1">
           <input name="enrolled_by_pick" list="contact-picks" autocomplete="off" placeholder="— not recorded —"
@@ -60,7 +60,7 @@
         </form>
       </td>
       {% if show_small_groups %}
-      <td>
+      <td data-label="Group">
         <form class="inline" method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="margin:0">
           <select name="small_group_id" onchange="this.form.submit()">
             <option value="">{{ e.group_label or '— assign —' }}</option>
@@ -71,7 +71,7 @@
         </form>
       </td>
       {% endif %}
-      <td>
+      <td data-label="Questionnaire">
         {% if e.questionnaire_completed_at %}<span class="badge good">✓ {{ e.questionnaire_completed_at|fdate }}</span>
         <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline"><button class="btn secondary" name="questionnaire_undo" value="1" type="submit" style="padding:1px 6px; font-size:0.75rem">Undo</button></form>
         {% else %}
@@ -80,7 +80,7 @@
         </form>
         {% endif %}
       </td>
-      <td>
+      <td data-label="Paid">
         {% set pi = pay_info[e.id] %}
         {% if e.payment_completed_at %}
         <span class="badge good">✓ {{ e.payment_completed_at|fdate }}</span>
@@ -109,7 +109,7 @@
         {% endif %}
         {% endif %}
       </td>
-      <td>
+      <td data-label="Attended">
         {% if e.attended %}<span class="badge good">✓</span>
         <form method="post" action="{{ url_for('.enrollment_update', enrollment_id=e.id) }}" style="display:inline"><button class="btn secondary" name="attended_undo" value="1" type="submit" style="padding:1px 6px; font-size:0.75rem">Undo</button></form>
         {% else %}
@@ -118,7 +118,7 @@
         </form>
         {% endif %}
       </td>
-      <td>
+      <td data-label="Actions">
         {% if not e.payment_completed_at or not e.questionnaire_completed_at %}
         <span class="badge warn">outstanding</span>
         {% endif %}
@@ -129,7 +129,7 @@
         </form>
         {% endif %}
       </td>
-      <td>
+      <td data-label="Feedback form">
         {% if e.feedback_response_id %}
         <span class="badge good">✓ submitted</span>
         {% elif e.feedback_token %}
@@ -250,14 +250,14 @@
 <div class="card">
   <p class="muted" style="margin-top:-4px">Facilitators, TAs, and other whole-session roles not tied to a specific small group.</p>
   {% if staffing %}
-  <table class="sticky-head">
+  <table class="sticky-head stack">
     <tr><th>Name</th><th>Phone</th><th>Role</th><th>Duty</th><th></th></tr>
     {% for t in staffing %}
     <tr>
       <td>{{ t.full_name }}{% if t.spouse_name %} <span class="muted" style="font-size:0.8rem">(with {{ t.spouse_name }})</span>{% endif %}</td>
-      <td style="white-space:nowrap">{% if t.cell %}<a href="tel:{{ t.cell }}" style="color:inherit; text-decoration:none">{{ t.cell }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td>{{ t.roles|join(', ') }}</td>
-      <td>
+      <td data-label="Phone" style="white-space:nowrap">{% if t.cell %}<a href="tel:{{ t.cell }}" style="color:inherit; text-decoration:none">{{ t.cell }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td data-label="Role">{{ t.roles|join(', ') }}</td>
+      <td data-label="Duty">
         {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
       </td>
       <td style="min-width:150px">{% if session.is_owner or session.staff_role == 'Leadership' %}
