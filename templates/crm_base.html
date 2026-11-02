@@ -52,14 +52,6 @@
       <details class="navmenu">
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
-          {% if show_contacts and has_guides_access %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
-          {% if show_contacts %}
-          <details class="subnav">
-            <summary>Sponsors &#9662;</summary>
-            <a href="{{ url_for('.leadership_pipeline') }}" style="padding-left:30px">Sponsor pipeline</a>
-            <a href="{{ url_for('public_sponsor') }}" style="padding-left:30px">Sponsor form (public)</a>
-          </details>
-          {% endif %}
           {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Website Leaders</a>{% endif %}
           {% if show_contacts %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
@@ -67,6 +59,14 @@
           <a href="{{ url_for('.interest_report') }}">Interest report</a>
           {% endif %}
           {% if is_lead %}<a href="{{ url_for('.testimonials_review') }}">Testimonials</a>{% endif %}
+          {% if show_contacts %}
+          <details class="subnav">
+            <summary>Guides and Sponsors &#9662;</summary>
+            {% if has_guides_access %}<a href="{{ url_for('.call_volunteers_page') }}" style="padding-left:30px">Guides</a>{% endif %}
+            <a href="{{ url_for('.leadership_pipeline') }}" style="padding-left:30px">Sponsor pipeline</a>
+            <a href="{{ url_for('public_sponsor') }}" style="padding-left:30px">Sponsor form (public)</a>
+          </details>
+          {% endif %}
           {% if show_finance or show_donations or session.is_owner or has_budgets_access %}
           <details class="subnav">
             <summary>Finance &#9662;</summary>
