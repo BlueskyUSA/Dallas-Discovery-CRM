@@ -204,3 +204,13 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   pre, code { white-space: pre-wrap; word-break: break-word; }
   .navmenu-items { max-width: 92vw; }
 }
+
+/* Phone: tables marked class="stack" turn each row into a small card */
+@media (max-width: 700px) {
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; box-sizing: border-box; }
+  table.stack tr:first-child { display: none; }
+  table.stack tr { border-bottom: 1px solid #d9d2c0; padding: 10px 0; }
+  table.stack td { border: 0; padding: 2px 0; }
+  table.stack td[data-label]::before { content: attr(data-label) ": "; color: #6b6b5e; font-weight: 400; }
+  table.stack td:last-child { padding-top: 8px; }
+}
