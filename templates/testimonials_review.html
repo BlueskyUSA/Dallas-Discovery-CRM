@@ -18,8 +18,8 @@
 {% if text_only %}
 <div class="card" style="border-left:4px solid #c9a227">
   <b>Said they attended Discovery!, but no email on file ({{ text_only|length }}).</b> Ask them for a testimonial by text:
-  <table style="margin-top:6px">
-  {% for c in text_only %}<tr><td>{{ c.full_name }}</td><td>{{ c.cell_phone or c.home_phone }}</td>
+  <table class="stack" style="margin-top:6px">
+  {% for c in text_only %}<tr><td style="font-weight:600">{{ c.full_name }}</td><td>{{ c.cell_phone or c.home_phone }}</td>
     <td><a class="btn secondary" href="{{ url_for('.testimonial_request', c=c.id) }}">Make a text link</a></td></tr>{% endfor %}
   </table>
 </div>
@@ -35,15 +35,15 @@
 <div class="card">
 {% set shown = items if not show else items|selectattr('stage', 'equalto', show)|list %}
 {% if shown %}
-<table>
+<table class="stack">
   <tr><th>Contact</th><th>Program</th><th>Request sent</th><th>Where it stands</th><th>Their words</th><th></th></tr>
   {% for i in shown %}
   <tr>
-    <td>{{ i.full_name }}</td>
-    <td>{{ labels.get(i.req_program, i.req_program) }}</td>
-    <td>{{ i.created_at }}<br><span class="muted">{{ i.how }}</span></td>
-    <td><b style="color:{{ {'review':'#b3261e','changes':'#b3261e','ready':'#1b7a3d','published':'#1b7a3d','waiting_ok':'#8a6d00','waiting':'#5a6b75','hidden':'#5a6b75'}[i.stage] }}">{{ i.label }}</b></td>
-    <td>{% if i.has_video %}&#127909; {% endif %}{{ (i.body or '')[:80] }}{% if (i.body or '')|length > 80 %}&hellip;{% endif %}</td>
+    <td style="font-weight:600">{{ i.full_name }}</td>
+    <td data-label="Program">{{ labels.get(i.req_program, i.req_program) }}</td>
+    <td data-label="Sent">{{ i.created_at }}<br><span class="muted">{{ i.how }}</span></td>
+    <td data-label="Status"><b style="color:{{ {'review':'#b3261e','changes':'#b3261e','ready':'#1b7a3d','published':'#1b7a3d','waiting_ok':'#8a6d00','waiting':'#5a6b75','hidden':'#5a6b75'}[i.stage] }}">{{ i.label }}</b></td>
+    <td data-label="Their words">{% if i.has_video %}&#127909; {% endif %}{{ (i.body or '')[:80] }}{% if (i.body or '')|length > 80 %}&hellip;{% endif %}</td>
     <td style="white-space:nowrap">{% if i.tid %}<a class="btn secondary" href="{{ url_for('.testimonial_detail', tid=i.tid) }}">{{ i.action }}</a>{% endif %}
       {% if i.req_id is none %}<form class="inline" method="post" action="{{ url_for('.testimonial_detail', tid=i.tid) }}" style="margin:0;display:inline" onsubmit="return confirm('Delete this testimonial for good?')"><input type="hidden" name="action" value="delete"><button class="btn secondary" type="submit" style="color:#b3261e">Delete</button></form>{% else %}<form class="inline" method="post" action="{{ url_for('.testimonial_request_delete', req_id=i.req_id) }}" style="margin:0;display:inline" onsubmit="return confirm('Delete this {{ 'testimonial and request' if i.tid else 'request' }} for good?{{ ' Its link will stop working.' if not i.tid else '' }}')"><button class="btn secondary" type="submit" style="color:#b3261e">Delete</button></form>{% endif %}</td>
   </tr>
