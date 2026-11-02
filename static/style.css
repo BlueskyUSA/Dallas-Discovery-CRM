@@ -218,3 +218,10 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
 @media (max-width: 700px) { table.stack td.ph { display: none; } }
 @media (max-width: 700px) { table.stack thead { display: none; } }
 @media (max-width: 700px) { table.stack td:empty { display: none; } }
+/* Phone: number tables shrink to fit instead of running off the screen */
+@media (max-width: 700px) {
+  table.compact { display: table; width: 100%; table-layout: auto; font-size: .82rem; }
+  table.compact th, table.compact td { padding: 6px 3px; letter-spacing: 0; font-size: .72rem; word-break: break-word; }
+  table.compact td { font-size: .85rem; }
+  table.compact th:first-child, table.compact td:first-child { width: 28%; }
+}
