@@ -381,6 +381,11 @@ def register(app, crm, get_db, h):
         flash("Thank you. Your suggestion was sent to the Owner." if ok else err)
         return redirect(back + "#suggest")
 
+    @crm.route("/correspondence/go-live")
+    @leadership_required
+    def correspondence_golive():
+        return render_template("correspondence_golive.html", live=live(), switches=switches())
+
     @crm.route("/correspondence/all-letters")
     def correspondence_all():
         ensure_tables(get_db)

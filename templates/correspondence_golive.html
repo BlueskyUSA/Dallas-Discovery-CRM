@@ -1,0 +1,16 @@
+{% extends "crm_base.html" %}
+{% block title %}Ready to go live?{% endblock %}
+{% block content %}
+<h1>Ready to go live?</h1>
+<details class="card" style="max-width:860px" open>
+  <summary style="cursor:pointer; font-weight:700">Ready to go live? <span class="muted" style="font-weight:400">({{ switches|selectattr(1)|list|length }} of {{ switches|length }} switches on)</span></summary>
+  <p class="muted" style="margin:8px 0">These four switches decide whether anything is actually sent to real people. While a switch is off, that kind of letter is held back. They are changed in Render (Environment), not here; this panel only shows where things stand.</p>
+  {% for name, on, what in switches %}
+  <div style="display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--border)">
+    <span class="badge {{ 'good' if on else '' }}" style="min-width:42px; text-align:center">{{ 'ON' if on else 'OFF' }}</span>
+    <div><strong>{{ name }}</strong><div class="muted">{{ what }}</div></div>
+  </div>
+  {% endfor %}
+  <p class="muted" style="margin:8px 0 0">Letters also go out only between 8 am and 8 pm Central.</p>
+</details>
+{% endblock %}

@@ -41,6 +41,7 @@
           {% if session.is_owner or is_lead %}
           <a href="{{ url_for('.correspondence_trainees') }}">Trainee Correspondence</a>
           <a href="{{ url_for('.correspondence_team') }}">Team Correspondence</a>
+          <a href="{{ url_for('.correspondence_golive') }}">Ready to Go Live?</a>
           {% endif %}
           {% if has_correspondence_access %}
           <a href="{{ url_for('.correspondence_note', group='accounting') }}">Accounting &amp; Legal</a>
