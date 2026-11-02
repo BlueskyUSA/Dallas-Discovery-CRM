@@ -47,9 +47,17 @@ html{scroll-padding-top:66px}
 <script>
 (function(){
   var bar=document.getElementById('sn'),btn=document.getElementById('sn-menu'),panel=document.getElementById('sn-panel');
-  function upd(){var y=window.pageYOffset||document.documentElement.scrollTop;bar.classList.toggle('show',y>260);
+  var sc=null;
+  function upd(e){
+    var y=window.pageYOffset||document.documentElement.scrollTop||(document.body&&document.body.scrollTop)||0;
+    if(e&&e.target&&e.target!==document&&e.target!==window&&e.target.scrollTop>y){sc=e.target;}
+    if(sc&&sc.scrollTop>y){y=sc.scrollTop;}
+    bar.classList.toggle('show',y>260);
     if(y<=260){panel.classList.remove('open');btn.setAttribute('aria-expanded','false');}}
-  window.addEventListener('scroll',upd,{passive:true});upd();
+  window.addEventListener('scroll',upd,{passive:true});
+  document.addEventListener('scroll',upd,{passive:true,capture:true});
+  window.addEventListener('touchmove',upd,{passive:true});
+  window.addEventListener('load',upd);upd();
   btn.addEventListener('click',function(){var o=panel.classList.toggle('open');btn.setAttribute('aria-expanded',o?'true':'false');});
   panel.addEventListener('click',function(e){if(e.target.tagName==='A')panel.classList.remove('open');});
 })();
