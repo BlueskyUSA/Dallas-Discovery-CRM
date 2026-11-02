@@ -5,6 +5,10 @@
 <h1>Guides</h1>
 <p class="muted">Up to {{ max_per }} Guides for each program (D1 and the Relationship Training), plus one Guide Team Captain who oversees the team and is also emailed when a request goes unclaimed for 2 hours. When someone asks for a call, all of that program's volunteers are alerted and the first to tap &ldquo;I&rsquo;ll call&rdquo; gets it. If a program has no volunteers, the &ldquo;Everything else&rdquo; group is used. Volunteers don&rsquo;t need a login; they use a personal link. Their cell number is shared with the person they call.</p>
 {% for m in get_flashed_messages() %}<p class="flash">{{ m }}</p>{% endfor %}
+<details class="card" style="max-width:860px; margin-bottom:16px">
+  <summary style="cursor:pointer; font-weight:700">What is a Guide?</summary>
+  {% for p in guide_note %}{% if p.startswith('## ') %}<p style="margin:14px 0 0"><strong>{{ p[3:] }}</strong></p>{% else %}<p style="margin:8px 0 0">{{ p }}</p>{% endif %}{% endfor %}
+</details>
 {% if welcome_video %}
 <div class="card" style="max-width:760px">
   <h2 style="margin:0 0 2px">Welcome to the Guides</h2>

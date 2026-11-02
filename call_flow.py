@@ -1921,4 +1921,5 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
                                vols=[dict(v, phone_pretty=pretty_phone(v["cell_phone"]), consent_when=local_text(v["consent_at"]),
                                           consent_url=_base_url() + "/cep-permission/" + v["consent_token"]) for v in vols]))
         conn.close()
-        return render_template("call_volunteers.html", groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), pushover_ready=pushover_ready(), push_pid=push_pid, push_note=push_note)
+        from correspondence import GUIDE_EXPLAINER
+        return render_template("call_volunteers.html", guide_note=GUIDE_EXPLAINER, groups=groups, max_per=MAX_PER_POOL, client_letters=CLIENT_LETTERS, welcome_video=welcome_video(), pushover_ready=pushover_ready(), push_pid=push_pid, push_note=push_note)
