@@ -225,3 +225,4 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   table.compact td { font-size: .85rem; }
   table.compact th:first-child, table.compact td:first-child { width: 28%; }
 }
+@media (max-width: 700px) { table.stack.nohead tr:first-child { display: block; } table.stack.nohead td { word-break: break-word; } table.stack.nohead tr { border-bottom: 0; padding: 4px 0; } }
