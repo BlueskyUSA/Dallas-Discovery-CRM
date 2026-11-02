@@ -13,4 +13,30 @@
   {% endfor %}
   <p class="muted" style="margin:8px 0 0">Letters also go out only between 8 am and 8 pm Central.</p>
 </details>
+<div class="card" style="max-width:860px; line-height:1.55">
+  <h2 style="margin-top:0">How to turn sending on or off</h2>
+  <p>Nothing on this page can be clicked to turn sending on. Only the person who can log in to Render (the Owner) can change a switch. This page just shows where each one stands.</p>
+  <ol style="padding-left:20px">
+    <li>Log in to <strong>Render</strong> and open this website&rsquo;s service.</li>
+    <li>Click <strong>Environment</strong> in the left-hand list.</li>
+    <li>Find the switch by name (for example <strong>CALL_ALERTS_LIVE</strong>). To turn it <strong>ON</strong>, set its value to <strong>1</strong>. To turn it <strong>OFF</strong>, change the value to <strong>0</strong> or delete the line. Any value other than 1 means OFF.</li>
+    <li>Click <strong>Save changes</strong>. Render restarts the site by itself, which takes a few minutes.</li>
+    <li>Come back to this page and refresh. The switch should now show ON (or OFF).</li>
+  </ol>
+  <p><strong>What each switch does.</strong></p>
+  <ul style="padding-left:20px">
+    <li><strong>SESSION_LETTERS_LIVE</strong> is the master switch for letters to trainees and the team. It must be ON for the Automatic letters switch to work.</li>
+    <li><strong>AUTO_LETTERS_LIVE</strong> controls the letters that go out by themselves (confirmation, &ldquo;Thank you &ndash; We&rsquo;re so excited&rdquo;, What to bring). It needs the master switch ON too.</li>
+    <li><strong>CALL_ALERTS_LIVE</strong> controls the Guide alerts, the Guide page emails, the 7-day payment reminders to Guides, and the reply to &ldquo;I&rsquo;m curious&rdquo;.</li>
+    <li><strong>BLASTS_LIVE</strong> controls Marketing &amp; Email Blasts.</li>
+  </ul>
+  <p><strong>Good to know.</strong></p>
+  <ul style="padding-left:20px">
+    <li>Even with a switch ON, letters go out only between <strong>8 am and 8 pm Central</strong>. Anything outside those hours waits.</li>
+    <li>A switch that is OFF holds that kind of letter back. You can still preview any letter and send a test copy to yourself.</li>
+    <li>To stop everything quickly, turn <strong>SESSION_LETTERS_LIVE</strong>, <strong>CALL_ALERTS_LIVE</strong> and <strong>BLASTS_LIVE</strong> OFF.</li>
+    <li>The <strong>Email Guide Training</strong> button on the Guides page is a deliberate send to one Guide and does not depend on these switches.</li>
+    <li>Only the Owner and Leadership logins can see this page. Anyone with your Render login can change the switches, so keep that login private.</li>
+  </ul>
+</div>
 {% endblock %}
