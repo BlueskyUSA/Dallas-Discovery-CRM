@@ -271,7 +271,7 @@ def catalog():
                  who="The group you choose", url="correspondence_team", label="Team Correspondence"),
             C("Welcome to a new login", "Automatically, when a login is created or a password is reset.", "New team members"),
          ]),
-        ("guides", "Guides (volunteers)", "What the people who make the calls receive.", [
+        ("guides", "Volunteers", "What the people who make the calls receive.", [
             V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers"),
             C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program"),
             C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you"),
