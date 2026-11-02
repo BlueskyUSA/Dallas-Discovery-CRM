@@ -51,14 +51,14 @@ d.addEventListener('change',upd);d.form.program_id.addEventListener('change',upd
     <button type="button" class="btn secondary yrtab" data-year="" style="font-size:1.05rem">All years</button>
   </div>
   <p id="yearEmpty" class="muted" style="display:none">Nothing scheduled for this year.</p>
-  <table id="schedTable">
+  <table id="schedTable" class="stack">
     <tr><th>Program</th><th>Dates</th><th>Status</th><th></th></tr>
     {% for c in sessions %}
     {% set past = (c.end_date or c.session_date) < today_iso %}
     <tr data-year="{{ c.session_date[:4] }}"{% if past %} style="opacity:.6"{% endif %}>
       <td style="font-weight:600">{{ c.program_name }}</td>
-      <td style="color:#1f5fbf; font-weight:600">{{ c|date_span }}</td>
-      <td>{{ 'Past' if past else c.status }}</td>
+      <td data-label="Dates" style="color:#1f5fbf; font-weight:600">{{ c|date_span }}</td>
+      <td data-label="Status">{{ 'Past' if past else c.status }}</td>
       <td>
         {% if is_lead or has_contacts_access %}<a href="{{ url_for('.cohort_detail', cohort_id=c.id) }}" style="font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:4px 12px; margin-right:10px">Open &rarr;</a>{% endif %}
         {% if is_lead %}
