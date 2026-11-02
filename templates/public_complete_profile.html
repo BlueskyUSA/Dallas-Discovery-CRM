@@ -12,6 +12,13 @@
   It only takes a few minutes, and it helps us keep in touch and match you up correctly with your
   fellow participants and team members.
 </p>
+{% if sponsor_mode %}
+<style>.field label.req{color:#b45309; font-weight:700}.field label.req::after{content:" (required)"; font-weight:400; font-size:.85em}</style>
+<div role="note" style="background:#fff4e0; border-left:6px solid #b45309; border-radius:6px; padding:14px 18px; margin:18px 0;">
+  <p style="margin:0 0 6px; font-weight:bold; color:#b45309">For Sponsors: please complete the items marked in color.</p>
+  <p style="margin:0">Your cell number, photo, street address, city, state, zip, and your emergency contact&rsquo;s name and cell number are required. Everything else is optional. When these are complete, we will automatically email you your page for the person you are sponsoring.</p>
+</div>
+{% endif %}
 <div role="note" style="background:rgba(31,111,178,0.10); border-left:6px solid var(--pub-primary, #1f6fb2); border-radius:6px; padding:14px 18px; margin:18px 0;">
   <p style="margin:0 0 6px; font-size:1.15em; font-weight:bold; color:var(--pub-primary, #1f6fb2);">&#10003; Take your time. Your answers save automatically.</p>
   <p style="margin:0;">No need to finish in one sitting. It's completely safe to close this page anytime and pick up right where you left off using this same link.</p>
@@ -34,14 +41,14 @@
       <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
       <div class="field"><label>Secondary email <span class="muted" style="font-weight:400;">(optional -- an older address, if any)</span></label><input type="email" name="email_2" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
       <div class="field"><label>Third email <span class="muted" style="font-weight:400;">(optional)</span></label><input type="email" name="email_3" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
-      <div class="field"><label>Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
+      <div class="field"><label class="req">Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
       <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
       <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
-      <div class="field"><label>Photo</label><input type="file" name="photo" accept="image/*"></div>
-      <div class="field"><label>Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
+      <div class="field"><label class="req">Photo</label><input type="file" name="photo" accept="image/*"></div>
+      <div class="field"><label class="req">Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
       <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="street_address_2" autocomplete="off" value="{{ contact.street_address_2 if contact and contact.street_address_2 else '' }}"></div>
-      <div class="field"><label>City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
-      <div class="field"><label>State</label>
+      <div class="field"><label class="req">City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
+      <div class="field"><label class="req">State</label>
         <select name="state">
           <option value="">Select a state&hellip;</option>
           {% for code, label in us_states %}
@@ -49,12 +56,12 @@
           {% endfor %}
         </select>
       </div>
-      <div class="field"><label>Zip</label><input name="zip" autocomplete="off" value="{{ contact.zip if contact and contact.zip else '' }}"></div>
+      <div class="field"><label class="req">Zip</label><input name="zip" autocomplete="off" value="{{ contact.zip if contact and contact.zip else '' }}"></div>
       <div class="field"><label>Partner's name</label><input name="partner_name" value="{{ contact.partner_name if contact and contact.partner_name else '' }}"></div>
       <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
       <div class="field" style="grid-column: 1 / -1;"><label>Partner's email</label><input type="email" name="partner_email" style="width:100%" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
-      <div class="field"><label>Emergency contact name</label><input name="emergency_contact_name" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
-      <div class="field"><label>Emergency contact cell</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
+      <div class="field"><label class="req">Emergency contact name</label><input name="emergency_contact_name" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
+      <div class="field"><label class="req">Emergency contact cell</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
       <div class="field"><label>Emergency contact home</label><input name="emergency_contact_home" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}"></div>
       <div class="field">
         <label>How did you hear about us</label>

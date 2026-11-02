@@ -225,7 +225,7 @@ def ensure_tables(get_db):
                     "reserve_result TEXT", "reserve_cohort_id INTEGER", "partner_name TEXT", "partner_email TEXT",
                     "questionnaire_sent_at TEXT", "questionnaire_sent_via TEXT",
                     "reserved_notified_at TEXT", "paid_notified_at TEXT",
-                    "longform_sent_at TEXT", "payment_sent_at TEXT", "payment_reminder_at TEXT", "pay_nudge_at TEXT"):
+                    "longform_sent_at TEXT", "payment_sent_at TEXT", "payment_reminder_at TEXT", "pay_nudge_at TEXT", "sponsor_page_sent_at TEXT"):
             conn.execute("ALTER TABLE call_requests ADD COLUMN IF NOT EXISTS " + col)
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_topic TEXT")
         conn.execute("ALTER TABLE call_volunteers ADD COLUMN IF NOT EXISTS push_user_key TEXT")
@@ -935,6 +935,48 @@ def _tell_prospect(conn, req, vol, base_url):
         print(f"Couldn't email the interested person for request {req['id']}: {e}", flush=True)
 
 
+def _sponsor_pages(get_db):
+    """When a Sponsor's own contact form is complete (required items and a photo), email their page once."""
+    if not sponsor_live():
+        return
+    import sponsors
+    from email_templates import guide_letter_content
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            """SELECT r.id, r.claimed_by, r.program_code, c.first_name, c.last_name
+               FROM call_requests r JOIN contacts c ON c.id = r.contact_id
+               WHERE r.source = 'sponsor' AND r.claimed_by IS NOT NULL AND r.sponsor_page_sent_at IS NULL""").fetchall()
+        for r in rows:
+            vol = conn.execute("SELECT id, name, email, cell_phone FROM call_volunteers WHERE id = ?", (r["claimed_by"],)).fetchone()
+            if not vol or not vol["email"]:
+                continue
+            me = conn.execute("SELECT * FROM contacts WHERE lower(email) = lower(?) OR lower(email_2) = lower(?) OR lower(email_3) = lower(?) ORDER BY id LIMIT 1",
+                              (vol["email"], vol["email"], vol["email"])).fetchone()
+            if not me:
+                continue
+            st = sponsors.profile_status(conn, me, _base_url())
+            if not st["complete"]:
+                continue
+            got = conn.execute("UPDATE call_requests SET sponsor_page_sent_at = ? WHERE id = ? AND sponsor_page_sent_at IS NULL",
+                               (_ts(_utc_now()), r["id"]))
+            conn.commit()
+            if got.rowcount != 1:
+                continue
+            who = f"{r['first_name']} {r['last_name'] or ''}".strip()
+            try:
+                subject, html, text = guide_letter_content(
+                    "sponsor_page", me["first_name"], _program_label(r["program_code"]) if r["program_code"] else "Discovery!", vol["name"],
+                    pretty_phone(me["cell_phone"] or vol["cell_phone"]), client=who, page_link=_page_link(conn, r["id"], vol["id"]))
+                _send(vol["email"], subject, html, text, to_name=vol["name"])
+            except Exception as e:
+                conn.execute("UPDATE call_requests SET sponsor_page_sent_at = NULL WHERE id = ?", (r["id"],))
+                conn.commit()
+                print(f"Sponsor page email failed: {e}", flush=True)
+    finally:
+        conn.close()
+
+
 def sweep(get_db, base_url):
     """Run every few minutes: first alerts held overnight, 2-hour re-alerts, and 'please log your call' reminders."""
     ensure_tables(get_db)
@@ -974,6 +1016,10 @@ def sweep(get_db, base_url):
         finally:
             conn.close()
     if in_send_hours():
+        try:
+            _sponsor_pages(get_db)
+        except Exception as e:
+            print(f"Sponsor pages failed: {e}", flush=True)
         try:
             _notify_milestones(get_db)
         except Exception as e:

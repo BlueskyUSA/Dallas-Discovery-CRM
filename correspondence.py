@@ -287,6 +287,7 @@ def catalog():
             ]),
          
             E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
+            E("sponsor_page", "Sponsor thank-you and page (contact form complete)", "Automatically, once the Sponsor\u2019s contact form is complete (required items and a photo).", "Volunteers who sponsor someone", sub="Sponsors"),
             V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Other Volunteers"),
          ]),
         ("testimonials", "Testimonials", "Inviting and checking what people say about the program.", [
@@ -558,7 +559,7 @@ def register(app, crm, get_db, h):
                           location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
                           partner="Jordan", amount="$1,399 per couple")
     GUIDE_SAMPLE = dict(first="Alex", label="Relationship Training", vol_name="Pat Smith", vfirst="Pat", vphone="469-555-0100",
-                        link="https://example.org/your-link", pw="call or text")
+                        link="https://example.org/your-link", pw="call or text", client="Jordan Lee", page_link="https://example.org/your-page")
     FIELD_HELP = {
         "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
         "link": "the person's private link (must stay)", "role": "Lead Facilitator or Support Facilitator",
@@ -693,7 +694,7 @@ def register(app, crm, get_db, h):
             used = [f for f in fields if "{" + f + "}" in blob and f != "first"]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
             return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, is_owner=bool(session.get("is_owner")),
-                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key != "sponsor_welcome" else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
+                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key not in ("sponsor_welcome", "sponsor_page") else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else

@@ -2552,9 +2552,18 @@ def public_complete_profile(token):
             "SELECT * FROM contracts WHERE contact_id = ? AND kind = ?", (contact["id"], kind)
         ).fetchone()
         contracts_by_kind[kind] = {"contract": row}
+    sponsor_mode = False
+    try:
+        em = [(contact[k] or "") for k in ("email", "email_2", "email_3")]
+        sponsor_mode = bool(conn.execute(
+            "SELECT 1 FROM call_volunteers WHERE program_code = 'SPONSOR' AND lower(email) IN (lower(?), lower(?), lower(?)) AND ? <> ''",
+            (em[0], em[1], em[2], (em[0] + em[1] + em[2]))).fetchone())
+    except Exception:
+        sponsor_mode = False
     conn.close()
     resp = make_response(render_template(
         "public_complete_profile.html",
+        sponsor_mode=sponsor_mode,
         contact=contact,
         contract_kinds=CONTRACT_KINDS,
         contract_examples=CONTRACT_EXAMPLES,

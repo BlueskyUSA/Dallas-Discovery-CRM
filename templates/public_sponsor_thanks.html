@@ -9,7 +9,7 @@
     <p class="lead">You will receive a private web page for helping them: their contact information, a &ldquo;Your next step&rdquo; box, a checklist that fills itself in, and one-tap letters.</p>
     {% if st and not st.complete %}
       <div class="card" style="padding:18px; background:#fff8e6; border:1px solid #f0d9a0; border-radius:12px">
-        <p style="margin:0 0 8px"><strong>Your first step:</strong> please complete your own contact information (the long form), including a photo. Still needed: <strong>{{ st.missing|join(', ') }}</strong>. Your page opens as soon as it is complete.</p>
+        <p style="margin:0 0 8px"><strong>Your first step:</strong> please complete your own contact information (the long form), including a photo. Still needed: <strong>{{ st.missing|join(', ') }}</strong>. As soon as it is complete, we will email you your page for them.</p>
         <p style="margin:0"><a class="pub-btn dark" href="{{ st.link }}">Complete my information</a></p>
       </div>
     {% else %}

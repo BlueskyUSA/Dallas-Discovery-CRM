@@ -823,11 +823,27 @@ GUIDE_LETTERS = {
             "1. As a sponsor, you complete a short form registration for the sponsee.",
             "2. You complete your contact information (this eliminates admin support). Here is your link:",
             "{link}",
-            "3. Discovery! will send you a dedicated web page on your phone and computer which enables you (simply by clicking on buttons) to "
-            "easily walk the sponsee through the registration process. Of course, if you need help speaking to the sponsee, let us know "
-            "(again by clicking on a button) and an experienced volunteer will reach out to you. Here is your page for {client}:",
-            "{page_link}",
+            "Please complete the items marked in color on that form. Everything else is optional.",
+            "3. When your contact form is complete, Discovery! will automatically send you a dedicated web page to your phone and computer which enables you "
+            "(simply by clicking on buttons) to easily walk the sponsee through the registration process. Of course, if you need help speaking to the sponsee, "
+            "let us know (again by clicking on a button) and an experienced volunteer will reach out to you.",
             "Thank you so much. Let us know if you have questions.",
+        ],
+        "signoff": "Have a great day.",
+        "signer": "The Discovery! Team",
+    },
+    "sponsor_page": {
+        "title": "Sponsor thank-you and page (contact form complete)",
+        "audience": "Volunteers who sponsor someone",
+        "greeting": "Dear",
+        "subject": "Your page for {client}",
+        "paras": [
+            "Thank you for completing your contact form.",
+            "Here is your dedicated web page for {client}. Use it on your phone or computer. Simply by clicking on buttons you can easily walk {client} "
+            "through the registration process. If you need help speaking to them, let us know (again by clicking on a button) and an experienced "
+            "volunteer will reach out to you.",
+            "{page_link}",
+            "This page is yours alone, so please do not share the link. Thank you so much for sponsoring.",
         ],
         "signoff": "Have a great day.",
         "signer": "The Discovery! Team",
