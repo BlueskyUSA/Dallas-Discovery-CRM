@@ -227,7 +227,7 @@ def catalog():
     sl = T.SESSION_LETTERS
     E = lambda key, name, when, who, sub="": dict(kind="edit", key=key, name=name, when=when, who=who, sub=sub)
     V = lambda slug, name, when, who, sub="": dict(kind="view", slug=slug, name=name, when=when, who=who, sub=sub)
-    C = lambda name, when, who, note="", sub="": dict(kind="code", name=name, when=when, who=who, note=note, sub=sub)
+    C = lambda name, when, who, note="", sub="", text=None: dict(kind="code", name=name, when=when, who=who, note=note, sub=sub, text=text)
     X = lambda name, when, who, url: dict(kind="ext", name=name, when=when, who=who, url=url)
     cats = [
         ("interested", "Interested people (before they register)",
@@ -271,9 +271,20 @@ def catalog():
             E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved", sub="Guides"),
             E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved", sub="Guides"),
             E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid", sub="Guides"),
-            C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program", sub="Guides"),
-            C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you", sub="Guides"),
-            C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides", sub="Guides"),
+            C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program", sub="Guides", text=[
+                ("Email", "Subject: Please reach out to [Name] within 2 hours \u2013 [Program]\n\nHi [Guide first name],\n\n[Name] asked to be reached about [Program]. They prefer: [Call or text].\n\nCan you [call or text] them within two hours? Tap here to say yes:\n[the Guide\u2019s personal link]\n\nIf another volunteer already took it, the page will tell you. Thank you for helping!"),
+                ("Phone alert", "[Name] wants to hear from us\nCan you [call or text] [Name] within 2 hours? Tap to say yes. ([Program])"),
+                ("Second round, 2 hours later", "Same email, with \u201c(second reminder: no one has claimed this yet)\u201d added after the program name."),
+            ]),
+            C("Unclaimed request and call reminders", "Automatically, if nobody claims a request in 2 hours, and to remind a Guide to log a call.", "Guides, and you", sub="Guides", text=[
+                ("To you and the Guide Team Captain: unclaimed request", "Subject: Unclaimed call request: [Name] ([Program])\n\nNobody has claimed this request in 2 hours; the volunteers were alerted again.\n(Or: No volunteers are set up for this program. / No volunteer could be emailed.)\n\nOpen Call requests in the CRM to follow up: [link]"),
+                ("To the Guide: please log your call (2 hours after taking a request)", "Subject: Please log your call\n\nHi [Guide first name],\n\nYou took a call request a couple of hours ago. When you\u2019ve called, please log how it went here:\n[the Guide\u2019s personal link]\n\nThank you!"),
+            ]),
+            C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides", sub="Guides", text=[
+                ("When the person registers", "Subject: [First name] has registered!\n\nHi [Guide first name],\n\nGood news: [Name] registered for [Program, dates], thanks to your conversation. Please open your page for them to send the questionnaire link and the payment request: [link] Payment is still pending. We will let you know when it comes in.\n\nWarmly,\nThe Discovery! Team"),
+                ("When the person pays", "Subject: [First name] has registered and paid!\n\nHi [Guide first name],\n\n[Name] has paid for [Program, dates]. Their spot is secure. Thank you for helping them take this step!\n\nWarmly,\nThe Discovery! Team"),
+                ("Every 7 days while payment is late", "Subject: [First name] has not paid yet\n\nHi [Guide first name],\n\n[First name] reserved a seat but payment has not arrived. A friendly reminder may help, and it is your call. Open your page for them and tap the payment reminder: [link]\n\nWarmly,\nThe Discovery! Team"),
+            ]),
          
             E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
             V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Other Volunteers"),

@@ -115,7 +115,14 @@ details.subblock>summary{font-size:1.05rem}
         {% if e.group %}<a class="btn secondary" href="{{ url_for('.' ~ e.url, group=e.group) }}">{{ e.label }}</a>
         {% else %}<a class="btn secondary" href="{{ url_for('.' ~ e.url) }}">{{ e.label }}</a>{% endif %}
       {% else %}
-        <span class="muted">{% if e.note %}{{ e.note }}{% else %}Wording is in the program code{% endif %}</span>
+        {% if e.text %}
+        <details><summary style="cursor:pointer; color:#1f5fbf">Show wording</summary>
+          <div style="background:#fff; border:1px solid #d9d2c0; border-radius:6px; padding:4px 12px 10px; margin-top:6px; max-width:560px; white-space:normal">
+          {% for ttl, body in e.text %}<p style="margin:10px 0 2px"><strong>{{ ttl }}</strong></p><div style="white-space:pre-wrap">{{ body }}</div>{% endfor %}
+          <p class="muted" style="margin:10px 0 0; font-size:.85rem">Words in [brackets] are filled in for each person.</p>
+          </div>
+        </details>
+        {% else %}<span class="muted">{% if e.note %}{{ e.note }}{% else %}Wording is in the program code{% endif %}</span>{% endif %}
       {% endif %}
       {% if e.kind != 'link' %}<div style="margin-top:4px"><a href="#suggest" class="suggestLink" data-letter="{{ e.name }}" style="font-size:.85rem">Suggest a change</a></div>{% endif %}
     </td>
