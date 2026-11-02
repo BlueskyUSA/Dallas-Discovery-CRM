@@ -286,7 +286,7 @@ def catalog():
                 ("Every 7 days while payment is late", "Subject: [First name] has not paid yet\n\nHi [Guide first name],\n\n[First name] reserved a seat but payment has not arrived. A friendly reminder may help, and it is your call. Open your page for them and tap the payment reminder: [link]\n\nWarmly,\nThe Discovery! Team"),
             ]),
          
-            dict(kind="page", name="Sponsor someone (the public form page)", when="A volunteer opens it from the public website to start sponsoring someone.", who="Volunteers who sponsor someone", url="/sponsor", label="View page", sub="Sponsors"),
+            dict(kind="page", name="Sponsor a Friend (the public form page)", when="A volunteer opens it from the public website to start sponsoring someone.", who="Volunteers who sponsor someone", url="/sponsor", label="View page", sub="Sponsors"),
             E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
             E("sponsor_page", "Sponsor thank-you and page (contact form complete)", "Automatically, once the Sponsor\u2019s contact form is complete (required items and a photo).", "Volunteers who sponsor someone", sub="Sponsors"),
             V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Other Volunteers"),
