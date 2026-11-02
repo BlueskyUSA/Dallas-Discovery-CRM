@@ -265,7 +265,6 @@ def catalog():
             C("Welcome to a new login", "Automatically, when a login is created or a password is reset.", "New team members"),
          ]),
         ("guides", "Volunteers", "What the people who make the calls receive.", [
-            V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Guides"),
             E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called", sub="Guides"),
             E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with", sub="Guides"),
             E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved", sub="Guides"),
@@ -277,6 +276,7 @@ def catalog():
             C("Milestone emails", "Automatically, as a Guide reaches milestones.", "Guides", sub="Guides"),
          
             E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
+            V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Other Volunteers"),
          ]),
         ("testimonials", "Testimonials", "Inviting and checking what people say about the program.", [
             C("Share your Discovery! experience", "By hand, from the Testimonials page.", "Past trainees"),
