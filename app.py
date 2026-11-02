@@ -17,6 +17,14 @@ import html as _html
 from config import PROGRAM_NAME
 import needs
 from email_utils import send_email, EmailSendError
+
+
+def _public_send_email(*args, **kwargs):
+    """Automatic replies to people who use the PUBLIC website forms. Held back unless PUBLIC_REPLIES_LIVE=1."""
+    if (os.environ.get("PUBLIC_REPLIES_LIVE") or "").strip() != "1":
+        raise EmailSendError("Public website replies are switched off (PUBLIC_REPLIES_LIVE is not 1).")
+    return send_email(*args, **kwargs)
+
 import call_flow
 from email_templates import (
     SESSION_LETTERS, SESSION_LETTER_ORDER, SESSION_TRAINEE_LETTERS, session_letter_content,
@@ -2524,7 +2532,7 @@ def public_complete_profile(token):
                     values["first_name"], connect_url, plan_url, share_url
                 )
                 try:
-                    send_email(
+                    _public_send_email(
                         to_email=thankyou_email,
                         to_name=values["first_name"],
                         subject=LONGFORM_THANKYOU_SUBJECT,
@@ -2637,7 +2645,7 @@ def public_connect_request(token):
         if contact["email"]:
             html_content, text_content = connect_request_confirmation_content(contact["first_name"], method)
             try:
-                send_email(
+                _public_send_email(
                     to_email=contact["email"],
                     to_name=contact["first_name"],
                     subject=CONNECT_REQUEST_SUBJECT,
@@ -2675,7 +2683,7 @@ def request_preliminary_plan(token):
         if contact["email"]:
             html_content, text_content = preliminary_plan_content(contact["first_name"])
             try:
-                send_email(
+                _public_send_email(
                     to_email=contact["email"],
                     to_name=contact["first_name"],
                     subject=PRELIMINARY_PLAN_SUBJECT,
@@ -2683,13 +2691,17 @@ def request_preliminary_plan(token):
                     text_content=text_content,
                 )
                 _mark_business_plan_sent(contact["id"])
+                plan_sent = True
             except EmailSendError as e:
+                plan_sent = False
                 print(f"EmailSendError sending preliminary plan to {contact['email']}: {e}", flush=True)
+        else:
+            plan_sent = False
         conn.close()
-        return redirect(url_for("request_preliminary_plan", token=token, sent="1"))
+        return redirect(url_for("request_preliminary_plan", token=token, sent="1" if plan_sent else "held"))
 
     conn.close()
-    sent = request.args.get("sent") == "1"
+    sent = request.args.get("sent") if request.args.get("sent") in ("1", "held") else False
     return render_template("request_plan.html", contact=contact, sent=sent)
 
 
@@ -6976,7 +6988,7 @@ def public_discovery():
             longform_url = url_for("public_complete_profile", token=token, _external=True)
             html_content, text_content = longform_followup_content(first_name, longform_url)
             try:
-                send_email(
+                _public_send_email(
                     to_email=email,
                     to_name=first_name,
                     subject=LONGFORM_FOLLOWUP_SUBJECT,
@@ -7002,7 +7014,7 @@ def public_discovery():
             connect_url = url_for("public_connect_request", token=ip_token, _external=True)
             html_content, text_content = interested_party_welcome_content(first_name, connect_url)
             try:
-                send_email(
+                _public_send_email(
                     to_email=email,
                     to_name=first_name,
                     subject=INTERESTED_PARTY_WELCOME_SUBJECT,

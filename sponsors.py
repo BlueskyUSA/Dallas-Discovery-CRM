@@ -121,7 +121,7 @@ def register(app, get_db, leadership_email=None):
                     conn.commit()
                     page = f"{cf._base_url()}/call/{tok}"
                     who = f"{first} {last or ''}".strip()
-                    if fresh and cf.alerts_live():
+                    if fresh and cf.sponsor_live():
                         try:
                             from email_templates import guide_letter_content
                             subject, html, text = guide_letter_content(
@@ -153,7 +153,7 @@ def register(app, get_db, leadership_email=None):
             me = _contact_by_email(conn, vol["email"]) if vol else None
             st = profile_status(conn, me, cf._base_url()) if me else None
             return render_template("public_sponsor_thanks.html", who=f"{req['first_name']} {req['last_name'] or ''}".strip(),
-                                   page=cf._base_url() + "/call/" + token, emailed=cf.alerts_live(), st=st)
+                                   page=cf._base_url() + "/call/" + token, emailed=cf.sponsor_live(), st=st)
         finally:
             conn.close()
 

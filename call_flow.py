@@ -104,6 +104,11 @@ def alerts_live():
     return (os.environ.get("CALL_ALERTS_LIVE") or "").strip() == "1"
 
 
+def sponsor_live():
+    """Sponsor letters need the Guide-alerts switch AND SPONSOR_LIVE=1."""
+    return alerts_live() and (os.environ.get("SPONSOR_LIVE") or "").strip() == "1"
+
+
 def in_send_hours(now_utc=None):
     now_utc = now_utc or _utc_now()
     if CHI:
@@ -1393,7 +1398,7 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
             note = f"Help asked ({vol['name']}, {local_text(_ts(_utc_now()))}): Sponsor asked for an experienced volunteer to help speak with {who}."
             _add_note(conn, req["contact_id"], note)
             conn.commit()
-            if alerts_live():
+            if sponsor_live():
                 caps = conn.execute("SELECT name, email, push_user_key FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id").fetchall()
                 subject = f"{vol['name']} needs help speaking with {who}"
                 body = (f"<p>{vol['name']} ({pretty_phone(vol['cell_phone'])}, {vol['email']}) is sponsoring <strong>{who}</strong> "

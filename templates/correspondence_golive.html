@@ -4,7 +4,7 @@
 <h1>Ready to go live?</h1>
 <details class="card" style="max-width:860px" open>
   <summary style="cursor:pointer; font-weight:700">Ready to go live? <span class="muted" style="font-weight:400">({{ switches|selectattr(1)|list|length }} of {{ switches|length }} switches on)</span></summary>
-  <p class="muted" style="margin:8px 0">These four switches decide whether anything is actually sent to real people. While a switch is off, that kind of letter is held back. They are changed in Render (Environment), not here; this panel only shows where things stand.</p>
+  <p class="muted" style="margin:8px 0">These six switches decide whether anything is actually sent to real people. While a switch is off, that kind of letter is held back. They are changed in Render (Environment), not here; this panel only shows where things stand.</p>
   {% for name, on, what in switches %}
   <div style="display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--border)">
     <span class="badge {{ 'good' if on else '' }}" style="min-width:42px; text-align:center">{{ 'ON' if on else 'OFF' }}</span>
@@ -21,16 +21,8 @@
   <ul style="padding-left:20px; margin-top:4px">
     {% for name, on, what in on_list %}<li><strong>{{ name }}</strong> &ndash; {{ what }}</li>{% endfor %}
   </ul>
-  {% else %}<p class="muted" style="margin-top:4px">None of the four switches is on.</p>{% endif %}
+  {% else %}<p class="muted" style="margin-top:4px">None of the six switches is on.</p>{% endif %}
   <p><strong>Always live (no switch controls these):</strong></p>
-  <p class="muted" style="margin:0 0 4px">Sent automatically when someone uses the public website:</p>
-  <ul style="padding-left:20px; margin-top:0">
-    <li>Discovery form, past volunteer: the long-form link email.</li>
-    <li>Discovery form, interested party: the welcome letter.</li>
-    <li>Finishing the long form: the thank-you letter.</li>
-    <li>Using a &ldquo;reach out to me&rdquo; link: the confirmation letter.</li>
-    <li>Requesting the preliminary business plan: the plan email.</li>
-  </ul>
   <p class="muted" style="margin:0 0 4px">Sent only when a person on the team clicks a button:</p>
   <ul style="padding-left:20px; margin-top:0">
     <li>From a contact&rsquo;s record: Excitement email, video call link, preliminary business plan, contract information request.</li>
@@ -61,13 +53,15 @@
     <li><strong>SESSION_LETTERS_LIVE</strong> is the master switch for letters to trainees and the team. It must be ON for the Automatic letters switch to work.</li>
     <li><strong>AUTO_LETTERS_LIVE</strong> controls the letters that go out by themselves (confirmation, &ldquo;Thank you &ndash; We&rsquo;re so excited&rdquo;, What to bring). It needs the master switch ON too.</li>
     <li><strong>CALL_ALERTS_LIVE</strong> controls the Guide alerts, the Guide page emails, the 7-day payment reminders to Guides, and the reply to &ldquo;I&rsquo;m curious&rdquo;.</li>
+    <li><strong>SPONSOR_LIVE</strong> controls the Sponsor welcome letter and the Sponsor help alert. It needs CALL_ALERTS_LIVE ON as well.</li>
+    <li><strong>PUBLIC_REPLIES_LIVE</strong> controls the automatic replies to the public website forms: the long-form link, the welcome letter, the thank-you letter, the &ldquo;reach out to me&rdquo; confirmation, and the plan email. While it is OFF the person still sees their thank-you page, but no email goes out (for the plan, they are told you will send it personally).</li>
     <li><strong>BLASTS_LIVE</strong> controls Marketing &amp; Email Blasts.</li>
   </ul>
   <p><strong>Good to know.</strong></p>
   <ul style="padding-left:20px">
     <li>Even with a switch ON, letters go out only between <strong>8 am and 8 pm Central</strong>. Anything outside those hours waits.</li>
     <li>A switch that is OFF holds that kind of letter back. You can still preview any letter and send a test copy to yourself.</li>
-    <li>To stop everything quickly, turn <strong>SESSION_LETTERS_LIVE</strong>, <strong>CALL_ALERTS_LIVE</strong> and <strong>BLASTS_LIVE</strong> OFF.</li>
+    <li>To stop everything quickly, turn <strong>SESSION_LETTERS_LIVE</strong>, <strong>CALL_ALERTS_LIVE</strong>, <strong>PUBLIC_REPLIES_LIVE</strong> and <strong>BLASTS_LIVE</strong> OFF.</li>
     <li>The <strong>Email Guide Training</strong> button on the Guides page is a deliberate send to one Guide and does not depend on these switches.</li>
     <li>Only the Owner and Leadership logins can see this page. Anyone with your Render login can change the switches, so keep that login private.</li>
   </ul>

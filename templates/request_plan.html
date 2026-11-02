@@ -58,6 +58,12 @@
       {% if contact is none %}
       <h1>Link not found</h1>
       <p class="lead">This link isn't valid or has expired. Please reach out to us directly and we'll send you the plan.</p>
+      {% elif sent == 'held' %}
+      <div class="plan-success">
+        <h2>Thank you, {{ contact.first_name }}!</h2>
+        <p>We received your request for the Preliminary Discovery Plan. We will send it to you personally very soon.</p>
+        <p>Blessings on you,<br>Kent</p>
+      </div>
       {% elif sent %}
       <div class="plan-success">
         <h2>On its way, {{ contact.first_name }}!</h2>

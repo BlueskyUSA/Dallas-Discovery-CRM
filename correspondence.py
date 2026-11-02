@@ -38,12 +38,14 @@ def live():
 
 
 def switches():
-    """The four safety switches, as (name, is_on, what it controls). Status only: they are changed in Render's Environment."""
+    """The six safety switches, as (name, is_on, what it controls). Status only: they are changed in Render's Environment."""
     on = lambda n: (os.environ.get(n) or "").strip() == "1"
     return [
         ("SESSION_LETTERS_LIVE", on("SESSION_LETTERS_LIVE"), "Master switch: letters to trainees and the team (sent by hand or automatically). Off means nothing is sent."),
         ("AUTO_LETTERS_LIVE", on("AUTO_LETTERS_LIVE"), "Automatic letters: confirmation after reserving, \u201cThank you \u2013 We\u2019re so excited\u201d, and What to bring. Also needs the master switch."),
         ("CALL_ALERTS_LIVE", on("CALL_ALERTS_LIVE"), "Guide alerts, Guide-page emails, the 7-day payment nudges, and the reply to \u201cI\u2019m curious\u201d."),
+        ("SPONSOR_LIVE", on("SPONSOR_LIVE"), "Sponsor letters: the Sponsor welcome letter and the help alert. Also needs the Guide alerts switch (CALL_ALERTS_LIVE)."),
+        ("PUBLIC_REPLIES_LIVE", on("PUBLIC_REPLIES_LIVE"), "Automatic replies when someone uses a public website form: long-form link, welcome letter, thank-you letter, \u201creach out to me\u201d confirmation, and the plan email."),
         ("BLASTS_LIVE", on("BLASTS_LIVE"), "Marketing & Email Blasts (excitement letters, volunteer and Guide emails)."),
     ]
 
