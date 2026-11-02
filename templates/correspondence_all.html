@@ -108,6 +108,9 @@ details.subblock>summary{font-size:1.05rem}
       {% elif e.kind == 'view' %}
         <a class="btn secondary" href="{{ url_for('.correspondence_letter_view', slug=e.slug) }}">View</a>
         <div class="muted" style="font-size:.85rem; margin-top:4px">Wording is in the program code</div>
+      {% elif e.kind == 'page' %}
+        <a class="btn secondary" href="{{ e.url }}" target="_blank" rel="noopener">{{ e.label }}</a>
+        <div class="muted" style="font-size:.85rem; margin-top:4px">Opens the public page in a new tab. Nothing is sent from just looking.</div>
       {% elif e.kind == 'ext' %}
         <a class="btn secondary" href="{{ e.url }}" target="_blank" rel="noopener">View questionnaire</a>
         <div class="muted" style="font-size:.85rem; margin-top:4px">Read-only preview, opens in a new tab</div>
@@ -124,7 +127,7 @@ details.subblock>summary{font-size:1.05rem}
         </details>
         {% else %}<span class="muted">{% if e.note %}{{ e.note }}{% else %}Wording is in the program code{% endif %}</span>{% endif %}
       {% endif %}
-      {% if e.kind != 'link' %}<div style="margin-top:4px"><a href="#suggest" class="suggestLink" data-letter="{{ e.name }}" style="font-size:.85rem">Suggest a change</a></div>{% endif %}
+      {% if e.kind not in ('link',) %}<div style="margin-top:4px"><a href="#suggest" class="suggestLink" data-letter="{{ e.name }}" style="font-size:.85rem">Suggest a change</a></div>{% endif %}
     </td>
   </tr>
   {% endif %}
