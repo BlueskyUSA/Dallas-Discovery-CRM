@@ -13,7 +13,7 @@
 
 <div class="card">
   {% if rows %}
-  <table>
+  <table class="stack">
     <tr>
       <th>Name</th><th>People brought in</th><th>Of those, attended</th>
       <th>Meets TA ({{ TA_MIN }}+)</th><th>Meets TA Team Captain ({{ CAPTAIN_MIN }}+)</th>
@@ -21,13 +21,13 @@
     </tr>
     {% for r in rows %}
     <tr>
-      <td><a href="{{ url_for('.contact_detail', contact_id=r.id) }}">{{ r.name }}</a></td>
-      <td><strong>{{ r.enrolled }}</strong></td>
-      <td>{{ r.attended }}</td>
-      <td>{% if r.ta_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
-      <td>{% if r.captain_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
-      <td>{{ r.ta_times or '' }}</td>
-      <td>{{ r.captain_times or '' }}</td>
+      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=r.id) }}">{{ r.name }}</a></td>
+      <td data-label="People brought in"><strong>{{ r.enrolled }}</strong></td>
+      <td data-label="Of those, attended">{{ r.attended }}</td>
+      <td data-label="Meets TA">{% if r.ta_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
+      <td data-label="Meets TA Team Captain">{% if r.captain_ok %}<span class="badge good">&#10003; yes</span>{% else %}<span class="badge warn">not yet</span>{% endif %}</td>
+      <td data-label="Times served as TA">{{ r.ta_times or '' }}</td>
+      <td data-label="Times as TA Team Captain">{{ r.captain_times or '' }}</td>
       <td>{% if r.needs_attention %}<span class="badge warn">&#9888; serving below the requirement</span>{% endif %}</td>
     </tr>
     {% endfor %}
