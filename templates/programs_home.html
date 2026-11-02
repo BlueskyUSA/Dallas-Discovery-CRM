@@ -2,13 +2,12 @@
 {% block title %}Programs — {{ program_name }}{% endblock %}
 {% block content %}
 <h1>Programs</h1>
-<p class="muted">Click a program to open it: training materials, music, sessions and scheduling.</p>
+<p class="muted">Click a program to open it: training materials, music and sessions. To schedule a session, use Calendar.</p>
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 {% if is_lead or has_contacts_access %}
 <p><a href="{{ url_for('.calendar_view') }}" style="display:inline-block; font-size:1.05rem; font-weight:700; color:#1f5fbf; text-decoration:none; border:2px solid #1f5fbf; border-radius:8px; padding:6px 14px">Calendar &rarr;</a>
   <span class="muted" style="display:block; margin-top:8px">Quick Schedule and every session across all programs, at a glance.</span></p>
 {% endif %}
-{% include "_schedule_panel.html" %}
 <div class="card">
   <table>
     <tr><th>Program</th><th class="num">Upcoming sessions</th></tr>

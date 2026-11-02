@@ -107,8 +107,8 @@
       <details class="navmenu">
         <summary>Programs &#9662;</summary>
         <div class="navmenu-items">
-          <a href="{{ url_for('.programs_list') }}">All programs and scheduling</a>
-          <a href="{{ url_for('.programs_list') }}#by-year">Programs by year</a>
+          <a href="{{ url_for('.programs_list') }}">All Programs</a>
+          <a href="{{ url_for('.calendar_view') }}">Calendar &amp; Quick Schedule</a>
           <div style="padding:8px 16px 2px; color:#cfc9b0; font-size:0.78rem; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap">Upcoming sessions</div>
           {% for n in nav_sessions %}<a href="{{ url_for('.cohort_detail', cohort_id=n.id) }}">{{ n.label }} &middot; {{ n.span }}</a>{% endfor %}
         </div>

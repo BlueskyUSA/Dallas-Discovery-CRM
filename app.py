@@ -5962,7 +5962,6 @@ def _calendar_data(year, public=False):
 
 
 @crm.route("/calendar")
-@area_required("contacts")
 def calendar_view():
     """Year-at-a-glance calendar of every scheduled training session, twelve
     small months with each session date marked in its program's color and
