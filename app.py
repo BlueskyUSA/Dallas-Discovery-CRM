@@ -551,7 +551,7 @@ def program_area_required(view):
             g.allowed_headings = allowed
             return view(*args, **kwargs)
         flash("You don't have access to that part of this program's training materials. Ask the Owner to grant it from Site Access.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     return wrapped
 
 
@@ -3381,9 +3381,8 @@ def donation_new(contact_id):
 
 # ---------- programs & cohorts ----------
 
-@crm.route("/programs")
-def programs_list():
-    """Front page of Programs: one line per program, click a name to open it."""
+def _schedule_context():
+    """Everything the Quick Schedule form and the Scheduled sessions list need (Programs and Calendar pages)."""
     conn = get_db()
     programs = conn.execute("SELECT * FROM programs ORDER BY id").fetchall()
     upcoming = {}
@@ -3410,8 +3409,14 @@ def programs_list():
             last = None
     except Exception:
         last = None
-    return render_template("programs_home.html", programs=programs, upcoming=upcoming, sessions=sessions,
-                           years=years, default_year=default_year, today_iso=date.today().isoformat(), last_sched=last)
+    return dict(programs=programs, upcoming=upcoming, sessions=sessions, years=years, default_year=default_year,
+                today_iso=date.today().isoformat(), last_sched=last)
+
+
+@crm.route("/programs")
+def programs_list():
+    """Front page of Programs: one line per program, click a name to open it."""
+    return render_template("programs_home.html", sched_back="programs", **_schedule_context())
 
 
 @crm.route("/programs/quick-schedule", methods=["POST"])
@@ -3424,13 +3429,13 @@ def quick_schedule():
         start = date.fromisoformat((request.form.get("session_date") or "").strip())
     except ValueError:
         flash("Please pick a program and a start date. Nothing was saved.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     conn = get_db()
     prog = conn.execute("SELECT id, code, name FROM programs WHERE id = ?", (pid,)).fetchone()
     if not prog:
         conn.close()
         flash("Please pick a program. Nothing was saved.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     end = start + timedelta(days=DEFAULT_SESSION_DAYS.get(prog["code"], DEFAULT_SESSION_DAYS_OTHER) - 1)
     # D1, D2 and D3 are always the same weekend (plus Refocus on Saturday-Sunday), so scheduling D1 schedules them all.
     jobs = [(prog["id"], prog["code"], prog["name"], start, end)]
@@ -3461,13 +3466,13 @@ def quick_schedule():
     conn.close()
     if not made:
         flash(f"{prog['name']} already has a session starting {fdate_text(start.isoformat())}. Nothing was added.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     session["last_quick_schedule"] = {"ids": new_ids, "label": f"{', '.join(made)}, {_short_span(start, end)}, {end.year}",
                                       "at": datetime.now().isoformat()}
     note = "" if start.weekday() == 4 else f" (Heads up: {start.strftime('%A')} is not a Friday.)"
     which = ", ".join(made)
     flash(f"Scheduled {_short_span(start, end)}, {end.year}: {which}. It now shows on the website.{note}")
-    return redirect(url_for(".programs_list"))
+    return redirect(_sched_home())
 
 
 @crm.route("/programs/quick-schedule/undo", methods=["POST"])
@@ -3477,7 +3482,7 @@ def quick_schedule_undo():
     Anything with enrolled people or contracts is never removed."""
     last = session.pop("last_quick_schedule", None)
     if request.form.get("action") != "undo" or not last:
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     conn = get_db()
     removed, kept = 0, 0
     for cid in last.get("ids", []):
@@ -3498,7 +3503,7 @@ def quick_schedule_undo():
     if kept:
         msg += f" {kept} could not be removed because people are already enrolled; use Change or delete on that session."
     flash(msg)
-    return redirect(url_for(".programs_list"))
+    return redirect(_sched_home())
 
 
 @crm.route("/programs/<int:program_id>")
@@ -3511,7 +3516,7 @@ def program_open(program_id):
     if not programs:
         conn.close()
         flash("That program no longer exists.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     headings_by_program = {p["id"]: _allowed_headings(conn, p["code"]) for p in programs}
     cohorts_by_program = {}
     for p in programs:
@@ -3556,7 +3561,7 @@ def program_new():
     conn.commit()
     conn.close()
     flash(f"Program {code} added.")
-    return redirect(url_for(".programs_list"))
+    return redirect(_sched_home())
 
 
 @crm.route("/programs/<int:program_id>/edit", methods=["POST"])
@@ -3570,7 +3575,7 @@ def program_edit(program_id):
     if prereq and int(prereq) == program_id:
         flash("A program can't require itself as a prerequisite.")
         conn.close()
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     conn.execute(
         "UPDATE programs SET code = ?, name = ?, description = ?, prerequisite_program_id = ? WHERE id = ?",
         (code, name, description, prereq, program_id),
@@ -3589,7 +3594,7 @@ def program_delete(program_id):
     if not prog:
         conn.close()
         flash("That program no longer exists.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
 
     cohort_count = conn.execute(
         "SELECT COUNT(*) AS n FROM cohorts WHERE program_id = ?", (program_id,)
@@ -3600,7 +3605,7 @@ def program_delete(program_id):
             f"Can't delete {prog['code']} — it still has {cohort_count} session(s) scheduled. "
             f"Delete or reassign those sessions first."
         )
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
 
     # Clear any other program that lists this one as a prerequisite, then delete.
     conn.execute(
@@ -3611,7 +3616,7 @@ def program_delete(program_id):
     conn.commit()
     conn.close()
     flash(f"Program {prog['code']} deleted.")
-    return redirect(url_for(".programs_list"))
+    return redirect(_sched_home())
 
 
 DAY_LABEL_ORDER = ["Friday Night", "Saturday", "Sunday", "General"]
@@ -4369,11 +4374,22 @@ def cohort_new(program_id):
 COHORT_STATUSES = ["Scheduled", "Completed", "Cancelled"]
 
 
+def _sched_home():
+    """Where scheduling changes return to: the Calendar page when they were made there, otherwise Programs."""
+    if request.form.get("back") == "calendar":
+        return redirect_url_calendar()
+    return url_for(".programs_list")
+
+
+def redirect_url_calendar():
+    return url_for(".calendar_view")
+
+
 def _after_cohort_change(cohort_id):
     """Back to the Programs page when the change was made there, otherwise to
     the session's own page."""
-    if request.form.get("back") == "programs":
-        return redirect(url_for(".programs_list"))
+    if request.form.get("back") in ("programs", "calendar"):
+        return redirect(_sched_home())
     return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
 
 
@@ -4488,7 +4504,7 @@ def cohort_delete(cohort_id):
     if not cohort:
         conn.close()
         flash("That session no longer exists.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     label = f"{cohort['code']} #{cohort['session_number']}"
     checks = [
         ("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", "{n} enrolled trainee(s)"),
@@ -4505,7 +4521,7 @@ def cohort_delete(cohort_id):
             f"Can't delete {label} -- it has " + ", ".join(blockers) + ". "
             f"To take it off the calendar without losing that history, change its status to Cancelled instead."
         )
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     if request.form.get("weekend"):
         for sid, scode, _s, _e in _weekend_sisters(conn, cohort_id):
             if conn.execute("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", (sid,)).fetchone()["n"] \
@@ -4526,7 +4542,7 @@ def cohort_delete(cohort_id):
     conn.close()
     print(f"DELETED session {label} (cohort {cohort_id}) by {session.get('staff_name')}", flush=True)
     flash(f"Deleted the session {label}. The {cohort['code']} program itself is unchanged.")
-    return redirect(url_for(".programs_list"))
+    return redirect(_sched_home())
 
 
 def _norm_name(s):
@@ -4854,7 +4870,7 @@ def enrollment_remove(enrollment_id):
     if not enr:
         conn.close()
         flash("That person is no longer on the roster.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     cohort_id = enr["cohort_id"]
     if conn.execute("SELECT 1 FROM feedback_responses WHERE enrollment_id = ?", (enrollment_id,)).fetchone():
         conn.close()
@@ -5438,7 +5454,7 @@ def cohort_team_print(cohort_id):
     if not cohort:
         conn.close()
         flash("That session no longer exists.")
-        return redirect(url_for(".programs_list"))
+        return redirect(_sched_home())
     rows = conn.execute(
         f"""SELECT cs.role, cs.duty, ct.id AS contact_id, {full_name_sql('ct')} AS full_name,
                    ct.cell_phone, ct.email, ct.partner_name, ct.partner_email,
@@ -5952,15 +5968,7 @@ def calendar_view():
     small months with each session date marked in its program's color and
     linked to that session. Read-only -- sessions are still scheduled on the
     Programs page."""
-    year = request.args.get("year", type=int) or date.today().year
-    year = max(2000, min(2100, year))
-    cal = _calendar_data(year, public=False)
-    return render_template(
-        "calendar.html", cal=cal,
-        prev_url=url_for(".calendar_view", year=year - 1),
-        next_url=url_for(".calendar_view", year=year + 1),
-        today_url=url_for(".calendar_view"),
-    )
+    return render_template("calendar.html", sched_back="calendar", **_schedule_context())
 
 
 # ---------- bulk "brought in by" entry ----------

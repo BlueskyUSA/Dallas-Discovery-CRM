@@ -1,7 +1,8 @@
 {% extends "crm_base.html" %}
-{% block title %}Calendar {{ cal.year }} — {{ program_name }} CRM{% endblock %}
+{% block title %}Calendar — {{ program_name }} CRM{% endblock %}
 {% block content %}
+{% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 <h1>Calendar</h1>
-<p class="muted" style="margin:0 0 6px">Every scheduled training session, by date. Click a colored date or tag to open that session. Add or change sessions on the <a href="{{ url_for('.programs_list') }}">Programs</a> page.</p>
-{% include "_calendar_widget.html" %}
+<p class="muted" style="margin:0 0 6px">Schedule a session with Quick Schedule, then see every scheduled session by year. Click Open to go to a session.</p>
+{% include "_schedule_panel.html" %}
 {% endblock %}
