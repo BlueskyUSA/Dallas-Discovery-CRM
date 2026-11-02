@@ -235,3 +235,15 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   table.stack td select { max-width: 100% !important; }
   table.stack td[data-label="Actions"]::before, table.stack td[data-label="Paid"]::before { display: block; margin-bottom: 4px; }
 }
+
+/* Big full-width section bands (session page: Trainee Roster, Session Team) */
+h2.bandhead {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
+  width: 100%; box-sizing: border-box;
+  background: #44564a; color: #fff;
+  font-size: 2.1rem; font-weight: 800; letter-spacing: .02em;
+  padding: 16px 22px; margin: 36px 0 14px;
+  border: 0; border-left: 10px solid #c9a13b; border-radius: 8px;
+}
+h2.bandhead a:not(.btn) { color: #ffe08a !important; margin-left: 0 !important; font-size: 1.1rem !important; }
+@media (max-width: 700px) { h2.bandhead { font-size: 1.6rem; padding: 14px 16px; } }
