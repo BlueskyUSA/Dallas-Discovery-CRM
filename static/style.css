@@ -216,3 +216,4 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
 }
 @media (max-width: 700px) { table.stack td[style*="nowrap"] { white-space: normal !important; } }
 @media (max-width: 700px) { table.stack td.ph { display: none; } }
+@media (max-width: 700px) { table.stack thead { display: none; } }
