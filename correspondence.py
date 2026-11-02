@@ -169,26 +169,24 @@ def _preview_map():
 
 # Plain-language note shown where the Guide letters appear, because most people don't know what a Guide is.
 GUIDE_EXPLAINER = (
-    "A Guide is a volunteer who becomes one person's personal contact for Discovery!, from their first question all the way into the training room. "
-    "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. "
-    "The goal is to select 12 volunteers to do this job: 6 for The Art of Us and 6 for The Beginning. Training modules for a Guide are found in the Admin / Guides Menu.",
+    "A Guide is a volunteer with a very important role. A Guide is a volunteer selected by leadership who is responsible for responding to the \u201cI\u2019m Curious to know more\u201d short form on the public website. "
+    "If a Guide responds to this inquiry, the Guide becomes that person's personal contact for Discovery!, from their first question all the way into the training room. "
+    "In short, a Guide is a salesperson who helps fill the seats. In years past only staff took on this job. We think it makes sense to invite qualified volunteers to help. "
+    "Our goal is to select 12 volunteers to do this job: 6 for The Art of Us program, and 6 for The Beginning program.",
     "## How it works",
     "When someone fills out an \"I'm curious\" form, and let's say they are interested in The Art of Us, an alert is sent to all 6 of the Guides for that program. "
-    "The first Guide to respond to the request is assigned to that contact, and this letter goes out right away to tell the person who their Guide is and that the Guide will be in touch. "
-    "(If a person selects \"Not sure\" about which program they are interested in, or if a program has no Guides of its own, such as Awakening or Vision, the \"Everything else\" group is alerted.)",
-    "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave, so to speak, "
-    "to guide that person into the training room, including registration, payment and greeting them at the door. "
-    "A Guide needs to be gifted, with breadth and depth in communication skill.",
-    "When a Guide accepts the \"I'm curious\" request, that Guide is sent a link of their own, and an alert that carries the name of the client, so the Guide knows right away who it is about. "
-    "The link opens a web page dedicated to that one client, which, by simply pressing buttons, makes it easy for the Guide to send pre-written correspondence to them. "
-    "For example, when the client is ready to register, the Guide will send the registration link. After the client registers, the Guide is notified to send the questionnaire link and a payment request link. "
+    "The first Guide to respond to the request is assigned to that contact, and a letter goes out right away to tell the person who their Guide is and that the Guide will be in touch. "
+    "(If a person selects \"Not sure\" about which program, or if they ask about Awakening, Vision, Refocus, or Spiritual, the \"Everything else\" group is alerted.)",
+    "From then on the same Guide is a salesperson, coach and counselor bundled together, and takes on the responsibility from cradle to grave to answer questions and guide that person into the training room. "
+    "A Guide must be gifted, with breadth and depth in communication skill.",
+    "When a Guide accepts the \"I'm curious\" request, that Guide is sent a link of their own with an alert that carries the name of the client so the Guide knows right away who it is about. "
+    "The link opens an easy to use web page dedicated to that one client, which, by simply pressing buttons, makes it simple for the Guide to send pre-written correspondence to the contact. "
+    "For example, when the client is ready to register, the Guide will press the button to send the registration link. After the client registers, the Guide is notified to send the questionnaire link, payment request link, and so on. "
     "If the client delays payment, the Guide will be automatically notified every seven days that payment is delayed, and at the Guide's discretion, a payment reminder may be sent. "
     "Once payment is made, a \"Thank you \u2013 We're so excited\" letter is automatically sent, followed by a \"What to bring\" letter seven days before the training begins.",
-    "We request the Guide to keep us informed of each person's progress. After reaching out, the Guide chooses how it went from a drop-down "
-    "(spoke with them, left a voicemail, texted and waiting for a reply, no answer and will try again, not interested, or wrong number) and dictates a note about what the person is hoping for, "
-    "their questions and the next step. This shows on the Call requests page, along with whether the person has reserved a seat.",
-    "Before the trainee shows up at the door, the Guide makes sure that the long-form contact information is complete, including a photo, "
-    "that the questionnaire is complete, and that payment has been received.",
+    "A dropdown menu gives the Guide options to tell us how the initial conversation went (spoke with them, left a voicemail, texted and waiting for a reply, no answer and will try again, not interested, or wrong number). "
+    "The Guide may dictate a note about what the person is hoping for, their questions and the next step. This information is stored on the \u201cCall Requests\u201d page under the Admin menu.",
+    "Before the trainee shows up at the door, the Guide makes sure the contact information is complete, including a photo, the questionnaire is complete, and payment has been received.",
 )
 
 
