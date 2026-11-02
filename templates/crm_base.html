@@ -52,13 +52,18 @@
       <details class="navmenu">
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
-          {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Leadership (Website)</a>{% endif %}
+          {% if show_contacts and has_guides_access %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
           {% if show_contacts %}
-          {% if has_guides_access %}<a href="{{ url_for('.call_volunteers_page') }}">Guides</a>{% endif %}
+          <details class="subnav">
+            <summary>Sponsors &#9662;</summary>
+            <a href="{{ url_for('.leadership_pipeline') }}" style="padding-left:30px">Sponsor pipeline</a>
+          </details>
+          {% endif %}
+          {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Website Leaders</a>{% endif %}
+          {% if show_contacts %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
           <a href="{{ url_for('.interest_report') }}">Interest report</a>
-          <a href="{{ url_for('.leadership_pipeline') }}">Sponsor pipeline</a>
           {% endif %}
           {% if is_lead %}<a href="{{ url_for('.testimonials_review') }}">Testimonials</a>{% endif %}
           {% if show_finance or show_donations or session.is_owner or has_budgets_access %}
@@ -80,7 +85,6 @@
             {% endif %}
           </details>
           {% endif %}
-          {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
           {% if session.is_owner %}
           <details class="subnav">
             <summary>Database Features &#9662;</summary>
@@ -88,6 +92,7 @@
             <a href="{{ url_for('.database_map') }}" style="padding-left:30px">Database map</a>
           </details>
           {% endif %}
+          {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
           {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
         </div>
       </details>
