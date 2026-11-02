@@ -57,6 +57,7 @@
           <details class="subnav">
             <summary>Sponsors &#9662;</summary>
             <a href="{{ url_for('.leadership_pipeline') }}" style="padding-left:30px">Sponsor pipeline</a>
+            <a href="{{ url_for('public_sponsor') }}" style="padding-left:30px" target="_blank">Sponsor form (public)</a>
           </details>
           {% endif %}
           {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Website Leaders</a>{% endif %}

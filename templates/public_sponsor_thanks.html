@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Thank you — {{ program_name }}{% endblock %}
+{% block content %}
+<section class="pub-section">
+  <div class="pub-container" style="max-width:640px">
+    <h2>Thank you for sponsoring {{ who }}</h2>
+    <p class="lead">You will receive a private web page for helping them: their contact information, a &ldquo;Your next step&rdquo; box, a checklist that fills itself in, and one-tap letters.</p>
+    {% if st and not st.complete %}
+      <div class="card" style="padding:18px; background:#fff8e6; border:1px solid #f0d9a0; border-radius:12px">
+        <p style="margin:0 0 8px"><strong>Your first step:</strong> please complete your own contact information (the long form), including a photo. Still needed: <strong>{{ st.missing|join(', ') }}</strong>. Your page opens as soon as it is complete.</p>
+        <p style="margin:0"><a class="pub-btn dark" href="{{ st.link }}">Complete my information</a></p>
+      </div>
+    {% else %}
+      <p><a class="pub-btn dark" href="{{ page }}">Open my Sponsor page</a></p>
+    {% endif %}
+    <p class="muted" style="margin-top:16px">{% if emailed %}We also emailed you a letter with these links.{% else %}Please save this page link somewhere safe: {{ page }}{% endif %} Your page link is yours alone, so please do not share it.</p>
+  </div>
+</section>
+{% endblock %}

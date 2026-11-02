@@ -657,7 +657,7 @@ def sync_guide_lists(conn):
                      (LEAD_GUIDE_LIST, LEAD_GUIDE_LIST))
         g, l = list_id_for(conn, GUIDE_LIST), list_id_for(conn, LEAD_GUIDE_LIST)
         want = {g: set(), l: set()}
-        for v in conn.execute("SELECT program_code, email FROM call_volunteers WHERE active = 1").fetchall():
+        for v in conn.execute("SELECT program_code, email FROM call_volunteers WHERE active = 1 AND program_code <> 'SPONSOR'").fetchall():
             c = conn.execute("SELECT id FROM contacts WHERE LOWER(email) = LOWER(?) ORDER BY id LIMIT 1", (v["email"] or "",)).fetchone()
             if c:
                 want[l if v["program_code"] == "CAPTAIN" else g].add(c["id"])
@@ -685,7 +685,7 @@ def guide_for_email(conn, email):
                      (email.strip(),)).fetchone()
     if not v:
         return None
-    return dict(id=v["id"], name=v["name"], role="Guide Team Captain" if v["program_code"] == "CAPTAIN" else "Guide",
+    return dict(id=v["id"], name=v["name"], role=("Sponsor" if v["program_code"] == "SPONSOR" else "Guide Team Captain" if v["program_code"] == "CAPTAIN" else "Guide"),
                 group=dict(POOLS).get(v["program_code"], v["program_code"]))
 
 
@@ -1299,6 +1299,14 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
         conn, n, req, vol, claimer = _load(token)
         try:
             mine = bool(req and req["claimed_by"] == vol["id"])
+            if mine and req["source"] == "sponsor":
+                import sponsors
+                me_c = conn.execute("SELECT * FROM contacts WHERE lower(email) = lower(?) ORDER BY id LIMIT 1", (vol["email"] or "",)).fetchone()
+                if me_c is not None:
+                    st = sponsors.profile_status(conn, me_c, _base_url())
+                    if not st["complete"]:
+                        return render_template("public_sponsor_wait.html", first=vol["name"].split()[0], link=st["link"], missing=st["missing"],
+                                               who=f"{req['first_name']} {req['last_name'] or ''}".strip())
             if request.method == "POST" and req["status"] == "New" and vol["consent_at"]:
                 res = conn.execute("UPDATE call_requests SET status = 'Claimed', claimed_by = ?, claimed_at = ? "
                                    "WHERE id = ? AND status = 'New'", (vol["id"], _ts(_utc_now()), req["id"]))
@@ -1332,7 +1340,7 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
                                     f"($1,399 per couple). Call or text me at {pretty_phone(vol['cell_phone'])} and I'll walk you through it.")
                 extra["payment_reminder"] = (f"Hi {req['first_name']}, it's {vfirst} with Discovery! A friendly reminder that your payment has "
                                              f"not come in yet. Your spot is held. Call or text me anytime if I can help.")
-            return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer, prog=prog, extra_sms=extra,
+            return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer, prog=prog, extra_sms=extra, is_sponsor=(req["source"] == "sponsor"),
                                    captain=(dict(name=cap["name"], phone=pretty_phone(cap["cell_phone"])) if cap else None),
                                    link=link, sms_body=sms_body, q=q, q_body=q_body,
                                    need_permission=(not vol["consent_at"]),
@@ -1366,6 +1374,36 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
             conn.execute("UPDATE contacts SET notes = ? WHERE id = ?", (merged, req["contact_id"]))
             conn.commit()
             flash("Thank you! Your call has been logged.")
+            return redirect(url_for("public_call_claim", token=token))
+        finally:
+            conn.close()
+
+    @app.route("/call/<token>/help", methods=["POST"])
+    def public_call_help(token):
+        """A Sponsor taps 'I need help speaking with them': the Guide Team Captain and Kent are told."""
+        conn, n, req, vol, claimer = _load(token)
+        try:
+            if req["claimed_by"] != vol["id"] or req["source"] != "sponsor":
+                abort(403)
+            who = f"{req['first_name']} {req['last_name'] or ''}".strip()
+            note = f"Help asked ({vol['name']}, {local_text(_ts(_utc_now()))}): Sponsor asked for an experienced volunteer to help speak with {who}."
+            _add_note(conn, req["contact_id"], note)
+            conn.commit()
+            if alerts_live():
+                caps = conn.execute("SELECT name, email, push_user_key FROM call_volunteers WHERE active = 1 AND program_code = 'CAPTAIN' ORDER BY id").fetchall()
+                subject = f"{vol['name']} needs help speaking with {who}"
+                body = (f"<p>{vol['name']} ({pretty_phone(vol['cell_phone'])}, {vol['email']}) is sponsoring <strong>{who}</strong> "
+                        f"and asked for an experienced volunteer to reach out to them. Please ask a Guide to call or text {vol['name'].split()[0]}.</p>")
+                text = f"{vol['name']} ({pretty_phone(vol['cell_phone'])}, {vol['email']}) is sponsoring {who} and asked for an experienced volunteer to reach out to them."
+                targets = [(c["name"], c["email"], c["push_user_key"]) for c in caps] + [("Kent", _leadership_email(), None)]
+                for nm, em, pk in targets:
+                    try:
+                        if pk:
+                            push(pk, subject, text, high=False)
+                        _send(em, subject, body, text, to_name=nm)
+                    except Exception as e:
+                        print(f"Help request notice failed: {e}", flush=True)
+            flash("Thank you. We have let the team know, and an experienced volunteer will reach out to you.")
             return redirect(url_for("public_call_claim", token=token))
         finally:
             conn.close()

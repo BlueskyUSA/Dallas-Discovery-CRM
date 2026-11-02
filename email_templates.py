@@ -811,8 +811,29 @@ GUIDE_LETTERS = {
         "signoff": "Warmly,",
         "signer": "{vol_name} and the Discovery! Team",
     },
+    "sponsor_welcome": {
+        "title": "Sponsor welcome (complete your long form)",
+        "audience": "Volunteers who sponsor someone",
+        "greeting": "Dear",
+        "subject": "Thank you for sponsoring {client}",
+        "paras": [
+            "It is because of volunteers like you that Discovery! flourishes, and we are so grateful for your leadership and giving heart. "
+            "We have automated much of the sponsorship process so that everyone can complete the entire sponsorship process without admin support.",
+            "Here is how it works:",
+            "1. As a sponsor, you complete a short form registration for the sponsee.",
+            "2. You complete your contact information (this eliminates admin support). Here is your link:",
+            "{link}",
+            "3. Discovery! will send you a dedicated web page on your phone and computer which enables you (simply by clicking on buttons) to "
+            "easily walk the sponsee through the registration process. Of course, if you need help speaking to the sponsee, let us know "
+            "(again by clicking on a button) and an experienced volunteer will reach out to you. Here is your page for {client}:",
+            "{page_link}",
+            "Thank you so much. Let us know if you have questions.",
+        ],
+        "signoff": "Have a great day.",
+        "signer": "The Discovery! Team",
+    },
 }
-GUIDE_FIELDS = ("label", "vol_name", "vfirst", "vphone", "link", "pw", "first")
+GUIDE_FIELDS = ("label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "client", "page_link")
 ALL_LETTERS = {**SESSION_LETTERS, **GUIDE_LETTERS}
 
 
@@ -891,7 +912,7 @@ def render_spec(spec, fill, link=None):
     html_content = (
         f"<p>{_html.escape(word)} {_html.escape(greeting)},</p>"
         + "".join(
-            (f'<p><a href="{_html.escape(link)}">{_html.escape(link)}</a></p>' if (link and p == link)
+            (f'<p><a href="{_html.escape(p)}">{_html.escape(p)}</a></p>' if ((link and p == link) or (fill.get("page_link") and p == fill.get("page_link")))
              else f"<p>{h(p)}</p>") for p in paras)
         + f"<p>{_html.escape(signoff)}<br>{_html.escape(signer)}</p>"
     )
@@ -900,11 +921,12 @@ def render_spec(spec, fill, link=None):
     return subject, html_content, text_content
 
 
-def guide_letter_content(key, first, label, vol_name, vphone, pw=None, link=None):
+def guide_letter_content(key, first, label, vol_name, vphone, pw=None, link=None, **extra):
     """(subject, html, text) for a Guide-call letter, using any saved edit and falling back to the original."""
     vfirst = (vol_name or "").split()[0] if (vol_name or "").strip() else ""
     fill = {"first": first, "label": label, "vol_name": vol_name, "vfirst": vfirst, "vphone": vphone,
-            "link": link or "", "pw": pw or "call or text"}
+            "link": link or "", "pw": pw or "call or text", "client": "", "page_link": ""}
+    fill.update({k: (v or "") for k, v in extra.items()})
     edit = saved_edit(key)
     if edit:
         try:

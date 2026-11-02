@@ -242,6 +242,7 @@ def catalog():
             C("Video call link", "By hand, from a contact's record.", "Contacts"),
             E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with"),
             E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved"),
+            E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone"),
             E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved"),
             E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved"),
             E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid"),

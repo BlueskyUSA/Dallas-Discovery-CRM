@@ -177,3 +177,30 @@ th.num, td.num { text-align: center; width: 1%; white-space: nowrap; }
   .topbar nav a { line-height: 1.2; }
   table th, table td { padding: 10px 8px; }
 }
+
+/* ---- Team pages on a phone: one rule set that keeps every page inside the screen ---- */
+@media (max-width: 700px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .container { padding: 14px 12px 50px; }
+  h1 { font-size: 1.35rem; }
+  .card { padding: 14px 12px; }
+  /* wide tables scroll sideways inside their own box instead of stretching the page */
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.sticky-head th { position: static; }
+  /* two-column layouts stack */
+  .grid2 { grid-template-columns: 1fr; }
+  [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  [style*="display:flex"], [style*="display: flex"] { flex-wrap: wrap; }
+  /* inputs fit the screen and are 16px so iPhones do not zoom in */
+  input, select, textarea { font-size: 16px; max-width: 100%; }
+  input[style*="width"], select[style*="width"], textarea[style*="width"],
+  input[style*="min-width"], select[style*="min-width"], textarea[style*="min-width"] { width: 100% !important; min-width: 0 !important; }
+  form.inline input:not([type=checkbox]):not([type=radio]), form.inline select { flex: 1 1 140px; }
+  .roster-find input { width: 100%; }
+  [style*="max-width:"] { max-width: 100% !important; }
+  .btn { padding: 10px 14px; }
+  .stat { min-width: 0; flex: 1 1 130px; padding: 12px 14px; }
+  img, video, iframe, canvas { max-width: 100%; height: auto; }
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+  .navmenu-items { max-width: 92vw; }
+}

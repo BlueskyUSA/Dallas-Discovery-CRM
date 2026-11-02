@@ -7430,6 +7430,8 @@ def _inject_guides_access():
 
 
 call_flow.register(app, crm, leadership_required, get_db, guides_access)
+import sponsors
+sponsors.register(app, get_db)
 import testimonials
 testimonials.register(app, crm, leadership_required, get_db, send_email, full_name_sql, PROGRAM_NAME)
 

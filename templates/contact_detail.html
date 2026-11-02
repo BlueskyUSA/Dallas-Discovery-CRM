@@ -131,7 +131,7 @@
 <div class="card" style="border-left:4px solid #3d5a3d">
   <h3 style="margin-top:0">{{ guide.role }} <span class="muted" style="font-weight:400; font-size:.8rem">({{ guide.group }})</span></h3>
   <p class="muted" style="margin-top:0">{{ contact.full_name }} is a Discovery! {{ guide.role }}. Manage Guides on the Guides page.</p>
-  {% if session.is_owner or session.staff_role == 'Leadership' %}
+  {% if guide.role != 'Sponsor' and (session.is_owner or session.staff_role == 'Leadership') %}
   {% if contact.email %}
   <form method="post" action="{{ url_for('.call_volunteer_email_training', vid=guide.id) }}"
         onsubmit='return confirm({{ ("Email the complete Guide Training to " ~ contact.full_name ~ " at " ~ contact.email ~ " now?")|tojson }});'>
