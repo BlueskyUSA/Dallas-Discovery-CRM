@@ -3,6 +3,8 @@
 {% block content %}
 <section class="pub-section">
   <div class="pub-container" style="max-width:720px">
+    {% if session.staff_id %}<p style="margin:0 0 12px"><a class="pub-btn secondary" href="{{ url_for('crm.dashboard') }}">&larr; Back to the team site</a></p>{% endif %}
+
     <h2>Sponsor guide</h2>
     <p class="lead">A short guide for volunteers who sponsor someone.</p>
     <h3>What a Sponsor does</h3>

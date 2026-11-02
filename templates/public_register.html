@@ -21,6 +21,7 @@
     <h2>Reserve your spot</h2>
     <p class="lead">Tell us a bit about yourself and which program you'd like to join. Our team will follow up with next steps and registration details.</p>
     <form class="pub-form" method="post">
+      {{ bot_field() }}
       <div style="position:absolute; left:-9999px" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
       <div class="field"><label>First name *</label><input name="first_name" required></div>
       <div class="field"><label>Last name</label><input name="last_name"></div>

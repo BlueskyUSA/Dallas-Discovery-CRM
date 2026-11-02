@@ -22,6 +22,7 @@
     {% for m in get_flashed_messages() %}<p class="flash" style="padding:10px 14px">{{ m }}</p>{% endfor %}
     <form class="pub-form" method="post" action="{{ url_for('public_talk_to_us') }}">
       <input type="hidden" name="page" value="{{ cf_page or 'other' }}">
+      {{ bot_field() }}
       <div style="position:absolute; left:-9999px" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
       <div class="field"><label>First name *</label><input name="first_name" required></div>
       <div class="field"><label>Last name</label><input name="last_name"></div>

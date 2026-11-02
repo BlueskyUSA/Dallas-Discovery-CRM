@@ -702,8 +702,12 @@ def create_interest(get_db, form, source):
     consent = LEGACY.get(consent, consent)
     if consent not in PREF_SHORT:
         consent = ""
-    if form.get("website"):            # hidden spam-trap field: real people leave it empty
-        return True, False, None
+    import botguard
+    ok_bot, bot_msg = botguard.check(get_db, "curious", form, email=email, ip_limit=6, email_limit=3)
+    if not ok_bot:
+        if bot_msg is None:          # hidden spam-trap field was filled: pretend it worked
+            return True, False, None
+        return False, False, bot_msg
     if not first or not email:
         return False, False, "Please enter your first name and email."
     if consent in PREF_WORD and len(_digits(phone)) < 10:

@@ -16,6 +16,7 @@ import secrets
 from flask import render_template, request, redirect, url_for, abort
 
 import call_flow as cf
+import botguard
 
 CODE = "SPONSOR"
 SPONSOR_CONSENT = (
@@ -53,8 +54,6 @@ def register(app, get_db, leadership_email=None):
         cf.ensure_tables(get_db)
         error, form = None, request.form
         if request.method == "POST":
-            if form.get("website"):
-                return redirect(url_for("public_sponsor"))
             my_first = (form.get("my_first") or "").strip()
             my_last = (form.get("my_last") or "").strip() or None
             my_email = (form.get("my_email") or "").strip()
@@ -66,7 +65,12 @@ def register(app, get_db, leadership_email=None):
             program = (form.get("program_code") or "").strip().upper()
             note = (form.get("note") or "").strip()[:1500]
             typed = (form.get("full_name") or "").strip()
-            if not my_first or "@" not in my_email or len(cf._digits(my_phone)) < 10:
+            ok_bot, bot_msg = botguard.check(get_db, "sponsor", form, email=my_email, ip_limit=4)
+            if not ok_bot:
+                if bot_msg is None:
+                    return redirect(url_for("public_sponsor"))
+                error = bot_msg
+            elif not my_first or "@" not in my_email or len(cf._digits(my_phone)) < 10:
                 error = "Please enter your first name, your email and your cell phone number."
             elif not first or "@" not in email:
                 error = "Please enter the first name and email of the person you want to sponsor."

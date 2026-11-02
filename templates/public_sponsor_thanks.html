@@ -3,6 +3,8 @@
 {% block content %}
 <section class="pub-section">
   <div class="pub-container" style="max-width:640px">
+    {% if session.staff_id %}<p style="margin:0 0 12px"><a class="pub-btn secondary" href="{{ url_for('crm.dashboard') }}">&larr; Back to the team site</a></p>{% endif %}
+
     <h2>Thank you for sponsoring {{ who }}</h2>
     <p class="lead">You will receive a private web page for helping them: their contact information, a &ldquo;Your next step&rdquo; box, a checklist that fills itself in, and one-tap letters.</p>
     {% if st and not st.complete %}
