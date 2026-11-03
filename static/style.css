@@ -247,3 +247,16 @@ h2.bandhead {
 }
 h2.bandhead a:not(.btn) { color: #ffe08a !important; margin-left: 0 !important; font-size: 1.1rem !important; }
 @media (max-width: 700px) { h2.bandhead { font-size: 1.6rem; padding: 14px 16px; } }
+
+/* The two session-page sections are dropdowns */
+details.bandsec { margin: 0; }
+details.bandsec > summary.bandhead { cursor: pointer; list-style: none; position: relative; padding-left: 52px; }
+details.bandsec > summary.bandhead::-webkit-details-marker { display: none; }
+details.bandsec > summary.bandhead::before { content: "\25B8"; position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #ffe08a; }
+details.bandsec[open] > summary.bandhead::before { content: "\25BE"; }
+summary.bandhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; width: 100%; box-sizing: border-box;
+  background: #44564a; color: #fff; font-size: 2.1rem; font-weight: 800; letter-spacing: .02em;
+  padding: 16px 22px 16px 52px; margin: 36px 0 14px; border-left: 10px solid #c9a13b; border-radius: 8px; }
+summary.bandhead .bandcnt { font-size: 1.2rem; font-weight: 500; color: #d9e3d6; }
+summary.bandhead a:not(.btn) { color: #ffe08a !important; margin-left: 0 !important; font-size: 1.1rem !important; }
+@media (max-width: 700px) { summary.bandhead { font-size: 1.6rem; padding: 14px 14px 14px 46px; } }
