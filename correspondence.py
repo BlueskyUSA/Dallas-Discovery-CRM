@@ -558,7 +558,7 @@ def register(app, crm, get_db, h):
     # ---------------------------------------------------------------- editing the wording of a letter (with history)
     SESSION_SAMPLE = dict(first_name="Alex", training="The Art of Us", dates="Feb. 12, 2027 to Feb. 14, 2027",
                           location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
-                          partner="Jordan", amount="$1,399 per couple")
+                          partner="Jordan", amount="$1,299 per couple")
     GUIDE_SAMPLE = dict(first="Alex", label="Relationship Training", vol_name="Pat Smith", vfirst="Pat", vphone="469-555-0100",
                         link="https://example.org/your-link", pw="call or text", client="Jordan Lee", page_link="https://example.org/your-page")
     FIELD_HELP = {

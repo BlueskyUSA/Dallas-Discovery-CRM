@@ -310,7 +310,7 @@ CLIENT_LETTERS = [
     ("register", "Registration link", "Sent when the volunteer taps \"Email it\" in the Ready to register box. (If they tap \"Text it\", the same link goes by text from the volunteer's own phone.)"),
     ("confirm", "Trainee Registration Confirmation", "Sent automatically to both partners soon after they reserve a date."),
     ("questionnaire", "Questionnaire", "Sent when the volunteer taps \"Email it\" in the Send the questionnaire box. Each partner gets their own private link to the form shown below. Relationship Training and D1 use the same questionnaire for now."),
-    ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,399 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
+    ("venue", "Where we'll be and what's included", "The venue letter: hotel, what the $1,299 per couple includes, shuttle and check-out. Can be sent to registered couples or used when someone asks about the venue."),
     ("payment", "Payment reminder", "No longer automatic. The Guide is nudged every 7 days while payment is late and sends the reminder if and when they choose."),
 ]
 
@@ -329,7 +329,7 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 {('<p><img src="' + photo_url + '" alt="Four Points by Sheraton Dallas Fort Worth Airport North" width="393" style="max-width:100%;height:auto;border-radius:8px"></p>') if photo_url else ''}
 <p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>1580 Point West Boulevard, Coppell, Texas 75019<br>Hotel phone: 469-702-6311</p>
 <p>The hotel is a comfortable, modern property just north of DFW Airport, about six miles from the terminals. Rooms have free Wi-Fi, plush bedding and a workspace, and the hotel offers a complimentary outdoor pool and a 24-hour fitness center if you\u2019d like to unwind between sessions. Free coffee and tea are always available in the lobby, and the hotel\u2019s Point West Restaurant and Bar serves American favorites and local craft beers if you want something extra. Parking at the hotel is free while you are staying with us.</p>
-<h3>What\u2019s included in your $1,399 per couple</h3>
+<h3>What\u2019s included in your $1,299 per couple</h3>
 {('<p><img src="' + room_url + '" alt="A guest room at the hotel" width="389" style="max-width:100%;height:auto;border-radius:8px"></p>') if room_url else ''}
 <ul><li><strong>Two nights in the hotel</strong> (Friday and Saturday) in a room for the two of you</li>
 <li><strong>Saturday night dinner and dance</strong>, a celebration you will remember</li>
@@ -385,7 +385,7 @@ def sample_letter(key):
         from email_templates import session_letter_content
         sl_key = "trainee_confirm" if key == "confirm" else "payment_reminder"
         subject, html, _t = session_letter_content(sl_key, "[First name]", "Relationship Training", "[session dates]",
-                                                   partner="[partner's name]", amount="$1,399 per couple")
+                                                   partner="[partner's name]", amount="$1,299 per couple")
     return title, when, subject, html
 
 
@@ -1392,7 +1392,7 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
                 extra["longform"] = f"Hi {req['first_name']}, it's {vfirst} with Discovery! Please take a few minutes to complete your information (and add a photo) here: {prog['profile_link']}"
             if prog and prog["reserved"]:
                 extra["payment"] = (f"Hi {req['first_name']}, it's {vfirst} with Discovery! Your seat is reserved. The next step is payment "
-                                    f"($1,399 per couple). Call or text me at {pretty_phone(vol['cell_phone'])} and I'll walk you through it.")
+                                    f"($1,299 per couple). Call or text me at {pretty_phone(vol['cell_phone'])} and I'll walk you through it.")
                 extra["payment_reminder"] = (f"Hi {req['first_name']}, it's {vfirst} with Discovery! A friendly reminder that your payment has "
                                              f"not come in yet. Your spot is held. Call or text me anytime if I can help.")
             return render_template("public_call_claim.html", req=req, vol=vol, mine=mine, claimer=claimer, prog=prog, extra_sms=extra, is_sponsor=(req["source"] == "sponsor"),

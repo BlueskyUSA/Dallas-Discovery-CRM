@@ -790,7 +790,7 @@ GUIDE_LETTERS = {
         "subject": "Your payment for {label}",
         "paras": [
             "Thank you for reserving your spot in **{label}**! The next step is payment, which secures your place.",
-            "The training fee is $1,399 per couple (one payment covers both partners). Reply to this email or call {vfirst} at "
+            "The training fee is $1,299 per couple (one payment covers both partners). Reply to this email or call {vfirst} at "
             "{vphone} and we will walk you through the easy ways to pay.",
             "Once your payment arrives, you will receive a confirmation from us.",
         ],

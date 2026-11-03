@@ -97,7 +97,7 @@
       <a class="pub-btn rt-btn" href="{{ url_for('public_register', program='D4') }}#interested">Reserve Your Seat</a>
       <a class="pub-btn secondary" href="#experience">See what happens</a>
     </div>
-    {% if date_text %}<div class="rt-facts">Next training: <strong>{{ date_text }}</strong> &nbsp;&middot;&nbsp; $1,399 per couple</div>{% endif %}
+    {% if date_text %}<div class="rt-facts">Next training: <strong>{{ date_text }}</strong> &nbsp;&middot;&nbsp; $1,299 per couple</div>{% endif %}
   </div>
 </section>
 
@@ -171,8 +171,7 @@
         <img src="{{ url_for('static', filename='hotel-room.png') }}" alt="A guest room at the hotel" style="width:100%; height:auto; border-radius:12px; margin:0 0 14px; display:block">
         <ul>
           <li><strong>Two nights in the hotel</strong> (Friday and Saturday), a room for the two of you</li>
-          <li><strong>Friday night hors d&rsquo;oeuvres</strong> before we begin at 7:00 pm</li>
-          <li><strong>Saturday night hors d&rsquo;oeuvres, dinner and dance</strong></li>
+          <li><strong>Saturday night dinner and dance</strong></li>
           <li><strong>Snacks, coffee, tea and water</strong> throughout the weekend</li>
           <li><strong>All training sessions and materials</strong></li>
         </ul>
@@ -182,7 +181,7 @@
         <img src="{{ url_for('static', filename='hotel-exterior.png') }}" alt="The Four Points by Sheraton Dallas Fort Worth Airport North at dusk" style="width:100%; height:auto; border-radius:12px; margin:0 0 14px; display:block">
         <p><strong>Four Points by Sheraton Dallas Fort Worth Airport North Hotel &amp; Convention Center</strong><br>Coppell, Texas, about six miles from DFW Airport</p>
         <ul>
-          <li><strong>Begins</strong> Friday at 7:00 pm; <strong>ends</strong> Sunday at 3:00 pm</li>
+          <li><strong>Begins</strong> Friday at 7:00 pm; <strong>ends</strong> Sunday at 1:30 pm</li>
           <li>Modern rooms with free Wi-Fi, an outdoor pool, a 24-hour fitness center, and an on-site restaurant and bar</li>
           <li><strong>Free parking</strong> for guests</li>
           <li><strong>Flying into DFW?</strong> The hotel&rsquo;s free shuttle runs every hour, around the clock. <strong>Love Field?</strong> You&rsquo;ll need an Uber or taxi.</li>
@@ -199,7 +198,7 @@
     </div>
     <div class="rt-details">
       <div class="rt-detail"><small>Next training</small><div>{{ date_text or 'Dates coming soon' }}</div></div>
-      <div class="rt-detail"><small>Investment</small><div>$1,399 per couple</div></div>
+      <div class="rt-detail"><small>Investment</small><div>$1,299 per couple</div></div>
       <div class="rt-detail"><small>Who it&rsquo;s for</small><div>Couples at any stage</div></div>
     </div>
     <div class="rt-faq" style="max-width:760px; margin:0 auto">

@@ -5277,7 +5277,7 @@ def _session_letter_for(cohort, person, key):
         role=role, duties=person["duties"],
         link=_letter_link(person, key),
         partner=person.get("partner_name"),
-        amount=("$1,399 per couple" if code == "D4" else None),
+        amount=("$1,299 per couple" if code == "D4" else None),
         friday_end=FRIDAY_END.get(code))
 
 
@@ -6151,7 +6151,7 @@ def money_required(view):
 
 
 # Training fee per the program code, and who it covers. Shown as the starting amount in "Record payment".
-TRAINING_FEES = {"D4": 1399.0}   # Relationship Training: $1,399 per couple (one payment covers both partners)
+TRAINING_FEES = {"D4": 1299.0}   # Relationship Training: $1,299 per couple (one payment covers both partners)
 PAYMENT_METHODS = ["Check", "Zelle", "Cash", "Card", "Other"]
 BOOKS_ENTITY = "Nonprofit"        # which set of books the CRM's money belongs to (the LLC is not run from the CRM)
 _finance_ready = False

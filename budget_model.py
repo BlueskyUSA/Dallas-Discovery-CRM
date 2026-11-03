@@ -32,7 +32,7 @@ def _L(id, section, label, q, u, t, mode, note=""):
 # modes: plain (q*u*t) | room (rooms: discount + tax) | food (discount + service) | coffee (food x on/off)
 #        fee (processing: q*u*t + card rate x program fees)
 DEFAULT_LINES = [
-    _L("fee_income", "income", "Program Fee Income", 40, 1200, 1, "plain", "Couples x price per couple ($1,200; one payment covers both partners)"),
+    _L("fee_income", "income", "Program Fee Income", 40, 1299, 1, "plain", "Couples x price per couple ($1,299; one payment covers both partners)"),
     _L("merch", "income", "Merchandise Sales Income", 0, 0, 1, "plain", "None planned"),
     _L("donations", "income", "Unrestricted Financial Partnerships / donations", 0, 0, 1, "plain", "None assumed"),
     _L("rooms", "venue", "Participant hotel rooms", "=couples", "=rack", 2, "room", "One room per couple x 2 nights x rack rate, less discount, plus tax"),
@@ -41,8 +41,6 @@ DEFAULT_LINES = [
     _L("fac_rooms", "team", "Facilitator rooms", 2, "=rack", 2, "room", "2 rooms for facilitators"),
     _L("ta_rooms", "team", "TA rooms", 5, "=rack", 2, "room", "5 rooms for TAs"),
     _L("md_room", "team", "Music director room", 1, "=rack", 2, "room", "1 room"),
-    _L("fri_hors", "meals", "Friday hors d'oeuvres", "=people", 18, 1, "food", "All attendees x per person; ESTIMATE, replace with banquet quote"),
-    _L("sat_hors", "meals", "Saturday hors d'oeuvres", "=people", 18, 1, "food", ""),
     _L("sat_dinner", "meals", "Saturday dinner", "=people", 45, 1, "food", ""),
     _L("coffee", "meals", "Coffee, tea, water and snacks", "=people", 14, 3, "coffee", "Per person per day x 3 days; switch off in Key variables"),
     _L("supplies", "other", "Training Supplies & Support", 1, 1500, 1, "plain", "ESTIMATE (name tags, workbooks, printing)"),
@@ -61,7 +59,7 @@ DEFAULT_LINES = [
     _L("mixer", "onetime", "Audio mixer", 1, 250, 1, "plain", "Connects laptop/iPhone music, microphones and speakers; ESTIMATE"),
     _L("cables", "onetime", "Cables and adapters (laptop and iPhone)", 1, 100, 1, "plain", "ESTIMATE, include spares"),
     _L("banners", "onetime", "Printed banners (about 20 ft each)", 3, 250, 1, "plain",
-       "Banner 1: \"You can't change or heal what you don't acknowledge.\" Banners 2 and 3: text to be decided"),
+       "Banner 1: \"You can't change or heal what you don't acknowledge.\" Banner 2: \"Take Care of Yourself So That You Can Take Care of Others.\" Banner 3: text to be decided"),
     _L("insurance", "onetime", "General Liability Insurance (annual premium)", 1, 1825, 1, "plain",
        "PLACEHOLDER: Austin paid $1,825 for 2025. Replace with a written quote. Paid once a year."),
     _L("npo", "onetime", "501(c)(3) setup (legal and filing)", 1, 3000, 1, "plain", "$3,000 one-time to set up the nonprofit"),
