@@ -62,44 +62,6 @@
 </div>
 </div>
 
-    <div class="grid2">
-      <div class="field">
-        <label>How did you hear about us</label>
-        <select name="marketing_source" class="self-describe-toggle" data-describe-target="marketing_source_self_describe_box">
-          <option value="" {% if contact and contact.marketing_source == '' %}selected{% endif %}>—</option>
-          <option {% if contact and contact.marketing_source == 'Word of Mouth' %}selected{% endif %}>Word of Mouth</option>
-          <option {% if contact and contact.marketing_source == 'Facebook' %}selected{% endif %}>Facebook</option>
-          <option {% if contact and contact.marketing_source == 'Instagram' %}selected{% endif %}>Instagram</option>
-          <option {% if contact and contact.marketing_source == 'Google Search' %}selected{% endif %}>Google Search</option>
-          <option {% if contact and contact.marketing_source == 'Website' %}selected{% endif %}>Website</option>
-          <option {% if contact and contact.marketing_source == 'Church / Community Group' %}selected{% endif %}>Church / Community Group</option>
-          <option {% if contact and contact.marketing_source == 'Past Attendee / Graduate' %}selected{% endif %}>Past Attendee / Graduate</option>
-          <option {% if contact and contact.marketing_source == 'Event or Public Speaking' %}selected{% endif %}>Event or Public Speaking</option>
-          <option {% if contact and contact.marketing_source == 'Prefer to self-describe' %}selected{% endif %}>Prefer to self-describe</option>
-        </select>
-        <div id="marketing_source_self_describe_box" style="display:none; margin-top:6px">
-          <input name="marketing_source_self_description" placeholder="Please specify" value="{{ contact.marketing_source_self_description if contact and contact.marketing_source_self_description else '' }}">
-        </div>
-      </div>
-    </div>
-    <p style="margin:10px 0 6px; font-weight:700">So that we can send a &ldquo;Thank you&rdquo; email or text to your Sponsor:</p>
-    <div class="grid2">
-      <div class="field" style="grid-column: 1 / -1;"><label>Sponsor name <span class="muted">(start typing, then pick from your contacts)</span></label><input name="sponsor_name" list="sponsor-picks" autocomplete="off" placeholder="Who sponsored/recommended them" style="width:100%" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
-      <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
-      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
-    </div>
-    {% if contact %}
-      {% if linked_sponsors %}
-      <p class="muted" style="margin:0 0 8px">Sponsor on a session roster (counts toward their TA requirement):
-        {% for b in linked_sponsors %}<a href="{{ url_for('.contact_detail', contact_id=b.id) }}">{{ b.full_name }}</a>{{ ', ' if not loop.last }}{% endfor %}.</p>
-      {% endif %}
-      {% if sponsor_link %}
-      <p style="margin:0 0 8px"><span class="badge good">&#10003; Linked</span> to <a href="{{ url_for('.contact_detail', contact_id=sponsor_link.id) }}">{{ sponsor_link.full_name }}</a> &mdash; this counts toward their Sponsor pipeline and TA requirement.</p>
-      {% elif contact.sponsor_name %}
-      <p class="muted" style="margin:0 0 8px"><span class="badge warn">Not linked</span> This name is only typed text, so it does not count toward the Sponsor pipeline. Retype it and pick the person from the list that appears.</p>
-      {% endif %}
-          {% endif %}
-
     <div style="margin-bottom:14px">
       <h3>Personal background <span class="muted" style="font-weight:400">(gender, age, health, work and more)</span></h3>
       <div class="grid2" style="margin-top:10px">
@@ -228,12 +190,51 @@
       </div>
       <div class="field" style="grid-column: 1 / -1"><label>If you intend to Volunteer, please describe overall health and health limitations/injuries, if any.</label><textarea name="overall_health" rows="3" style="width:100%">{{ contact.overall_health if contact and contact.overall_health else '' }}</textarea></div>
       {% if contact %}
-      <div class="field" style="grid-column: 1 / -1"><label>Food allergies or dietary needs (for example vegetarian, vegan, gluten-free, a food allergy)</label><textarea name="dietary_needs" rows="2" style="width:100%">{{ contact.dietary_needs if contact and contact.dietary_needs else '' }}</textarea></div>
+      <div class="field" style="grid-column: 1 / -1"><label>Food allergies or dietary restrictions (for example vegetarian, vegan, gluten-free, a food allergy)</label><textarea name="dietary_needs" rows="2" style="width:100%">{{ contact.dietary_needs if contact and contact.dietary_needs else '' }}</textarea></div>
+      <div class="field" style="grid-column: 1 / -1"><label>Food preferences (foods you love or would rather not eat)</label><textarea name="food_preferences" rows="2" style="width:100%">{{ contact.food_preferences if contact and contact.food_preferences else '' }}</textarea></div>
       <div class="field" style="grid-column: 1 / -1"><label>Accessibility or room needs (for example a wheelchair-accessible room, mobility, hearing or vision needs)</label><textarea name="access_needs" rows="2" style="width:100%">{{ contact.access_needs if contact and contact.access_needs else '' }}</textarea><div class="muted" style="font-size:.85rem;margin-top:4px">Optional. We share this only with the people planning your meals, rooms and activities.</div></div>
       <div class="field" style="grid-column: 1 / -1"><label>Injuries that limit everyday activities</label><textarea name="activity_limits" placeholder="Example: Bad knee, cannot sit on the floor" rows="2" style="width:100%">{{ contact.activity_limits if contact and contact.activity_limits else '' }}</textarea></div>
       {% endif %}
       </div>
     </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>How did you hear about us</label>
+        <select name="marketing_source" class="self-describe-toggle" data-describe-target="marketing_source_self_describe_box">
+          <option value="" {% if contact and contact.marketing_source == '' %}selected{% endif %}>—</option>
+          <option {% if contact and contact.marketing_source == 'Word of Mouth' %}selected{% endif %}>Word of Mouth</option>
+          <option {% if contact and contact.marketing_source == 'Facebook' %}selected{% endif %}>Facebook</option>
+          <option {% if contact and contact.marketing_source == 'Instagram' %}selected{% endif %}>Instagram</option>
+          <option {% if contact and contact.marketing_source == 'Google Search' %}selected{% endif %}>Google Search</option>
+          <option {% if contact and contact.marketing_source == 'Website' %}selected{% endif %}>Website</option>
+          <option {% if contact and contact.marketing_source == 'Church / Community Group' %}selected{% endif %}>Church / Community Group</option>
+          <option {% if contact and contact.marketing_source == 'Past Attendee / Graduate' %}selected{% endif %}>Past Attendee / Graduate</option>
+          <option {% if contact and contact.marketing_source == 'Event or Public Speaking' %}selected{% endif %}>Event or Public Speaking</option>
+          <option {% if contact and contact.marketing_source == 'Prefer to self-describe' %}selected{% endif %}>Prefer to self-describe</option>
+        </select>
+        <div id="marketing_source_self_describe_box" style="display:none; margin-top:6px">
+          <input name="marketing_source_self_description" placeholder="Please specify" value="{{ contact.marketing_source_self_description if contact and contact.marketing_source_self_description else '' }}">
+        </div>
+      </div>
+    </div>
+    <p style="margin:10px 0 6px; font-weight:700">So that we can send a &ldquo;Thank you&rdquo; email or text to your Sponsor:</p>
+    <div class="grid2">
+      <div class="field" style="grid-column: 1 / -1;"><label>Sponsor name <span class="muted">(start typing, then pick from your contacts)</span></label><input name="sponsor_name" list="sponsor-picks" autocomplete="off" placeholder="Who sponsored/recommended them" style="width:100%" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
+      <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
+      <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
+    </div>
+    {% if contact %}
+      {% if linked_sponsors %}
+      <p class="muted" style="margin:0 0 8px">Sponsor on a session roster (counts toward their TA requirement):
+        {% for b in linked_sponsors %}<a href="{{ url_for('.contact_detail', contact_id=b.id) }}">{{ b.full_name }}</a>{{ ', ' if not loop.last }}{% endfor %}.</p>
+      {% endif %}
+      {% if sponsor_link %}
+      <p style="margin:0 0 8px"><span class="badge good">&#10003; Linked</span> to <a href="{{ url_for('.contact_detail', contact_id=sponsor_link.id) }}">{{ sponsor_link.full_name }}</a> &mdash; this counts toward their Sponsor pipeline and TA requirement.</p>
+      {% elif contact.sponsor_name %}
+      <p class="muted" style="margin:0 0 8px"><span class="badge warn">Not linked</span> This name is only typed text, so it does not count toward the Sponsor pipeline. Retype it and pick the person from the list that appears.</p>
+      {% endif %}
+          {% endif %}
 
     <div style="margin-bottom:14px">
       <h3>Discovery history</h3>

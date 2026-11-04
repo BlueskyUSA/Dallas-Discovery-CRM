@@ -162,14 +162,17 @@
   <h3>Food, access and activity needs <span class="muted" style="font-size:.85rem;font-weight:400">(Leadership only; {{ needs_rows|length }} of {{ needs_total }} listed something)</span></h3>
   {% if needs_rows %}
   <table>
-    <tr><th>Name</th><th>Food allergies / dietary needs</th><th>Accessibility / room needs</th><th>Injuries that limit everyday activities</th></tr>
+    <tr><th>Name</th><th>Role</th><th>Food allergies / dietary restrictions</th><th>Food preferences</th><th>Accessibility / room needs</th><th>Injuries that limit everyday activities</th></tr>
     {% for n in needs_rows %}
-    <tr><td>{{ n.full_name }}</td><td>{{ n.dietary_needs or '' }}</td><td>{{ n.access_needs or '' }}</td><td>{{ n.activity_limits or '' }}</td></tr>
+    <tr><td>{{ n.full_name }}</td><td>{{ n.role }}</td><td>{{ n.dietary_needs or '' }}</td><td>{{ n.food_preferences or '' }}</td><td>{{ n.access_needs or '' }}</td><td>{{ n.activity_limits or '' }}</td></tr>
     {% endfor %}
   </table>
-  <p class="muted" style="font-size:.85rem">Use this for the hotel's meal counts and room requests. Answers come from each person's profile form and questionnaire.</p>
+  <p class="muted" style="font-size:.85rem">Use this for the hotel's meal counts and room requests. Includes the session team as well as trainees. Answers come from each person's profile form and questionnaire.</p>
   {% else %}
   <p class="muted">No one has listed a food or access need yet.</p>
+  {% endif %}
+  {% if team_unanswered %}
+  <form method="post" action="{{ url_for('.cohort_send_needs_request', cohort_id=cohort.id) }}" onsubmit="return confirm('Email {{ team_unanswered|length }} team member(s) who have not answered?')"><button class="btn secondary" type="submit">Email the {{ team_unanswered|length }} team member{{ '' if team_unanswered|length == 1 else 's' }} who haven&rsquo;t answered</button></form>
   {% endif %}
   {% endif %}
 

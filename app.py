@@ -2324,6 +2324,37 @@ def _log_contact_message(contact_id, kind, subject, html_content, to_email):
         print(f"Couldn't record message for contact {contact_id}: {e}", flush=True)
 
 
+@crm.route("/cohorts/<int:cohort_id>/send-needs-request", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def cohort_send_needs_request(cohort_id):
+    """Emails the session team members who have not yet answered the food / physical-needs questions."""
+    import email_templates as _T
+    conn = get_db()
+    people = needs.team_without_answers(conn, cohort_id)
+    sent, failed = 0, 0
+    for p in people:
+        token = p["profile_token"]
+        if not token:
+            token = secrets.token_urlsafe(24)
+            conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, p["id"]))
+            conn.commit()
+        link = url_for("public_complete_profile", token=token, _external=True)
+        subject, html_content, text_content = _T.guide_letter_content("needs_request", p["first_name"] or "there", "", "", "", link=link)
+        try:
+            send_email(to_email=p["email"], to_name=p["first_name"], subject=subject,
+                       html_content=html_content, text_content=text_content)
+            _log_contact_message(p["id"], "Food and physical needs request", subject, html_content, p["email"])
+            sent += 1
+        except EmailSendError as e:
+            failed += 1
+            print(f"needs request to {p['email']} failed: {e}", flush=True)
+    conn.close()
+    flash(f"Food and physical needs request emailed to {sent} team member{'' if sent == 1 else 's'}."
+          + (f" {failed} could not be sent." if failed else ""))
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
 @crm.route("/contacts/<int:contact_id>/preview-profile-request")
 @area_required("contacts")
 def contact_preview_profile_request(contact_id):
@@ -4779,6 +4810,13 @@ def cohort_detail(cohort_id):
         except Exception as e:
             conn.rollback()
             print(f"needs summary skipped: {e}", flush=True)
+    team_unanswered = []
+    if _is_leader():
+        try:
+            team_unanswered = needs.team_without_answers(conn, cohort_id)
+        except Exception as e:
+            conn.rollback()
+            print(f"needs team check skipped: {e}", flush=True)
     pay_info = _payment_info_for_cohort(conn, cohort_id, roster)
     # Keep each couple together (alphabetical by the first of them) and shade every other group,
     # so a long list (80+ trainees) is easy to scan.
@@ -4869,6 +4907,7 @@ def cohort_detail(cohort_id):
         is_leader=_is_leader(), can_money=_can_handle_money(),
         small_groups=small_groups,
         staffing=staffing,
+        team_unanswered=team_unanswered,
         show_session_team=_can_see_session_part("session_team"),
         show_trainee_roster=_can_see_session_part("trainee_roster"),
         session_roles=SESSION_ROLES,

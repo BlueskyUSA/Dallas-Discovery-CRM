@@ -79,8 +79,10 @@
     <div class="q"><label for="song_feelings">{% if personal %}TBD (to be determined){% else %}Briefly describe how the song above makes you feel toward your partner.{% endif %}</label>
       <textarea id="song_feelings" name="song_feelings" rows="3">{{ profile.song_feelings if profile and profile.song_feelings else '' }}</textarea></div>
     {% endif %}
-    <div class="q"><label for="dietary_needs">Food allergies or dietary needs (for example vegetarian, vegan, gluten-free, a food allergy)</label>
+    <div class="q"><label for="dietary_needs">Food allergies or dietary restrictions (for example vegetarian, vegan, gluten-free, a food allergy)</label>
       <textarea id="dietary_needs" name="dietary_needs" rows="2">{{ my_needs.dietary_needs if my_needs else '' }}</textarea></div>
+    <div class="q"><label for="food_preferences">Food preferences (foods you love or would rather not eat)</label>
+      <textarea id="food_preferences" name="food_preferences" rows="2">{{ my_needs.food_preferences if my_needs else '' }}</textarea></div>
     <div class="q"><label for="access_needs">Accessibility or room needs (for example a wheelchair-accessible room, mobility, hearing or vision needs)</label>
       <textarea id="access_needs" name="access_needs" rows="2">{{ my_needs.access_needs if my_needs else '' }}</textarea>
       <div class="muted" style="font-size:.88rem;margin-top:4px">Optional. We share this only with the people planning your meals, rooms and activities.</div></div>

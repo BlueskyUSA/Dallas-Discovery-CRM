@@ -18,6 +18,7 @@ def ensure(conn):
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS dietary_needs TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS access_needs TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS activity_limits TEXT")
+        conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS food_preferences TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS previous_roles TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS partner_first_name TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS partner_last_name TEXT")
@@ -32,35 +33,59 @@ def ensure(conn):
         print(f"Couldn't add food/access needs columns: {e}", flush=True)
 
 
+FIELDS = ("dietary_needs", "food_preferences", "access_needs", "activity_limits")
+
+
 def save_from_form(conn, contact_id, form):
-    """Saves what was typed; does nothing if the form didn't include these fields."""
-    if "dietary_needs" not in form and "access_needs" not in form and "activity_limits" not in form:
+    """Saves what was typed; only the fields that were on the form are touched."""
+    present = [f for f in FIELDS if f in form]
+    if not present:
         return
     ensure(conn)
-    conn.execute("UPDATE contacts SET dietary_needs = ?, access_needs = ?, activity_limits = ? WHERE id = ?",
-                 ((form.get("dietary_needs") or "").strip() or None,
-                  (form.get("access_needs") or "").strip() or None,
-                  (form.get("activity_limits") or "").strip() or None, contact_id))
+    conn.execute("UPDATE contacts SET " + ", ".join(f"{f} = ?" for f in present) + " WHERE id = ?",
+                 [((form.get(f) or "").strip() or None) for f in present] + [contact_id])
     conn.commit()
 
 
 def load(conn, contact_id):
     ensure(conn)
-    row = conn.execute("SELECT dietary_needs, access_needs, activity_limits FROM contacts WHERE id = ?", (contact_id,)).fetchone()
-    g = lambda k: (row[k] if row else None) or ""
-    return {"dietary_needs": g("dietary_needs"), "access_needs": g("access_needs"), "activity_limits": g("activity_limits")}
+    row = conn.execute("SELECT dietary_needs, food_preferences, access_needs, activity_limits FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    return {f: ((row[f] if row else None) or "") for f in FIELDS}
 
 
 def session_summary(conn, cohort_id, full_name_sql):
-    """Everyone enrolled in a session who listed a need, plus counts for the hotel."""
+    """Everyone on a session (trainees AND the session team) who listed a need, plus a head count for the hotel."""
     ensure(conn)
-    rows = conn.execute(
-        f"""SELECT {full_name_sql('ct')} AS full_name, ct.dietary_needs, ct.access_needs, ct.activity_limits
-            FROM enrollments e JOIN contacts ct ON ct.id = e.contact_id
-            WHERE e.cohort_id = ? AND (COALESCE(ct.dietary_needs, '') <> '' OR COALESCE(ct.access_needs, '') <> '' OR COALESCE(ct.activity_limits, '') <> '')
-            ORDER BY ct.last_name, ct.first_name""", (cohort_id,)).fetchall()
-    total = conn.execute("SELECT COUNT(*) AS n FROM enrollments WHERE cohort_id = ?", (cohort_id,)).fetchone()["n"]
-    return [dict(r) for r in rows], total
+    people = conn.execute(
+        f"""SELECT x.contact_id, x.role, {full_name_sql('ct')} AS full_name, ct.last_name, ct.first_name,
+                   ct.dietary_needs, ct.food_preferences, ct.access_needs, ct.activity_limits
+            FROM (SELECT contact_id, 'Trainee' AS role FROM enrollments WHERE cohort_id = ?
+                  UNION ALL SELECT contact_id, role FROM cohort_staffing WHERE cohort_id = ?) x
+            JOIN contacts ct ON ct.id = x.contact_id""", (cohort_id, cohort_id)).fetchall()
+    by = {}
+    for r in people:
+        d = by.setdefault(r["contact_id"], dict(r))
+        d.setdefault("roles", [])
+        if r["role"] not in d["roles"]:
+            d["roles"].append(r["role"])
+    rows = []
+    for d in by.values():
+        d["role"] = ", ".join(d.get("roles", []))
+        if any((d.get(f) or "").strip() for f in FIELDS):
+            rows.append(d)
+    rows.sort(key=lambda d: ((d.get("last_name") or "").lower(), (d.get("first_name") or "").lower()))
+    return rows, len(by)
+
+
+def team_without_answers(conn, cohort_id):
+    """Session team members (not trainees) with an email who have not answered any food/physical question."""
+    ensure(conn)
+    return conn.execute(
+        """SELECT DISTINCT ct.id, ct.first_name, ct.email, ct.profile_token
+           FROM cohort_staffing cs JOIN contacts ct ON ct.id = cs.contact_id
+           WHERE cs.cohort_id = ? AND cs.role <> 'Trainee' AND COALESCE(ct.email, '') <> ''
+             AND COALESCE(ct.dietary_needs, '') = '' AND COALESCE(ct.food_preferences, '') = ''
+             AND COALESCE(ct.access_needs, '') = '' AND COALESCE(ct.activity_limits, '') = ''""", (cohort_id,)).fetchall()
 
 
 def field_html(label, name, value, rows=2):

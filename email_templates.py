@@ -798,6 +798,20 @@ GUIDE_LETTERS = {
         "signoff": "Thanks so much, and have a great day!",
         "signer": "The Discovery! Team",
     },
+    "needs_request": {
+        "title": "Food and physical needs request (session team)",
+        "audience": "Team members on a session who have not answered",
+        "greeting": "Hi",
+        "subject": "A quick question before the training",
+        "paras": [
+            "Thank you for being part of the team! So that we can plan meals, rooms and activities, please tell us about any "
+            "food allergies or dietary restrictions, food preferences, accessibility or room needs, and any injuries that limit everyday activities.",
+            "It only takes a minute. Please use your private link, and scroll to the food and health questions:",
+            "{link}",
+        ],
+        "signoff": "Thanks so much,",
+        "signer": "The Discovery! Team",
+    },
     "video_call": {
         "title": "Video call link (Google Meet)",
         "audience": "Any contact",
