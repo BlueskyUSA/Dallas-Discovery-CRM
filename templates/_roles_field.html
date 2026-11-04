@@ -1,5 +1,6 @@
 {% set _roles = ((contact.previous_roles or '') if contact else '').split(', ') %}
 {% set _role_list = ['None', 'Interested Party', 'Attended (as a trainee)', 'Graduate', 'TA', 'Facilitator', 'Volunteer', 'Donor'] %}
+{% if roles_hidden %}{% for r in _roles %}{% if r %}<input type="hidden" name="previous_roles" value="{{ r }}">{% endif %}{% endfor %}{% else %}
 <div class="field" style="grid-column: 1 / -1;">
   <label>Previous Discovery! role? <span class="muted" style="font-weight:400">(check all that apply)</span></label>
   <div class="rolebox" id="rolebox">
@@ -17,3 +18,4 @@
     <button type="button" class="btn" id="role-popup-ok">OK</button>
   </div>
 </div>
+{% endif %}

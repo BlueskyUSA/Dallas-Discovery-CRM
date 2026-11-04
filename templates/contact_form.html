@@ -25,9 +25,9 @@
   <div class="field"><label class="req">First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else (prefill.first_name if prefill else '') }}"></div>
   <div class="field"><label class="req">Last name</label><input name="last_name" autocomplete="off" value="{{ contact.last_name if contact and contact.last_name else (prefill.last_name if prefill else '') }}"></div>
   <div class="field"><label class="req">Photo</label><input type="file" name="photo" accept="image/*" data-has="{{ '1' if contact and contact.photo_filename else '' }}"></div>
-      <div class="field"><label>Status</label>
+      <div class="field"><label>Previous Discovery Role</label>
         <select name="status">
-          <option {% if contact and contact.status == 'Interested Party' %}selected{% endif %}>Interested Party</option>
+          <option value="Interested Party" {% if not contact or not contact.status or contact.status == 'Interested Party' %}selected{% endif %}>None</option>
           <option {% if contact and contact.status == 'Volunteer' %}selected{% endif %}>Volunteer</option>
           <option {% if contact and contact.status == 'Sponsor' %}selected{% endif %}>Sponsor</option>
           <option {% if contact and contact.status == 'Registered' %}selected{% endif %}>Registered</option>
@@ -38,7 +38,7 @@
           <option {% if contact and contact.status == 'Donor' %}selected{% endif %}>Donor</option>
         </select>
       </div>
-  {% include "_roles_field.html" %}
+  {% set roles_hidden = true %}{% include "_roles_field.html" %}
 </div>
 
 <h3 id="stage-contact">Contact information <span class="stage-note" data-stage="contact"></span></h3>
