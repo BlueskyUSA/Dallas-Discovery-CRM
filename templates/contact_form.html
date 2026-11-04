@@ -31,9 +31,9 @@
 <h3 id="stage-contact">Contact information <span class="stage-note" data-stage="contact"></span></h3>
 <div class="grid2" data-stage-box="contact">
   <div class="field" style="grid-column: 1 / -1;"><label class="req">Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
-  <div class="field"><label class="req">Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
-  <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
-  <div class="field"><label>Work number</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
+  <div class="field"><label class="req">Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
+  <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
+  <div class="field"><label>Work number</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
   <div class="field"><label class="req">Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
   <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="street_address_2" autocomplete="off" value="{{ contact.street_address_2 if contact and contact.street_address_2 else '' }}"></div>
   <div class="field"><label class="req">City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
@@ -54,10 +54,10 @@
   <div class="field" style="grid-column: 1 / -1;"><label style="display:flex; gap:8px; align-items:center; font-weight:600"><input type="checkbox" name="no_partner" value="1" id="no_partner" {% if contact and contact.no_partner %}checked{% endif %}> No partner</label></div>
   <div class="field"><label>Partner's first name</label><input name="partner_first_name" autocomplete="off" value="{{ (contact.partner_first_name or (_pn[0] if _pn else '')) if contact else '' }}"></div>
   <div class="field"><label>Partner's last name</label><input name="partner_last_name" autocomplete="off" value="{{ (contact.partner_last_name or (_pn[1:]|join(' '))) if contact else '' }}"></div>
-  <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
+  <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
   <div class="field"><label>Partner's email</label><input type="email" name="partner_email" style="width:100%" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
   <div class="field"><label class="req">Emergency contact name</label><input name="emergency_contact_name" autocomplete="off" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
-  <div class="field"><label class="req">Emergency contact number</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
+  <div class="field"><label class="req">Emergency contact number</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
   <input type="hidden" name="emergency_contact_home" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}">
 </div>
 </div>
@@ -222,7 +222,7 @@
     <p style="margin:10px 0 6px; font-weight:700">So that we can send a &ldquo;Thank you&rdquo; email or text to your Sponsor:</p>
     <div class="grid2">
       <div class="field" style="grid-column: 1 / -1;"><label>Sponsor name <span class="muted">(start typing, then pick from your contacts)</span></label><input name="sponsor_name" list="sponsor-picks" autocomplete="off" placeholder="Who sponsored/recommended them" style="width:100%" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
-      <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
+      <div class="field"><label>Sponsor cell</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
       <div class="field"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
     </div>
     {% if contact %}
