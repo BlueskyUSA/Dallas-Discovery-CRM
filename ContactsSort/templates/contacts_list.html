@@ -1,0 +1,44 @@
+{% extends "crm_base.html" %}
+{% block title %}Contacts — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Contacts</h1>
+<form class="inline" method="get">
+  <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
+  <select name="list" onchange="this.form.submit()">
+    <option value="">All lists</option>
+    {% for l in all_lists %}<option value="{{ l.id }}" {{ 'selected' if list_id == l.id }}>{{ l.name }}</option>{% endfor %}
+  </select>
+  <select name="sort" onchange="this.form.submit()" title="Sort contacts">
+    <option value="last" {{ 'selected' if sort == 'last' }}>Sort: Last name</option>
+    <option value="first" {{ 'selected' if sort == 'first' }}>Sort: First name</option>
+  </select>
+  <button class="btn secondary" type="submit">Search</button>
+  {% for ql in quick_lists %}<a class="btn {{ '' if list_id == ql.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=ql.id) }}">{{ ql.name }}{{ '' if ql.name.endswith('s') else 's' }}</a>{% endfor %}
+  <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
+</form>
+
+{% if list_id or q %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
+<div class="card">
+  <table class="stack">
+    <tr><th></th><th>Name</th><th>Email</th><th>Cell</th><th>Status</th></tr>
+    {% for c in contacts %}
+    <tr>
+      <td class="ph">
+        {% if c.photo_filename %}
+        <img src="{{ url_for('.contact_photo_file', contact_id=c.id, v=c.photo_filename) }}" alt=""
+             style="width:32px; height:32px; border-radius:50%; object-fit:cover; display:block">
+        {% else %}
+        <div style="width:32px; height:32px; border-radius:50%; background:#f1f4f7"></div>
+        {% endif %}
+      </td>
+      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a></td>
+      <td data-label="Email" style="word-break:break-all">{{ c.email or '' }}</td>
+      <td data-label="Cell">{{ c.cell_phone or '' }}</td>
+      <td data-label="Status"><span class="badge">{{ c.status }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No contacts yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
