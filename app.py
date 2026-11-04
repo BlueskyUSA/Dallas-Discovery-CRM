@@ -2038,6 +2038,64 @@ def profile_missing(contact):
 
 app.jinja_env.globals["profile_missing"] = profile_missing
 
+PERSONAL_REQUIRED = [("gender", "gender"), ("ethnicity", "ethnicity"), ("marital_status", "marital status"),
+                     ("employment_status", "employment status"), ("occupation", "occupation"),
+                     ("spiritual_orientation", "spiritual orientation"), ("education", "education"),
+                     ("marketing_source", "how they heard about us")]
+
+
+def personal_missing(contact):
+    """Personal background items still blank (age or date of birth counts as one item)."""
+    out = [label for f, label in PERSONAL_REQUIRED if not str(contact[f] or "").strip()]
+    if not str(contact["age"] or "").strip() and not str(contact["dob"] or "").strip():
+        out.append("age or date of birth")
+    return out
+
+
+def history_state(contact):
+    """(complete?, note) for the Discovery history section."""
+    att = str(contact["discovery_attendance"] or "").strip()
+    if att == "No":
+        return True, "No previous trainings"
+    if att == "Yes":
+        dates = [contact[k] for k in ("d1_month_year", "d2_month_year", "d3_month_year", "refocus_month_year", "relationship_training_month_year")]
+        if any(str(d or "").strip() for d in dates):
+            return True, "Dates listed"
+        return False, "attended, but no dates listed yet"
+    return False, "not answered yet"
+
+
+def longform_sent_info(conn, contact):
+    """Date the long form / profile link last went out (from the HUB's record, a Guide's send, or the website), or None."""
+    best = None
+    try:
+        r = conn.execute("SELECT MAX(sent_at) AS d FROM contact_messages WHERE contact_id = ? AND kind IN ('Profile update request', 'Long-form follow-up')",
+                         (contact["id"],)).fetchone()
+        best = r["d"] if r and r["d"] else None
+    except Exception:
+        conn.rollback()
+    try:
+        r = conn.execute("SELECT MAX(longform_sent_at) AS d FROM call_requests WHERE contact_id = ?", (contact["id"],)).fetchone()
+        d = r["d"] if r and r["d"] else None
+        if d and (not best or str(d) > str(best)):
+            best = d
+    except Exception:
+        conn.rollback()
+    return best
+
+
+def profile_stages(conn, contact):
+    sent = longform_sent_info(conn, contact)
+    bm = profile_missing(contact)
+    pm = personal_missing(contact)
+    hd, hn = history_state(contact)
+    return [
+        dict(done=bool(sent), label="Long form sent", note=("" if not sent else str(sent)[:10]) if sent else "not sent yet"),
+        dict(done=not bm, label="Basic info complete", note="" if not bm else "missing: " + ", ".join(bm)),
+        dict(done=(not bm and not pm), label="Basic and Personal info complete", note="" if (not bm and not pm) else ("missing personal: " + ", ".join(pm) if pm else "finish Basic info first")),
+        dict(done=hd, label="Discovery history complete", note=hn if not hd else hn),
+    ]
+
 _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
                   "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
 
@@ -3021,9 +3079,16 @@ def contact_detail(contact_id):
     except Exception:
         conn.rollback()
         sent_messages = []
+    try:
+        stages = profile_stages(conn, contact) if contact else []
+    except Exception as e:
+        conn.rollback()
+        print(f"profile stages skipped: {e}", flush=True)
+        stages = []
     conn.close()
     return render_template(
         "contact_detail.html",
+        stages=stages,
         sent_messages=sent_messages,
         guide=guide,
         meet_link=_get_setting("meet_link"),
@@ -7205,6 +7270,7 @@ def public_discovery():
                     text_content=text_content,
                 )
                 emailed = True
+                _log_contact_message(new_id, "Long-form follow-up", LONGFORM_FOLLOWUP_SUBJECT, html_content, email)
             except EmailSendError as e:
                 print(f"EmailSendError sending long-form link to {email}: {e}", flush=True)
 

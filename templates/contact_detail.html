@@ -2,7 +2,7 @@
 {% block title %}{{ contact.full_name }} — {{ program_name }} ERP{% endblock %}
 {% block content %}
 <div style="display:flex; gap:18px; align-items:flex-start">
-<div id="photoDrop" title="Drag a photo here, or click to choose one" style="position:relative; flex-shrink:0; cursor:pointer; border-radius:16px">
+<div id="photoDrop" style="position:relative; flex-shrink:0; border-radius:16px">
   {% if contact.photo_filename %}
   <img src="{{ url_for('.contact_photo_file', contact_id=contact.id, v=contact.photo_filename) }}" alt="{{ contact.full_name }}"
        style="width:280px; height:280px; border-radius:16px; object-fit:cover; flex-shrink:0">
@@ -18,11 +18,15 @@
       <a href="{{ url_for('.contact_delete_confirm', contact_id=contact.id) }}" class="btn secondary" style="font-size:0.8rem; vertical-align:middle; margin-left:4px; color:#c0392b; border-color:#c0392b">Delete contact</a>
       {% endif %}
     </h1>
-    <form method="post" action="{{ url_for('.contact_photo_upload', contact_id=contact.id) }}" enctype="multipart/form-data" class="inline" id="photoForm" style="margin:0 0 8px">
-      <input type="file" name="photo" id="photoInput" accept="image/*" required>
-      <button class="btn secondary" type="submit">{{ 'Replace photo' if contact.photo_filename else 'Upload photo' }}</button>
-    </form>
-    <p class="muted" style="margin:0 0 8px; font-size:.85rem">You can also drag a photo onto the picture, or click the picture to choose one.</p>
+    <div style="margin-top:6px; font-size:1rem; line-height:1.9">
+      {% for st in stages %}
+      <div>
+        <span style="display:inline-block; width:1.4em; font-weight:700; color:{{ '#2b7a2b' if st.done else '#9aa5a0' }}">{{ '&#10003;' if st.done else '&#9675;' }}</span>
+        <strong style="color:{{ '#1f5f1f' if st.done else '#444' }}">{{ st.label }}</strong>
+        {% if st.note %}<span class="muted" style="font-size:.9rem">&middot; {{ st.note }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% if contact.contact_requested_at %}
