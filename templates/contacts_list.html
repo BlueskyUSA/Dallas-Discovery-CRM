@@ -29,14 +29,14 @@
   a.sortlink:hover { background: #cfdfcf; }
   a.sortlink.on { background: #bcd3bc; border-color: #4f7a4f; }
 </style>
-<p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Status) to sort the list. Click it again to reverse.</p>
+<p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Role) to sort the list. Click it again to reverse.</p>
 <div class="sortbar">
   <strong>Sort by:</strong>
-  {{ sh('first','First') }} {{ sh('last','Last') }} {{ sh('email','Email') }} {{ sh('cell','Cell') }} {{ sh('status','Status') }}
+  {{ sh('first','First') }} {{ sh('last','Last') }} {{ sh('email','Email') }} {{ sh('cell','Cell') }} {{ sh('status','Role') }}
 </div>
 <div class="card">
   <table class="stack">
-    <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Status') }}</th></tr>
+    <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Role') }}</th></tr>
     {% for c in contacts %}
     <tr>
       <td class="ph">
@@ -50,7 +50,7 @@
       <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a>{% set _m = profile_all_missing(c) %}{% if _m %}<br><span class="muted" style="font-weight:400; font-size:0.8rem" title="Missing: {{ _m|join(', ') }}">Profile incomplete</span>{% endif %}</td>
       <td data-label="Email" style="word-break:break-all">{{ c.email or '' }}</td>
       <td data-label="Cell">{{ c.cell_phone or '' }}</td>
-      <td data-label="Status"><span class="badge">{{ c.status }}</span></td>
+      <td data-label="Role"><span class="badge">{{ c.status }}</span></td>
     </tr>
     {% else %}
     <tr><td colspan="5" class="muted">No contacts yet.</td></tr>
