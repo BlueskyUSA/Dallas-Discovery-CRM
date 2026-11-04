@@ -66,7 +66,7 @@
     no HUB login needed. It can't show or change their status or your internal notes.
   </p>
   {% set _miss = profile_missing(contact) %}
-  <p style="margin:0 0 8px">{% if _miss %}<span class="badge" style="background:#ffe9a8">Profile incomplete</span> <span class="muted">Still missing: {{ _miss|join(', ') }}.</span>{% else %}<span class="badge" style="background:#d7ecd0">Profile complete</span>{% endif %}</p>
+  <p style="margin:0 0 8px">{% if _miss %}<span class="badge" style="background:#f6dcd8; color:#7a2e22">Profile incomplete</span> <span class="muted">Still missing: {{ _miss|join(', ') }}.</span>{% else %}<span class="badge" style="background:#d7ecd0">Profile complete</span>{% endif %}</p>
   {% if contact.profile_token %}
   <input readonly style="width:100%; font-size:0.85rem" onclick="this.select()"
          value="{{ request.host_url.rstrip('/') }}{{ url_for('public_complete_profile', token=contact.profile_token) }}">

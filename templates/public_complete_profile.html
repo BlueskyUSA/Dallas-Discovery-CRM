@@ -2,7 +2,7 @@
 {% block title %}Complete your profile — {{ program_name }}{% endblock %}
 {% block site_header %}
   {% if session.staff_id and contact %}
-  <div style="background:#fff3cd; border-bottom:2px solid #d9b94a; padding:10px 16px; text-align:center; font-size:0.95rem; color:#111">
+  <div style="background:#e4eefa; border-bottom:2px solid #8fb0d9; padding:10px 16px; text-align:center; font-size:0.95rem; color:#111">
     <strong>Preview:</strong> this is the page {{ contact.first_name or 'the contact' }} sees. Only you see this bar.
     &nbsp;<a href="{{ url_for('crm.contact_detail', contact_id=contact.id) }}" style="font-weight:700; color:#111; text-decoration:underline">&larr; Back to HUB</a>
   </div>
@@ -40,8 +40,10 @@
 <div class="card">
   <form method="post" autocomplete="off" enctype="multipart/form-data" id="profile-form" action="{{ url_for('public_complete_profile', token=contact.profile_token) }}">
 <div id="basic-complete" class="stage-banner" style="display:none">&#10003; Basic Info Completed. Thank you!</div>
-<p class="muted" style="margin:0 0 6px">Fields with a <span class="req-sample">green label</span> are the basic information we ask everyone for.</p>
+<p class="muted" style="margin:0 0 6px">The green area is the basic information we ask everyone for.</p>
 
+<div class="basic-area">
+<h2 style="margin:0 0 4px">Basic information</h2>
 <h3 id="stage-basics">Basics <span class="stage-note" data-stage="basics"></span></h3>
 <div class="grid2" data-stage-box="basics">
   <div class="field"><label class="req">First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
@@ -88,6 +90,7 @@
   <div class="field"><label class="req">Emergency contact name</label><input name="emergency_contact_name" autocomplete="off" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
   <div class="field"><label class="req">Emergency contact number</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
   <input type="hidden" name="emergency_contact_home" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}">
+</div>
 </div>
     <div class="grid2">
       <div class="field">
