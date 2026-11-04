@@ -45,7 +45,7 @@
         {% if prog.reserved and not prog.paid %}
         <details style="margin-top:10px"><summary>Other letters you can send</summary>
           <p style="margin:10px 0 0">
-            {% for k, lab in (('longform','Long form &amp; photo'),('payment','Payment request'),('payment_reminder','Payment reminder')) %}
+            {% for k, lab in (('longform','Profile &amp; photo'),('payment','Payment request'),('payment_reminder','Payment reminder')) %}
             {% if extra_sms.get(k) %}<form method="post" action="{{ url_for('public_call_send_letter', token=token, kind=k) }}" style="display:inline"><button class="pub-btn secondary" type="submit">Email: {{ lab|safe }}</button></form> {% endif %}
             {% endfor %}
           </p></details>

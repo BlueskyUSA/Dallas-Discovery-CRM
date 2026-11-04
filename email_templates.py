@@ -268,7 +268,7 @@ LONGFORM_FOLLOWUP_SUBJECT = "Thank you! One more quick step for our volunteer te
 
 def longform_followup_content(first_name, longform_url):
     """Returns (html_content, text_content) for the short thank-you email
-    that carries someone's personal long-form link -- sent right after they
+    that carries someone's personal profile link -- sent right after they
     check "Volunteer" on the discovery short form, and reusable any time
     that link needs to be sent or re-sent by hand."""
     html_content = f"""
@@ -299,7 +299,7 @@ LONGFORM_THANKYOU_SUBJECT = "Thank you!"
 
 def longform_thankyou_content(first_name, connect_url, plan_url, share_url=None):
     """Returns (html_content, text_content) for the thank-you email sent
-    when someone clicks Submit on the public long form (complete-profile)
+    when someone clicks Submit on the public profile (complete-profile)
     -- not every autosave, just that final submit. Offers two separate
     opt-ins: plan_url is a button that sends them the (much longer)
     Preliminary Discovery! Plan email (see preliminary_plan_content below)
@@ -384,7 +384,7 @@ def preliminary_plan_content(first_name):
     """Returns (html_content, text_content) for the Preliminary Discovery!
     Plan email -- sent only when staff click "Send business plan" on a contact,
     or someone clicks the "Send me the Preliminary Discovery! Plan" button in the
-    long-form thank-you email, never automatically. Lays out Kent's mission and
+    profile thank-you email, never automatically. Lays out Kent's mission and
     goals for relaunching Discovery! and the volunteer help still needed."""
     greeting = first_name.strip() if first_name and first_name.strip() else "Friend"
 
@@ -769,7 +769,7 @@ GUIDE_LETTERS = {
         "signer": "{vol_name} and the Discovery! Team",
     },
     "guide_longform": {
-        "title": "Complete your information (long form)",
+        "title": "Complete your profile",
         "audience": "People who have reserved",
         "greeting": "Hi",
         "subject": "Please complete your information \u2013 {label}",
@@ -854,7 +854,7 @@ GUIDE_LETTERS = {
         "signer": "{vol_name} and the Discovery! Team",
     },
     "sponsor_welcome": {
-        "title": "Sponsor welcome (complete your long form)",
+        "title": "Sponsor welcome (complete your profile)",
         "audience": "Volunteers who sponsor someone",
         "greeting": "Dear",
         "subject": "Thank you for sponsoring {client}",

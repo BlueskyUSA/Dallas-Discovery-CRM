@@ -45,7 +45,7 @@ def switches():
         ("AUTO_LETTERS_LIVE", on("AUTO_LETTERS_LIVE"), "Automatic letters: confirmation after reserving, \u201cThank you \u2013 We\u2019re so excited\u201d, and What to bring. Also needs the master switch."),
         ("CALL_ALERTS_LIVE", on("CALL_ALERTS_LIVE"), "Guide alerts, Guide-page emails, the 7-day payment nudges, and the reply to \u201cI\u2019m curious\u201d."),
         ("SPONSOR_LIVE", on("SPONSOR_LIVE"), "Sponsor letters: the Sponsor welcome letter and the help alert. Also needs the Guide alerts switch (CALL_ALERTS_LIVE)."),
-        ("PUBLIC_REPLIES_LIVE", on("PUBLIC_REPLIES_LIVE"), "Automatic replies when someone uses a public website form: long-form link, welcome letter, thank-you letter, \u201creach out to me\u201d confirmation, and the plan email."),
+        ("PUBLIC_REPLIES_LIVE", on("PUBLIC_REPLIES_LIVE"), "Automatic replies when someone uses a public website form: profile link, welcome letter, thank-you letter, \u201creach out to me\u201d confirmation, and the plan email."),
         ("BLASTS_LIVE", on("BLASTS_LIVE"), "Marketing & Email Blasts (excitement letters, volunteer and Guide emails)."),
     ]
 
@@ -233,8 +233,8 @@ def catalog():
         ("interested", "Interested people (before they register)",
          "What someone receives after they ask a question, ask to be called, or fill in a form on the website.", [
             V("welcome", "Welcome", "Automatically, when someone fills in the Discovery! form as an interested party.", "Interested parties"),
-            V("longform_followup", "Long-form follow-up", "Automatically, when someone fills in the Discovery! form and checks Volunteer.", "Past volunteers"),
-            V("longform_thankyou", "Long-form thank-you", "Automatically, when someone finishes their long form.", "People who completed the long form"),
+            V("longform_followup", "Profile follow-up", "Automatically, when someone fills in the Discovery! form and checks Volunteer.", "Past volunteers"),
+            V("longform_thankyou", "Profile thank-you", "Automatically, when someone finishes their profile.", "People who completed the profile"),
             V("connect", "Connect-request confirmation", "Automatically, when someone asks us to reach out from their private link.", "People who asked to connect"),
             V("excitement", "Excitement email", "By hand, from a contact's record.", "Contacts"),
             V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
@@ -273,7 +273,7 @@ def catalog():
             E("guide_curious", "Reply to \"I'm curious\"", "Automatically, as soon as a Guide takes a call request.", "People who ask to be called", sub="Guides"),
             E("guide_register", "Registration link", "When the Guide taps \"Email it\" in the Ready to register box.", "People a Guide has talked with", sub="Guides"),
             E("guide_questionnaire", "Questionnaire link", "When the Guide taps \"Email it\" in the Send the questionnaire box.", "People who have reserved", sub="Guides"),
-            E("guide_longform", "Complete your information (long form)", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved", sub="Guides"),
+            E("guide_longform", "Complete your profile", "When the Guide taps \"Email it\" under Next step, after the person has reserved.", "People who have reserved", sub="Guides"),
             E("guide_payment", "Payment request", "When the Guide taps \"Email it\" for the payment request.", "People who have reserved", sub="Guides"),
             E("guide_payment_reminder", "Payment reminder (from the Guide)", "When the Guide chooses to remind someone who has not paid (the Guide is prompted every 7 days).", "People who have reserved but not paid", sub="Guides"),
             C("New call request", "Automatically, when someone asks to be called.", "The Guides for that program", sub="Guides", text=[
@@ -292,7 +292,7 @@ def catalog():
             ]),
          
             dict(kind="page", name="Sponsor a Friend (the public form page)", when="A volunteer opens it from the public website to start sponsoring someone.", who="Volunteers who sponsor someone", url="/sponsor", label="View page", sub="Sponsors"),
-            E("sponsor_welcome", "Sponsor welcome (complete your long form)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
+            E("sponsor_welcome", "Sponsor welcome (complete your profile)", "Sent automatically when a volunteer submits the Sponsor form.", "Volunteers who sponsor someone", sub="Sponsors"),
             E("sponsor_page", "Sponsor thank-you and page (contact form complete)", "Automatically, once the Sponsor\u2019s contact form is complete (required items and a photo).", "Volunteers who sponsor someone", sub="Sponsors"),
             V("helper_welcome", "Volunteer welcome", "Automatically, when a volunteer joins the helper team.", "New volunteers", sub="Other Volunteers"),
          ]),

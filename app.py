@@ -2037,6 +2037,7 @@ def profile_missing(contact):
 
 
 app.jinja_env.globals["profile_missing"] = profile_missing
+app.jinja_env.globals["profile_all_missing"] = lambda c: profile_all_missing(c)
 
 PERSONAL_REQUIRED = [("gender", "gender"), ("ethnicity", "ethnicity"), ("marital_status", "marital status"),
                      ("employment_status", "employment status"), ("occupation", "occupation"),
@@ -2084,20 +2085,24 @@ def longform_sent_info(conn, contact):
     return best
 
 
+def profile_all_missing(contact):
+    """Everything still needed for a complete Profile: Basic info + Personal info (Discovery history is not required)."""
+    return profile_missing(contact) + personal_missing(contact)
+
+
 def profile_stages(conn, contact):
     sent = longform_sent_info(conn, contact)
     bm = profile_missing(contact)
     pm = personal_missing(contact)
     hd, hn = history_state(contact)
-    return [
-        dict(done=bool(sent), label="Long form sent", note=("" if not sent else str(sent)[:10]) if sent else "not sent yet"),
-        dict(done=not bm, label="Basic info complete", note="" if not bm else "missing: " + ", ".join(bm)),
-        dict(done=(not bm and not pm), label="Basic and Personal info complete", note="" if (not bm and not pm) else ("missing personal: " + ", ".join(pm) if pm else "finish Basic info first")),
-        dict(done=hd, label="Discovery history complete", note=hn if not hd else hn),
-    ]
-
-_CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
-                  "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
+    return dict(
+        sent=(str(sent)[:10] if sent else ""),
+        lines=[
+            dict(done=not bm, label="Basic info complete", note="" if not bm else "missing: " + ", ".join(bm)),
+            dict(done=not pm, label="Personal info complete", note="" if not pm else "missing: " + ", ".join(pm)),
+            dict(done=(not bm and not pm), label="Profile complete", note="Basic + Personal info" if (not bm and not pm) else "needs Basic and Personal info", strong=True),
+            dict(done=hd, label="Discovery history", note=hn + " (not required for the Profile)"),
+        ])
 
 
 @crm.route("/contacts")
@@ -2120,7 +2125,7 @@ def contacts_list():
         params.append(list_id)
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     prof = request.args.get("profile", "")
-    if prof not in ("complete", "incomplete"):
+    if prof not in ("complete", "incomplete", "basic", "personal"):
         prof = ""
     limit_sql = "" if (q or list_id or prof) else "LIMIT 200"
     rows = conn.execute(
@@ -2129,7 +2134,12 @@ def contacts_list():
         params,
     ).fetchall()
     if prof:
-        rows = [r for r in rows if bool(profile_missing(r)) == (prof == "incomplete")]
+        if prof == "basic":
+            rows = [r for r in rows if profile_missing(r)]
+        elif prof == "personal":
+            rows = [r for r in rows if personal_missing(r)]
+        else:
+            rows = [r for r in rows if bool(profile_all_missing(r)) == (prof == "incomplete")]
     try:
         call_flow.ensure_tables(get_db)
         call_flow.sync_guide_lists(conn)

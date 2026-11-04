@@ -2,10 +2,10 @@
 the same page a Guide uses (/call/<token>), to manage the person they sponsor.
 
 Steps:  /sponsor            -> ONE short form: the volunteer's own details, the person they want to sponsor, and a permission box.
-                               We then email the volunteer a letter (editable under Correspondence): complete your long form (and add a
+                               We then email the volunteer a letter (editable under Correspondence): complete your profile (and add a
                                photo), and here is the private web page you will get.
         /sponsor/thanks/<t> -> shows the private page link.
-        The private page (/call/<token>) opens only after the volunteer's long form and photo are complete; until then it shows
+        The private page (/call/<token>) opens only after the volunteer's profile and photo are complete; until then it shows
         what is still needed.
         /sponsor-training   -> a short guide for Sponsors.
 Behind the scenes a Sponsor is a row in call_volunteers with program_code 'SPONSOR' (never part of the Guide alert groups),
@@ -27,7 +27,7 @@ SPONSOR_CONSENT = (
 
 
 def profile_status(conn, contact, base_url):
-    """Has this contact completed the long form (address, cell, emergency contact) and added a photo?"""
+    """Has this contact completed the profile (address, cell, emergency contact) and added a photo?"""
     need = (("street_address", "street address"), ("city", "city"), ("state", "state"), ("zip", "zip"),
             ("cell_phone", "cell phone"), ("emergency_contact_name", "emergency contact"),
             ("emergency_contact_cell", "emergency contact phone"))

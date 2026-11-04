@@ -638,7 +638,7 @@ def client_progress(conn, req, base_url):
     elif not paid and not req["payment_sent_at"]:
         nxt = ("Send the payment request", "Their seat is held until payment arrives.", "payment")
     elif not prof["complete"] or not prof["photo"]:
-        nxt = ("Ask for the long form and a photo", "Their contact information (and a photo) is not finished yet.", "longform")
+        nxt = ("Ask for the profile and a photo", "Their contact information (and a photo) is not finished yet.", "longform")
     elif not q_done:
         nxt = ("Check in on the questionnaire", "It has been sent but is not finished.", "questionnaire")
     elif not paid:
@@ -1508,7 +1508,7 @@ def register(app, crm, leadership_required, get_db, guides_required=None):
 
     @app.route("/call/<token>/send/<kind>", methods=["POST"])
     def public_call_send_letter(token, kind):
-        """Guide taps 'Email it' for the long form, payment request or payment reminder; or 'sent by text' is noted."""
+        """Guide taps 'Email it' for the profile, payment request or payment reminder; or 'sent by text' is noted."""
         conn, n, req, vol, claimer = _load(token)
         try:
             if req["claimed_by"] != vol["id"]:

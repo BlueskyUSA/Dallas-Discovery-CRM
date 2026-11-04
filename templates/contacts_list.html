@@ -10,7 +10,9 @@
   </select>
   <select name="profile" onchange="this.form.submit()" title="Filter by profile">
     <option value="">All profiles</option>
-    <option value="incomplete" {{ 'selected' if prof == 'incomplete' }}>Profile incomplete</option>
+    <option value="incomplete" {{ 'selected' if prof == 'incomplete' }}>Profile incomplete (Basic or Personal)</option>
+    <option value="basic" {{ 'selected' if prof == 'basic' }}>Basic info incomplete</option>
+    <option value="personal" {{ 'selected' if prof == 'personal' }}>Personal info incomplete</option>
     <option value="complete" {{ 'selected' if prof == 'complete' }}>Profile complete</option>
   </select>
   <input type="hidden" name="sort" value="{{ sort }}">{% if desc %}<input type="hidden" name="dir" value="desc">{% endif %}
@@ -40,7 +42,7 @@
         <div style="width:32px; height:32px; border-radius:50%; background:#f1f4f7"></div>
         {% endif %}
       </td>
-      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a>{% set _m = profile_missing(c) %}{% if _m %}<br><span class="muted" style="font-weight:400; font-size:0.8rem" title="Missing: {{ _m|join(', ') }}">Profile incomplete</span>{% endif %}</td>
+      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a>{% set _m = profile_all_missing(c) %}{% if _m %}<br><span class="muted" style="font-weight:400; font-size:0.8rem" title="Missing: {{ _m|join(', ') }}">Profile incomplete</span>{% endif %}</td>
       <td data-label="Email" style="word-break:break-all">{{ c.email or '' }}</td>
       <td data-label="Cell">{{ c.cell_phone or '' }}</td>
       <td data-label="Status"><span class="badge">{{ c.status }}</span></td>
