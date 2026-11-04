@@ -15,10 +15,15 @@
 </form>
 
 {% if list_id or q %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
+<style>
+  a.sortlink { color: var(--accent, #3f4f3f); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 2px 6px; border-radius: 6px; background: rgba(63,79,63,.08); }
+  a.sortlink:hover, a.sortlink.on { background: rgba(63,79,63,.2); }
+</style>
+<p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Status) to sort the list. Click it again to reverse.</p>
 <div class="card">
   <table class="stack">
-    {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, dir=('desc' if (sort == key and not desc) else None)) }}" style="color:inherit; text-decoration:none">{{ label }}{% if sort == key %} {{ '▼' if desc else '▲' }}{% endif %}</a>{% endmacro %}
-    <tr><th></th><th>Name &nbsp;<span style="font-weight:400; text-transform:none">{{ sh('first','First') }} &middot; {{ sh('last','Last') }}</span></th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Status') }}</th></tr>
+    {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
+    <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Status') }}</th></tr>
     {% for c in contacts %}
     <tr>
       <td class="ph">
