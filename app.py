@@ -62,6 +62,20 @@ SITE_USERNAME = os.environ.get("SITE_USERNAME", "dallasdiscovery")
 
 
 @app.before_request
+def _ensure_contact_columns():
+    """Adds the newer contact columns (roles, partner first/last) the first time any page loads."""
+    if request.path.startswith("/static/"):
+        return
+    try:
+        if not needs._ready:
+            c = get_db()
+            needs.ensure(c)
+            c.close()
+    except Exception as e:
+        print(f"contact column check failed: {e}", flush=True)
+
+
+@app.before_request
 def _require_site_password():
     if not SITE_PASSWORD:
         return  # gate is off -- site is public
@@ -1725,7 +1739,7 @@ def clean_age(value):
 # public form.
 CONTACT_PROFILE_FIELDS = [
     "first_name", "last_name", "email", "email_2", "email_3", "cell_phone", "home_phone", "work_phone",
-    "partner_name", "partner_cell", "partner_email",
+    "partner_name", "partner_first_name", "partner_last_name", "previous_roles", "partner_cell", "partner_email",
     "emergency_contact_name", "emergency_contact_cell", "emergency_contact_home",
     "sponsor_name", "sponsor_phone", "sponsor_email",
     "sponsor_street_address", "sponsor_street_address_2", "sponsor_city", "sponsor_state", "sponsor_zip",
@@ -1761,8 +1775,17 @@ def _clean_contact_field(name, form):
         return form["first_name"].strip()
     if name == "last_name":
         return form.get("last_name", "").strip() or None
-    if name == "partner_name":
+    if name == "partner_first_name" or name == "partner_last_name":
         value = form.get(name, "").strip()
+        return _title_case_name(value) if value else None
+    if name == "previous_roles":
+        roles = form.getlist("previous_roles") if hasattr(form, "getlist") else []
+        return ", ".join(roles) or None
+    if name == "partner_name":
+        if "partner_first_name" in form or "partner_last_name" in form:
+            value = (form.get("partner_first_name", "").strip() + " " + form.get("partner_last_name", "").strip()).strip()
+        else:
+            value = form.get(name, "").strip()
         return _title_case_name(value) if value else None
     if name == "dob":
         return clean_dob(form.get(name))
@@ -1977,6 +2000,21 @@ def dashboard():
 
 app.jinja_env.globals["profile_request"] = lambda first, link="": __import__("email_templates").profile_request_parts(first, link)
 
+PROFILE_REQUIRED = [
+    ("first_name", "first name"), ("last_name", "last name"), ("email", "email"), ("cell_phone", "cell number"),
+    ("street_address", "street address"), ("city", "city"), ("state", "state"), ("zip", "zip"),
+    ("emergency_contact_name", "emergency contact name"), ("emergency_contact_cell", "emergency contact number"),
+    ("photo_filename", "photo"),
+]
+
+
+def profile_missing(contact):
+    """What is still blank for a complete profile: name, email + cell, address, emergency contact, photo."""
+    return [label for f, label in PROFILE_REQUIRED if not str(contact[f] or "").strip()]
+
+
+app.jinja_env.globals["profile_missing"] = profile_missing
+
 _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
                   "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
 
@@ -2000,12 +2038,17 @@ def contacts_list():
         where.append("id IN (SELECT contact_id FROM contact_list_members WHERE list_id = ?)")
         params.append(list_id)
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
-    limit_sql = "" if (q or list_id) else "LIMIT 200"
+    prof = request.args.get("profile", "")
+    if prof not in ("complete", "incomplete"):
+        prof = ""
+    limit_sql = "" if (q or list_id or prof) else "LIMIT 200"
     rows = conn.execute(
         f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} "
         f"ORDER BY {_CONTACT_SORTS[sort]}{' DESC' if desc else ''}, last_name, first_name {limit_sql}",
         params,
     ).fetchall()
+    if prof:
+        rows = [r for r in rows if bool(profile_missing(r)) == (prof == "incomplete")]
     try:
         call_flow.ensure_tables(get_db)
         call_flow.sync_guide_lists(conn)
@@ -2014,7 +2057,7 @@ def contacts_list():
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, all_lists=all_lists, quick_lists=quick)
+    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick)
 
 
 @crm.route("/contacts/new", methods=["GET", "POST"])

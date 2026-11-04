@@ -8,13 +8,18 @@
     <option value="">All lists</option>
     {% for l in all_lists %}<option value="{{ l.id }}" {{ 'selected' if list_id == l.id }}>{{ l.name }}</option>{% endfor %}
   </select>
+  <select name="profile" onchange="this.form.submit()" title="Filter by profile">
+    <option value="">All profiles</option>
+    <option value="incomplete" {{ 'selected' if prof == 'incomplete' }}>Profile incomplete</option>
+    <option value="complete" {{ 'selected' if prof == 'complete' }}>Profile complete</option>
+  </select>
   <input type="hidden" name="sort" value="{{ sort }}">{% if desc %}<input type="hidden" name="dir" value="desc">{% endif %}
   <button class="btn secondary" type="submit">Search</button>
   {% for ql in quick_lists %}<a class="btn {{ '' if list_id == ql.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=ql.id) }}">{{ ql.name }}{{ '' if ql.name.endswith('s') else 's' }}</a>{% endfor %}
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
 </form>
 
-{% if list_id or q %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
+{% if list_id or q or prof %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
 <style>
   a.sortlink { color: #111; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 3px 8px; border-radius: 6px; background: #ffe9a8; border: 1px solid #d9b94a; }
   a.sortlink:hover { background: #ffd966; }
@@ -23,7 +28,7 @@
 <p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Status) to sort the list. Click it again to reverse.</p>
 <div class="card">
   <table class="stack">
-    {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
+    {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
     <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Status') }}</th></tr>
     {% for c in contacts %}
     <tr>
@@ -35,7 +40,7 @@
         <div style="width:32px; height:32px; border-radius:50%; background:#f1f4f7"></div>
         {% endif %}
       </td>
-      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a></td>
+      <td style="font-weight:600"><a href="{{ url_for('.contact_detail', contact_id=c.id) }}">{{ c.full_name }}</a>{% set _m = profile_missing(c) %}{% if _m %}<br><span class="muted" style="font-weight:400; font-size:0.8rem" title="Missing: {{ _m|join(', ') }}">Profile incomplete</span>{% endif %}</td>
       <td data-label="Email" style="word-break:break-all">{{ c.email or '' }}</td>
       <td data-label="Cell">{{ c.cell_phone or '' }}</td>
       <td data-label="Status"><span class="badge">{{ c.status }}</span></td>

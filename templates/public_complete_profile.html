@@ -39,43 +39,57 @@
 </div>
 <div class="card">
   <form method="post" autocomplete="off" enctype="multipart/form-data" id="profile-form" action="{{ url_for('public_complete_profile', token=contact.profile_token) }}">
+<div id="basic-complete" class="stage-banner" style="display:none">&#10003; Basic Info Completed. Thank you!</div>
+<p class="muted" style="margin:0 0 6px">Fields with a <span class="req-sample">gold label</span> are the basic information we ask everyone for.</p>
+
+<h3 id="stage-basics">Basics <span class="stage-note" data-stage="basics"></span></h3>
+<div class="grid2" data-stage-box="basics">
+  <div class="field"><label class="req">First name *</label><input name="first_name" autocomplete="off" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
+  <div class="field"><label class="req">Last name</label><input name="last_name" autocomplete="off" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
+  <div class="field"><label class="req">Photo</label><input type="file" name="photo" accept="image/*" data-has="{{ '1' if contact and contact.photo_filename else '' }}"></div>
+  {% include "_roles_field.html" %}
+</div>
+<div style="display:none">
+  <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box" id="disc-att">
+    <option value="" {% if not contact or not contact.discovery_attendance %}selected{% endif %}></option>
+    <option {% if contact and contact.discovery_attendance == 'Yes' %}selected{% endif %}>Yes</option>
+    <option {% if contact and contact.discovery_attendance == 'No' %}selected{% endif %}>No</option>
+  </select>
+  <p id="disc-yes-note"></p>
+</div>
+
+<h3 id="stage-contact">Contact information <span class="stage-note" data-stage="contact"></span></h3>
+<div class="grid2" data-stage-box="contact">
+  <div class="field" style="grid-column: 1 / -1;"><label class="req">Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
+  <div class="field"><label class="req">Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
+  <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
+  <div class="field"><label>Work number</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
+  <div class="field"><label class="req">Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
+  <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="street_address_2" autocomplete="off" value="{{ contact.street_address_2 if contact and contact.street_address_2 else '' }}"></div>
+  <div class="field"><label class="req">City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
+  <div class="field"><label class="req">State</label>
+    <select name="state">
+      <option value="">Select a state&hellip;</option>
+      {% for code, label in us_states %}
+      <option value="{{ code }}" {% if contact and contact.state == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field"><label class="req">Zip</label><input name="zip" autocomplete="off" value="{{ contact.zip if contact and contact.zip else '' }}"></div>
+</div>
+
+<h3 id="stage-family">Family &amp; emergency contact <span class="stage-note" data-stage="family"></span></h3>
+{% set _pn = (contact.partner_name or '').split() if contact else [] %}
+<div class="grid2" data-stage-box="family">
+  <div class="field"><label>Partner's first name</label><input name="partner_first_name" autocomplete="off" value="{{ (contact.partner_first_name or (_pn[0] if _pn else '')) if contact else '' }}"></div>
+  <div class="field"><label>Partner's last name</label><input name="partner_last_name" autocomplete="off" value="{{ (contact.partner_last_name or (_pn[1:]|join(' '))) if contact else '' }}"></div>
+  <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
+  <div class="field"><label>Partner's email</label><input type="email" name="partner_email" style="width:100%" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
+  <div class="field"><label class="req">Emergency contact name</label><input name="emergency_contact_name" autocomplete="off" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
+  <div class="field"><label class="req">Emergency contact number</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
+  <input type="hidden" name="emergency_contact_home" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}">
+</div>
     <div class="grid2">
-      <div class="field"><label>First name *</label><input name="first_name" required value="{{ contact.first_name if contact and contact.first_name else '' }}"></div>
-      <div class="field"><label>Last name</label><input name="last_name" value="{{ contact.last_name if contact and contact.last_name else '' }}"></div>
-      <div class="field" style="grid-column: 1 / -1; background:#f5f9f9; border:1px solid #d8e9ea; border-radius:8px; padding:12px 14px">
-        <label style="font-size:1.05rem">Have you attended a Discovery! training?</label>
-        <select name="discovery_attendance" class="yesno-toggle" data-show-target="discovery_dates_box" id="disc-att" style="max-width:220px">
-          <option value="" {% if not contact or not contact.discovery_attendance %}selected{% endif %}>Choose…</option>
-          <option {% if contact and contact.discovery_attendance == 'Yes' %}selected{% endif %}>Yes</option>
-          <option {% if contact and contact.discovery_attendance == 'No' %}selected{% endif %}>No</option>
-        </select>
-        <p id="disc-yes-note" style="display:none; margin:10px 0 0; font-weight:600; color:#176878">Wonderful! Please go to the bottom of this page to tell us more about your Discovery! experience and history.</p>
-      </div>
-      <div class="field" style="grid-column: 1 / -1;"><label>Email</label><input type="email" name="email" style="width:100%" autocomplete="off" value="{{ contact.email if contact and contact.email else '' }}"></div>
-      <div class="field"><label>Secondary email <span class="muted" style="font-weight:400;">(optional -- an older address, if any)</span></label><input type="email" name="email_2" autocomplete="off" value="{{ contact.email_2 if contact and contact.email_2 else '' }}"></div>
-      <div class="field"><label>Third email <span class="muted" style="font-weight:400;">(optional)</span></label><input type="email" name="email_3" autocomplete="off" value="{{ contact.email_3 if contact and contact.email_3 else '' }}"></div>
-      <div class="field"><label class="req">Cell number</label><input name="cell_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.cell_phone if contact and contact.cell_phone else '' }}"></div>
-      <div class="field"><label>Home number</label><input name="home_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.home_phone if contact and contact.home_phone else '' }}"></div>
-      <div class="field"><label>Work phone</label><input name="work_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.work_phone if contact and contact.work_phone else '' }}"></div>
-      <div class="field"><label class="req">Photo</label><input type="file" name="photo" accept="image/*"></div>
-      <div class="field"><label class="req">Street address</label><input name="street_address" autocomplete="off" value="{{ contact.street_address if contact and contact.street_address else '' }}"></div>
-      <div class="field"><label>Address line 2 <span class="muted">(apt/suite/unit)</span></label><input name="street_address_2" autocomplete="off" value="{{ contact.street_address_2 if contact and contact.street_address_2 else '' }}"></div>
-      <div class="field"><label class="req">City</label><input name="city" autocomplete="off" value="{{ contact.city if contact and contact.city else '' }}"></div>
-      <div class="field"><label class="req">State</label>
-        <select name="state">
-          <option value="">Select a state&hellip;</option>
-          {% for code, label in us_states %}
-          <option value="{{ code }}" {% if contact and contact.state == code %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field"><label class="req">Zip</label><input name="zip" autocomplete="off" value="{{ contact.zip if contact and contact.zip else '' }}"></div>
-      <div class="field"><label>Partner's name</label><input name="partner_name" value="{{ contact.partner_name if contact and contact.partner_name else '' }}"></div>
-      <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
-      <div class="field" style="grid-column: 1 / -1;"><label>Partner's email</label><input type="email" name="partner_email" style="width:100%" autocomplete="off" value="{{ contact.partner_email if contact and contact.partner_email else '' }}"></div>
-      <div class="field"><label class="req">Emergency contact name</label><input name="emergency_contact_name" value="{{ contact.emergency_contact_name if contact and contact.emergency_contact_name else '' }}"></div>
-      <div class="field"><label class="req">Emergency contact cell</label><input name="emergency_contact_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_cell if contact and contact.emergency_contact_cell else '' }}"></div>
-      <div class="field"><label>Emergency contact home</label><input name="emergency_contact_home" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.emergency_contact_home if contact and contact.emergency_contact_home else '' }}"></div>
       <div class="field">
         <label>How did you hear about us</label>
         <select name="marketing_source" class="self-describe-toggle" data-describe-target="marketing_source_self_describe_box">
@@ -252,6 +266,7 @@
     {% endset %}
     <div id="finish_block_top" style="display: {{ 'none' if shows_contract_section else '' }}">{{ finish_block }}</div>
   </form>
+{% include "_contact_stages.html" %}
 <script>
 (function(){var s=document.getElementById('disc-att'),n=document.getElementById('disc-yes-note');
 function u(){n.style.display=s.value==='Yes'?'block':'none';}s.addEventListener('change',u);u();})();

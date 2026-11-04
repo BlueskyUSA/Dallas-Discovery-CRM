@@ -1,0 +1,19 @@
+{% set _roles = ((contact.previous_roles or '') if contact else '').split(', ') %}
+{% set _role_list = ['None', 'Interested Party', 'Attended (as a trainee)', 'Graduate', 'TA', 'Facilitator', 'Volunteer', 'Donor'] %}
+<div class="field" style="grid-column: 1 / -1;">
+  <label>Previous Discovery! role? <span class="muted" style="font-weight:400">(check all that apply)</span></label>
+  <div class="rolebox" id="rolebox">
+    <button type="button" class="rolebtn" id="rolebtn" aria-expanded="false"><span id="rolesummary">Choose&hellip;</span> &#9662;</button>
+    <div class="rolepanel" id="rolepanel" style="display:none">
+      {% for r in _role_list %}
+      <label class="rolerow"><input type="checkbox" name="previous_roles" value="{{ r }}" {% if r in _roles %}checked{% endif %}> {{ r }}</label>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div id="role-popup" class="role-popup" style="display:none" role="dialog">
+  <div class="role-popup-card">
+    <p style="margin:0 0 12px">It would be very helpful, but not necessary if you would complete your history with Discovery! at the bottom of this form. Thank you</p>
+    <button type="button" class="btn" id="role-popup-ok">OK</button>
+  </div>
+</div>
