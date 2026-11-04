@@ -786,9 +786,10 @@ GUIDE_LETTERS = {
     "profile_request": {
         "title": "Profile update request (email, text and the profile page)",
         "audience": "Any contact: guides, sponsors, trainees, team",
-        "greeting": "Dear",
+        "greeting": "",
         "subject": "We Appreciate Your Help!",
         "paras": [
+            "Dear {First name},",
             "Please take a moment to update your contact information below. It only takes a few minutes. "
             "Your updated information will keep you connected with your fellow participants and team members, "
             "and ease some Discovery! admin burden.",
@@ -876,7 +877,7 @@ GUIDE_LETTERS = {
         "signer": "The Discovery! Team",
     },
 }
-GUIDE_FIELDS = ("when_text", "label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "client", "page_link")
+GUIDE_FIELDS = ("when_text", "First Name", "first name", "label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "client", "page_link")
 ALL_LETTERS = {**SESSION_LETTERS, **GUIDE_LETTERS}
 
 
@@ -945,6 +946,8 @@ def render_spec(spec, fill, link=None):
     import re as _re
     fill = dict(fill)
     fill.setdefault("First name", fill.get("first", ""))
+    fill.setdefault("First Name", fill.get("first", ""))
+    fill.setdefault("first name", fill.get("first", ""))
     greeting = fill["first"]
     word = spec.get("greeting", "Dear")
     subject = spec["subject"].format(**fill)
@@ -954,14 +957,16 @@ def render_spec(spec, fill, link=None):
 
     def h(p):
         return _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", _html.escape(p))
+    open_html = f"<p>{_html.escape(word)} {_html.escape(greeting)},</p>" if word else ""
+    open_text = f"{word} {greeting},\n\n" if word else ""
     html_content = (
-        f"<p>{_html.escape(word)} {_html.escape(greeting)},</p>"
+        open_html
         + "".join(
             (f'<p><a href="{_html.escape(p)}">{_html.escape(p)}</a></p>' if ((link and p == link) or (fill.get("page_link") and p == fill.get("page_link")))
              else f"<p>{h(p)}</p>") for p in paras)
         + f"<p>{_html.escape(signoff)}<br>{_html.escape(signer)}</p>"
     )
-    text_content = (f"{word} {greeting},\n\n" + "\n\n".join(p.replace("**", "") for p in paras)
+    text_content = (open_text + "\n\n".join(p.replace("**", "") for p in paras)
                     + f"\n\n{signoff}\n{signer}")
     return subject, html_content, text_content
 
@@ -985,7 +990,9 @@ def profile_request_parts(first, link=""):
     """The wording of the profile-update request, from the Correspondence page (or the original).
     Used for the Email / Text buttons on a contact and for the top of the public profile page."""
     fill = {"first": (first or "").strip() or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "",
-            "link": link or "", "pw": "", "client": "", "page_link": "", "when_text": ""}
+            "link": link or "", "pw": "", "client": "", "page_link": "", "when_text": "",
+            "First name": (first or "").strip() or "Friend", "First Name": (first or "").strip() or "Friend",
+            "first name": (first or "").strip() or "Friend"}
     spec = GUIDE_LETTERS["profile_request"]
     edit = saved_edit("profile_request")
     if edit:
@@ -997,7 +1004,7 @@ def profile_request_parts(first, link=""):
     subject, _html, text = render_spec(spec, fill, link)
     paras = [p.format(**fill).strip().replace("**", "") for p in spec["paras"]]
     body = [p for p in paras if p and p != (link or "\0") and "{link}" not in p]
-    return {"subject": subject, "text": text, "html": _html, "heading": subject, "greeting": spec.get("greeting", "Dear"),
+    return {"subject": subject, "text": text, "html": _html, "heading": subject, "greeting": spec.get("greeting", "Dear") if "greeting" in spec else "Dear",
             "name": fill["first"], "paras": body, "signoff": spec["signoff"].format(**fill),
             "signer": spec.get("signer", "").format(**fill)}
 

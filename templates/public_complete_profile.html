@@ -22,7 +22,7 @@
 {% else %}
 {% set _pr = profile_request(contact.first_name) %}
 <h1>{{ _pr.heading }}</h1>
-<p>{% if contact.first_name %}{{ _pr.greeting }} {{ contact.first_name }},{% else %}Hello,{% endif %}</p>
+{% if _pr.greeting %}<p>{% if contact.first_name %}{{ _pr.greeting }} {{ contact.first_name }},{% else %}Hello,{% endif %}</p>{% endif %}
 {% for _p in _pr.paras %}<p>{{ _p }}</p>{% endfor %}
 <p>{{ _pr.signoff }}<br>{{ _pr.signer }}</p>
 {% if sponsor_mode %}
