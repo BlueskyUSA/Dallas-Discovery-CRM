@@ -66,10 +66,19 @@
   var boxes = Array.prototype.slice.call(panel.querySelectorAll('input[type=checkbox]'));
   function chosen() { return boxes.filter(function (c) { return c.checked; }).map(function (c) { return c.value; }); }
   function summary() { var c = chosen(); sum.textContent = c.length ? c.join(', ') : 'Choose…'; }
-  function qualifying() { return chosen().filter(function (v) { return v !== 'None' && v !== 'Interested Party'; }).length > 0; }
+  function qualifying() { return chosen().filter(function (v) { return v !== 'None'; }).length > 0; }
+  var attended = ['Attended', 'Graduate', 'TA', 'Facilitator'];
+  var priority = ['Facilitator', 'TA', 'Graduate', 'Attended', 'Registered', 'Sponsor', 'Volunteer', 'Donor'];
+  function syncStatus() {
+    var h = document.getElementById('status_hidden'); if (!h) return;
+    var c = chosen(), pick = null;
+    priority.forEach(function (p) { if (!pick && c.indexOf(p) >= 0) pick = p; });
+    h.value = pick || 'Interested Party';
+  }
   function syncAttendance() {
     var s = el('discovery_attendance'); if (!s) return;
-    var want = qualifying() ? 'Yes' : (chosen().length ? 'No' : null);
+    var c = chosen(), anyAtt = c.filter(function (v) { return attended.indexOf(v) >= 0; }).length > 0;
+    var want = anyAtt ? 'Yes' : (c.indexOf('None') >= 0 ? 'No' : null);
     if (want && s.value !== want) { s.value = want; s.dispatchEvent(new Event('change', {bubbles: true})); }
   }
   btn.addEventListener('click', function () {
@@ -81,7 +90,7 @@
       var was = qualifyingBefore;
       if (c.checked && c.value === 'None') boxes.forEach(function (o) { if (o !== c) o.checked = false; });
       else if (c.checked) boxes.forEach(function (o) { if (o.value === 'None') o.checked = false; });
-      summary(); syncAttendance();
+      summary(); syncAttendance(); syncStatus();
       if (!was && qualifying()) pop.style.display = '';
       qualifyingBefore = qualifying();
     });

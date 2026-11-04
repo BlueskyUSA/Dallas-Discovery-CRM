@@ -1,8 +1,9 @@
 {% set _roles = ((contact.previous_roles or '') if contact else '').split(', ') %}
-{% set _role_list = ['None', 'Interested Party', 'Attended (as a trainee)', 'Graduate', 'TA', 'Facilitator', 'Volunteer', 'Donor'] %}
-{% if roles_hidden %}{% for r in _roles %}{% if r %}<input type="hidden" name="previous_roles" value="{{ r }}">{% endif %}{% endfor %}{% else %}
+{% set _role_list = ['None', 'Volunteer', 'Sponsor', 'Registered', 'Attended', 'Graduate', 'TA', 'Facilitator', 'Donor'] %}
+{% if roles_set_status and contact and not contact.previous_roles and contact.status in _role_list %}{% set _roles = [contact.status] %}{% endif %}
+{% if roles_set_status %}<input type="hidden" name="status" id="status_hidden" value="{{ (contact.status if contact and contact.status else 'Interested Party') }}">{% endif %}
 <div class="field" style="grid-column: 1 / -1;">
-  <label>Previous Discovery! role? <span class="muted" style="font-weight:400">(check all that apply)</span></label>
+  <label>Previous Discovery Role <span class="muted" style="font-weight:400">(check all that apply)</span></label>
   <div class="rolebox" id="rolebox">
     <button type="button" class="rolebtn" id="rolebtn" aria-expanded="false"><span id="rolesummary">Choose&hellip;</span> &#9662;</button>
     <div class="rolepanel" id="rolepanel" style="display:none">
@@ -18,4 +19,3 @@
     <button type="button" class="btn" id="role-popup-ok">OK</button>
   </div>
 </div>
-{% endif %}
