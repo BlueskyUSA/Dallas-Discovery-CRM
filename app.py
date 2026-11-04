@@ -2258,6 +2258,27 @@ def _log_contact_message(contact_id, kind, subject, html_content, to_email):
         print(f"Couldn't record message for contact {contact_id}: {e}", flush=True)
 
 
+@crm.route("/contacts/<int:contact_id>/preview-profile-request")
+@area_required("contacts")
+def contact_preview_profile_request(contact_id):
+    """Shows the profile update request exactly as it would be emailed, without sending anything."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    link = (url_for("public_complete_profile", token=contact["profile_token"], _external=True)
+            if contact["profile_token"] else "[their private link]")
+    import email_templates as _T
+    edit = _T.saved_edit("profile_request")
+    subject, html_content, _t = _T.render_spec(
+        _T.spec_with_edit("profile_request", edit) if edit else _T.GUIDE_LETTERS["profile_request"],
+        {"first": contact["first_name"] or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "", "link": link,
+         "pw": "", "client": "", "page_link": "", "when_text": ""}, link)
+    return _render_letter_preview(contact_id, "Profile update request", subject, html_content,
+                                  ".contact_send_profile_request", "Send profile request")
+
+
 @crm.route("/contacts/<int:contact_id>/send-profile-request", methods=["POST"])
 @area_required("contacts")
 def contact_send_profile_request(contact_id):
