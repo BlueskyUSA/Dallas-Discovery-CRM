@@ -1975,11 +1975,19 @@ def dashboard():
 
 # ---------- contacts ----------
 
+_CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
+                  "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
+
+
 @crm.route("/contacts")
 @area_required("contacts")
 def contacts_list():
     q = request.args.get("q", "").strip()
     list_id = request.args.get("list", type=int)
+    sort = request.args.get("sort", "last")
+    if sort not in ("last", "first", "email", "cell", "status"):
+        sort = "last"
+    desc = request.args.get("dir") == "desc"
     conn = get_db()
     where, params = [], []
     if q:
@@ -1993,7 +2001,7 @@ def contacts_list():
     limit_sql = "" if (q or list_id) else "LIMIT 200"
     rows = conn.execute(
         f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} "
-        f"ORDER BY last_name, first_name {limit_sql}",
+        f"ORDER BY {_CONTACT_SORTS[sort]}{' DESC' if desc else ''}, last_name, first_name {limit_sql}",
         params,
     ).fetchall()
     try:
@@ -2004,7 +2012,7 @@ def contacts_list():
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, all_lists=all_lists, quick_lists=quick)
+    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, all_lists=all_lists, quick_lists=quick)
 
 
 @crm.route("/contacts/new", methods=["GET", "POST"])
