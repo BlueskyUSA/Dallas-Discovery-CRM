@@ -60,16 +60,29 @@
 {% endif %}
 
 <div class="card">
-  <h3 style="margin-top:0">Complete-your-profile link</h3>
+  <h3 style="margin-top:0">Private profile link</h3>
   <p class="muted" style="margin-top:0">
-    Share this link (e.g. by email) so {{ contact.full_name }} can fill in or update their own profile --
-    no ERP login needed. It can't show or change their status or your internal notes.
+    This is {{ contact.full_name }}&rsquo;s own private link. Share it only with them (e.g. by email) so they can fill in or update their own profile --
+    no HUB login needed. It can't show or change their status or your internal notes.
   </p>
   {% if contact.profile_token %}
   <input readonly style="width:100%; font-size:0.85rem" onclick="this.select()"
          value="{{ request.host_url.rstrip('/') }}{{ url_for('public_complete_profile', token=contact.profile_token) }}">
-  <p style="margin:10px 0 0"><a class="btn secondary" target="_blank" rel="noopener" href="{{ url_for('public_complete_profile', token=contact.profile_token) }}">Preview letter</a>
-  <span class="muted" style="font-size:0.85rem">Opens the page {{ contact.first_name or 'they' }} will see (nothing is sent).</span></p>
+  {% set _plink = request.host_url.rstrip('/') ~ url_for('public_complete_profile', token=contact.profile_token) %}
+  {% set _pr = profile_request(contact.first_name, _plink) %}
+  {% set _msg = _pr.text %}
+  <p style="margin:10px 0 0">
+    {% if contact.email %}<form method="post" action="{{ url_for('.contact_send_profile_request', contact_id=contact.id) }}" style="display:inline" onsubmit="return confirm('Send the profile update request to {{ contact.email }}?')"><button class="btn" type="submit">&#9993; Email request</button></form>{% endif %}
+    {% if contact.cell_phone %}<a class="btn" href="sms:{{ contact.cell_phone }}?&body={{ _msg|urlencode }}">&#128172; Text request</a>{% endif %}
+    <a class="btn secondary" target="_blank" rel="noopener" href="{{ url_for('public_complete_profile', token=contact.profile_token) }}">Preview Profile Page</a>
+  </p>
+  {% if not contact.email and not contact.cell_phone %}<p class="muted" style="font-size:0.85rem; margin:6px 0 0">Add an email or cell number to this contact to send the request from here.</p>{% endif %}
+  <p class="muted" style="font-size:0.85rem; margin:6px 0 0"><strong>Email request</strong> is sent by the HUB right away and a record is kept below under &ldquo;Messages sent from the HUB&rdquo;. <strong>Text request</strong> opens a ready-to-send text on your phone or computer; you press Send (the HUB can&rsquo;t see texts).</p>
+  <p class="muted" style="font-size:0.85rem; margin:8px 0 0">
+    <strong>How this works:</strong> the button opens, in a new tab, the exact page {{ contact.first_name or 'they' }} will see
+    when they click the link above. Nothing is sent and nothing is saved unless you fill it in and submit it.
+    The yellow bar at the top is only for you, and its &ldquo;Back to HUB&rdquo; link brings you back here.
+    Anything {{ contact.first_name or 'they' }} enters goes straight into this contact&rsquo;s record in the HUB.</p>
   {% else %}
   <form method="post" action="{{ url_for('.contact_profile_link_new', contact_id=contact.id) }}">
     <button class="btn secondary" type="submit">Generate link</button>
@@ -77,6 +90,17 @@
   {% endif %}
 </div>
 
+<div class="card">
+  <h3 style="margin-top:0">Messages sent from the HUB</h3>
+  {% for m in sent_messages %}
+  <details style="margin:6px 0">
+    <summary><strong>{{ m.kind }}</strong> &middot; {{ m.sent_at|fdate }}{% if m.sent_by %} &middot; by {{ m.sent_by }}{% endif %} <span class="muted">to {{ m.to_email }}</span></summary>
+    <div style="border-left:3px solid #ddd; padding:6px 12px; margin:6px 0"><strong>{{ m.subject }}</strong>{{ m.body_html|safe }}</div>
+  </details>
+  {% else %}
+  <p class="muted" style="margin:0">Nothing sent from the HUB yet (emails sent from here are recorded from now on).</p>
+  {% endfor %}
+</div>
 <div class="card">
   <h3 style="margin-top:0">Video call</h3>
   {% if meet_link %}

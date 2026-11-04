@@ -238,8 +238,12 @@ def catalog():
             V("connect", "Connect-request confirmation", "Automatically, when someone asks us to reach out from their private link.", "People who asked to connect"),
             V("excitement", "Excitement email", "By hand, from a contact's record.", "Contacts"),
             V("plan", "Preliminary business plan", "When someone requests it, or by hand from their record.", "Interested parties"),
-            C("Video call link", "By hand, from a contact's record.", "Contacts"),
             V("venue", "Where we'll be and what's included", "By hand, from the Guide's page or a contact's record.", "Registered couples, or anyone asking about the venue"),
+         ]),
+        ("contacts", "Contacts (anyone in the Hub)",
+         "Messages you send to any contact from their record.", [
+            E("profile_request", "Profile update request (email, text and the profile page)", "By hand, from a contact's record: the Email request and Text request buttons. The same wording opens the contact's profile page.", "Any contact"),
+            E("video_call", "Video call link (Google Meet)", "By hand, from a contact's record: \"Email the link\". The Hub sends it and keeps a record.", "Any contact"),
          ]),
         ("trainees", "Trainee Correspondence",
          "Letters and questionnaires for the people registered for a session. Each session's page shows who has received each letter. The questionnaires are the forms trainees fill in on their private link; their questions are fixed in the program code for now, and making them editable per program is the next piece.", [
@@ -560,8 +564,9 @@ def register(app, crm, get_db, h):
                           location="the hotel", role="Lead Facilitator", duties=["Sound Equipment"], link="https://example.org/your-link",
                           partner="Jordan", amount="$1,299 per couple")
     GUIDE_SAMPLE = dict(first="Alex", label="Relationship Training", vol_name="Pat Smith", vfirst="Pat", vphone="469-555-0100",
-                        link="https://example.org/your-link", pw="call or text", client="Jordan Lee", page_link="https://example.org/your-page")
+                        link="https://example.org/your-link", pw="call or text", client="Jordan Lee", page_link="https://example.org/your-page", when_text=" on Thursday at 2:00 pm")
     FIELD_HELP = {
+        "when_text": "\" on [day and time]\" when you type one, otherwise nothing",
         "First name": "the person's first name (the letter already opens with \"Dear [first name],\" by itself)",
         "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
         "link": "the person's private link (must stay)", "role": "Lead Facilitator or Support Facilitator",

@@ -1,17 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Complete your profile — {{ program_name }}{% endblock %}
+{% block site_header %}
+  {% if session.staff_id and contact %}
+  <div style="background:#fff3cd; border-bottom:2px solid #d9b94a; padding:10px 16px; text-align:center; font-size:0.95rem; color:#111">
+    <strong>Preview:</strong> this is the page {{ contact.first_name or 'the contact' }} sees. Only you see this bar.
+    &nbsp;<a href="{{ url_for('crm.contact_detail', contact_id=contact.id) }}" style="font-weight:700; color:#111; text-decoration:underline">&larr; Back to HUB</a>
+  </div>
+  {% endif %}
+  <header class="pub-topbar">
+    <a class="pub-brand" href="{{ url_for('public_home') }}">
+      <img src="{{ url_for('static', filename='logo-emblem.png') }}" alt="{{ public_brand }} emblem">
+      {{ public_brand }}
+    </a>
+  </header>
+{% endblock %}
 {% block content %}
 <div class="pub-container">
 {% if contact is none %}
 <h1>Link not found</h1>
 <p>This link isn't valid or has expired. Please reach out to us directly and we'll send you a fresh one.</p>
 {% else %}
-<h1>Complete your profile</h1>
-<p class="muted">
-  Update your contact info below -- address, emergency contact, and anything else that's changed.
-  It only takes a few minutes, and it helps us keep in touch and match you up correctly with your
-  fellow participants and team members.
-</p>
+{% set _pr = profile_request(contact.first_name) %}
+<h1>{{ _pr.heading }}</h1>
+<p>{% if contact.first_name %}{{ _pr.greeting }} {{ contact.first_name }},{% else %}Hello,{% endif %}</p>
+{% for _p in _pr.paras %}<p>{{ _p }}</p>{% endfor %}
+<p>{{ _pr.signoff }}<br>{{ _pr.signer }}</p>
 {% if sponsor_mode %}
 <style>.field label.req{color:#b45309; font-weight:700}.field label.req::after{content:" (required)"; font-weight:400; font-size:.85em}</style>
 <div role="note" style="background:#fff4e0; border-left:6px solid #b45309; border-radius:6px; padding:14px 18px; margin:18px 0;">

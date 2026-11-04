@@ -1975,6 +1975,8 @@ def dashboard():
 
 # ---------- contacts ----------
 
+app.jinja_env.globals["profile_request"] = lambda first, link="": __import__("email_templates").profile_request_parts(first, link)
+
 _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
                   "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
 
@@ -2234,6 +2236,60 @@ def _set_setting(key, value):
     conn.close()
 
 
+_contact_messages_ready = False
+
+
+def _log_contact_message(contact_id, kind, subject, html_content, to_email):
+    """Keeps a record of an email the Hub sent to one contact (shown on their page). Never blocks a send."""
+    global _contact_messages_ready
+    try:
+        conn = get_db()
+        if not _contact_messages_ready:
+            conn.execute("""CREATE TABLE IF NOT EXISTS contact_messages (
+                id SERIAL PRIMARY KEY, contact_id INTEGER, kind TEXT, subject TEXT, body_html TEXT,
+                to_email TEXT, sent_by TEXT, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+            conn.commit()
+            _contact_messages_ready = True
+        conn.execute("INSERT INTO contact_messages (contact_id, kind, subject, body_html, to_email, sent_by) VALUES (?,?,?,?,?,?)",
+                     (contact_id, kind, subject, html_content, to_email, session.get("staff_name")))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Couldn't record message for contact {contact_id}: {e}", flush=True)
+
+
+@crm.route("/contacts/<int:contact_id>/send-profile-request", methods=["POST"])
+@area_required("contacts")
+def contact_send_profile_request(contact_id):
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    back = url_for(".contact_detail", contact_id=contact_id)
+    if not contact["email"]:
+        flash("Can't send -- this contact has no email address on file.")
+        return redirect(back)
+    if not contact["profile_token"]:
+        flash("Generate their private profile link first.")
+        return redirect(back)
+    link = url_for("public_complete_profile", token=contact["profile_token"], _external=True)
+    import email_templates as _T
+    subject, html_content, text_content = _T.render_spec(
+        _T.spec_with_edit("profile_request", _T.saved_edit("profile_request")) if _T.saved_edit("profile_request") else _T.GUIDE_LETTERS["profile_request"],
+        {"first": contact["first_name"] or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "", "link": link,
+         "pw": "", "client": "", "page_link": "", "when_text": ""}, link)
+    try:
+        send_email(to_email=contact["email"], to_name=contact["first_name"], subject=subject,
+                   html_content=html_content, text_content=text_content)
+    except EmailSendError as e:
+        flash(f"Couldn't send the email: {e}")
+        return redirect(back)
+    _log_contact_message(contact_id, "Profile update request", subject, html_content, contact["email"])
+    flash(f"Profile update request emailed to {contact['first_name']} ({contact['email']}).")
+    return redirect(back)
+
+
 @crm.route("/video-call/link", methods=["POST"])
 @leadership_required
 def video_call_link_save():
@@ -2265,18 +2321,13 @@ def contact_send_video_link(contact_id):
         return redirect(back)
     when = (request.form.get("when") or "").strip()[:120]
     first = contact["first_name"] or "there"
-    when_text = f" on {when}" if when else ""
-    text = (f"Hi {first},\n\nHere is the link for our video call{when_text}:\n{link}\n\n"
-            "Just click the link a few minutes before we start. It works in your web browser on a computer, "
-            "phone or tablet -- nothing to install.\n\nLooking forward to seeing you,\nKent\n")
-    esc = _html.escape
-    html = (f"<p>Hi {esc(first)},</p><p>Here is the link for our video call{esc(when_text)}:</p>"
-            f'<p><a href="{esc(link)}">{esc(link)}</a></p>'
-            "<p>Just click the link a few minutes before we start. It works in your web browser on a computer, "
-            "phone or tablet &mdash; nothing to install.</p><p>Looking forward to seeing you,<br>Kent</p>")
+    import email_templates as _T
+    subject, html, text = _T.guide_letter_content("video_call", first, "", "", "", link=link,
+                                                  when_text=(f" on {when}" if when else ""))
     try:
         send_email(to_email=contact["email"], to_name=contact["first_name"],
-                   subject="Our video call", html_content=html, text_content=text)
+                   subject=subject, html_content=html, text_content=text)
+        _log_contact_message(contact_id, "Video call link", subject, html, contact["email"])
         flash(f"Video call link emailed to {contact['first_name']} ({contact['email']}).")
     except EmailSendError as e:
         flash(f"Couldn't send the email: {e}")
@@ -2845,9 +2896,17 @@ def contact_detail(contact_id):
         guide = call_flow.guide_for_email(conn, contact["email"]) if contact else None
     except Exception:
         guide = None
+    try:
+        sent_messages = conn.execute(
+            "SELECT kind, subject, body_html, to_email, sent_by, sent_at FROM contact_messages WHERE contact_id = ? ORDER BY sent_at DESC",
+            (contact_id,)).fetchall()
+    except Exception:
+        conn.rollback()
+        sent_messages = []
     conn.close()
     return render_template(
         "contact_detail.html",
+        sent_messages=sent_messages,
         guide=guide,
         meet_link=_get_setting("meet_link"),
         letters_sent=letters_sent, auto_letters_on=bool(_auto_letters_start()),

@@ -783,6 +783,33 @@ GUIDE_LETTERS = {
         "signoff": "Warmly,",
         "signer": "{vol_name} and the Discovery! Team",
     },
+    "profile_request": {
+        "title": "Profile update request (email, text and the profile page)",
+        "audience": "Any contact: guides, sponsors, trainees, team",
+        "greeting": "Dear",
+        "subject": "We Appreciate Your Help!",
+        "paras": [
+            "Please take a moment to update your contact information below. It only takes a few minutes. "
+            "Your updated information will keep you connected with your fellow participants and team members, "
+            "and ease some Discovery! admin burden.",
+            "{link}",
+        ],
+        "signoff": "Thanks so much, and have a great day!",
+        "signer": "The Discovery! Team",
+    },
+    "video_call": {
+        "title": "Video call link (Google Meet)",
+        "audience": "Any contact",
+        "greeting": "Hi",
+        "subject": "Our video call",
+        "paras": [
+            "Here is the link for our video call{when_text}:",
+            "{link}",
+            "Just click the link a few minutes before we start. It works in your web browser on a computer, phone or tablet \u2014 nothing to install.",
+        ],
+        "signoff": "Looking forward to seeing you,",
+        "signer": "Kent",
+    },
     "guide_payment": {
         "title": "Payment request",
         "audience": "People who have reserved",
@@ -849,7 +876,7 @@ GUIDE_LETTERS = {
         "signer": "The Discovery! Team",
     },
 }
-GUIDE_FIELDS = ("label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "client", "page_link")
+GUIDE_FIELDS = ("when_text", "label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "client", "page_link")
 ALL_LETTERS = {**SESSION_LETTERS, **GUIDE_LETTERS}
 
 
@@ -943,7 +970,7 @@ def guide_letter_content(key, first, label, vol_name, vphone, pw=None, link=None
     """(subject, html, text) for a Guide-call letter, using any saved edit and falling back to the original."""
     vfirst = (vol_name or "").split()[0] if (vol_name or "").strip() else ""
     fill = {"first": first, "label": label, "vol_name": vol_name, "vfirst": vfirst, "vphone": vphone,
-            "link": link or "", "pw": pw or "call or text", "client": "", "page_link": ""}
+            "link": link or "", "pw": pw or "call or text", "client": "", "page_link": "", "when_text": ""}
     fill.update({k: (v or "") for k, v in extra.items()})
     edit = saved_edit(key)
     if edit:
@@ -952,6 +979,27 @@ def guide_letter_content(key, first, label, vol_name, vphone, pw=None, link=None
         except Exception:
             pass
     return render_spec(GUIDE_LETTERS[key], fill, link)
+
+
+def profile_request_parts(first, link=""):
+    """The wording of the profile-update request, from the Correspondence page (or the original).
+    Used for the Email / Text buttons on a contact and for the top of the public profile page."""
+    fill = {"first": (first or "").strip() or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "",
+            "link": link or "", "pw": "", "client": "", "page_link": "", "when_text": ""}
+    spec = GUIDE_LETTERS["profile_request"]
+    edit = saved_edit("profile_request")
+    if edit:
+        try:
+            spec = spec_with_edit("profile_request", edit)
+            spec["subject"].format(**fill)
+        except Exception:
+            spec = GUIDE_LETTERS["profile_request"]
+    subject, _html, text = render_spec(spec, fill, link)
+    paras = [p.format(**fill).strip().replace("**", "") for p in spec["paras"]]
+    body = [p for p in paras if p and p != (link or "\0") and "{link}" not in p]
+    return {"subject": subject, "text": text, "html": _html, "heading": subject, "greeting": spec.get("greeting", "Dear"),
+            "name": fill["first"], "paras": body, "signoff": spec["signoff"].format(**fill),
+            "signer": spec.get("signer", "").format(**fill)}
 
 
 def session_letter_content(key, first_name, training, dates, location=None, role=None, duties=None, link=None,
