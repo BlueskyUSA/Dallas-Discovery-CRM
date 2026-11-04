@@ -2105,6 +2105,10 @@ def profile_stages(conn, contact):
         ])
 
 
+_CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
+                  "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
+
+
 @crm.route("/contacts")
 @area_required("contacts")
 def contacts_list():
