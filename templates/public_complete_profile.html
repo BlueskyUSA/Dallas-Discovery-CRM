@@ -94,7 +94,8 @@
 </div>
 </div>
 
-    <h3>Personal information</h3>
+    <div class="personal-area">
+    <h3 style="margin-top:0">Personal information</h3>
     <div class="grid2">
       <div class="field">
         <label>Gender</label>
@@ -246,6 +247,9 @@
       <div class="field"><label>Sponsor name</label><input name="sponsor_name" placeholder="Who sponsored/recommended them" value="{{ contact.sponsor_name if contact and contact.sponsor_name else '' }}"></div>
       <div class="field"><label>Sponsor phone</label><input name="sponsor_phone" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.sponsor_phone if contact and contact.sponsor_phone else '' }}"></div>
       <div class="field" style="grid-column: 1 / -1;"><label>Sponsor email</label><input type="email" name="sponsor_email" style="width:100%" autocomplete="off" value="{{ contact.sponsor_email if contact and contact.sponsor_email else '' }}"></div>
+    </div>
+    </div>
+    <div class="grid2">
       <div class="field">
         <div class="field" style="margin-bottom:6px"><b>Your Discovery! history</b></div>
         <div id="discovery_dates_box" style="display:none">
