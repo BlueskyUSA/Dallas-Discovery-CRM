@@ -21,7 +21,7 @@
     <div style="margin-top:6px; font-size:1rem; line-height:1.9">
       {% for st in stages %}
       <div>
-        <span style="display:inline-block; width:1.4em; font-weight:700; color:{{ '#2b7a2b' if st.done else '#9aa5a0' }}">{{ '&#10003;' if st.done else '&#9675;' }}</span>
+        <span style="display:inline-block; width:1.4em; font-weight:700; color:{{ '#2b7a2b' if st.done else '#9aa5a0' }}">{{ '✓' if st.done else '○' }}</span>
         <strong style="color:{{ '#1f5f1f' if st.done else '#444' }}">{{ st.label }}</strong>
         {% if st.note %}<span class="muted" style="font-size:.9rem">&middot; {{ st.note }}</span>{% endif %}
       </div>
