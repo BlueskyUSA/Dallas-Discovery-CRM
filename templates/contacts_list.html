@@ -1,6 +1,7 @@
 {% extends "crm_base.html" %}
 {% block title %}Contacts — {{ program_name }} ERP{% endblock %}
 {% block content %}
+{% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
 <h1>Contacts</h1>
 <form class="inline" method="get">
   <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
@@ -17,20 +18,24 @@
   </select>
   <input type="hidden" name="sort" value="{{ sort }}">{% if desc %}<input type="hidden" name="dir" value="desc">{% endif %}
   <button class="btn secondary" type="submit">Search</button>
-  {% for ql in quick_lists %}<a class="btn {{ '' if list_id == ql.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=ql.id) }}">{{ ql.name }}{{ '' if ql.name.endswith('s') else 's' }}</a>{% endfor %}
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
 </form>
 
 {% if list_id or q or prof %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
 <style>
+  .sortbar { display:none; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 10px; }
+  @media (max-width: 760px) { .sortbar { display:flex; } }
   a.sortlink { color: #111; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 3px 8px; border-radius: 6px; background: #e3ece3; border: 1px solid #7f9f7f; }
   a.sortlink:hover { background: #cfdfcf; }
   a.sortlink.on { background: #bcd3bc; border-color: #4f7a4f; }
 </style>
 <p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Status) to sort the list. Click it again to reverse.</p>
+<div class="sortbar">
+  <strong>Sort by:</strong>
+  {{ sh('first','First') }} {{ sh('last','Last') }} {{ sh('email','Email') }} {{ sh('cell','Cell') }} {{ sh('status','Status') }}
+</div>
 <div class="card">
   <table class="stack">
-    {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
     <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Status') }}</th></tr>
     {% for c in contacts %}
     <tr>
