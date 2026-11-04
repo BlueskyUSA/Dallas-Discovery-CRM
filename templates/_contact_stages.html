@@ -18,12 +18,13 @@
   var stages = {
     basics:  ['first_name', 'last_name', 'photo'],
     contact: ['email', 'cell_phone', 'street_address', 'city', 'state', 'zip'],
-    family:  ['emergency_contact_name', 'emergency_contact_cell']
+    family:  ['partner_first_name', 'partner_last_name', 'emergency_contact_name', 'emergency_contact_cell']
   };
   var names = {basics: 'Basics', contact: 'Contact information', family: 'Family & emergency contact'};
   function el(n) { return form.querySelector('[name="' + n + '"]'); }
   function filled(n) {
     var e = el(n); if (!e) return true;
+    if (n.indexOf('partner_') === 0 && el('no_partner') && el('no_partner').checked) return true;
     if (e.type === 'file') return (e.files && e.files.length > 0) || e.getAttribute('data-has') === '1';
     return (e.value || '').trim() !== '';
   }
@@ -46,6 +47,14 @@
     var b = document.getElementById('basic-complete');
     if (b) b.style.display = all ? '' : 'none';
   }
+  function partnerToggle() {
+    var np = el('no_partner'); if (!np) return;
+    ['partner_first_name', 'partner_last_name', 'partner_cell', 'partner_email'].forEach(function (n) {
+      var e = el(n), f = e && e.closest('.field'); if (f) f.style.display = np.checked ? 'none' : '';
+    });
+  }
+  if (el('no_partner')) el('no_partner').addEventListener('change', partnerToggle);
+  partnerToggle();
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   update();

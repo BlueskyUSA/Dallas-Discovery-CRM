@@ -1739,7 +1739,7 @@ def clean_age(value):
 # public form.
 CONTACT_PROFILE_FIELDS = [
     "first_name", "last_name", "email", "email_2", "email_3", "cell_phone", "home_phone", "work_phone",
-    "partner_name", "partner_first_name", "partner_last_name", "previous_roles", "partner_cell", "partner_email",
+    "partner_name", "partner_first_name", "partner_last_name", "no_partner", "previous_roles", "partner_cell", "partner_email",
     "emergency_contact_name", "emergency_contact_cell", "emergency_contact_home",
     "sponsor_name", "sponsor_phone", "sponsor_email",
     "sponsor_street_address", "sponsor_street_address_2", "sponsor_city", "sponsor_state", "sponsor_zip",
@@ -1778,6 +1778,8 @@ def _clean_contact_field(name, form):
     if name == "partner_first_name" or name == "partner_last_name":
         value = form.get(name, "").strip()
         return _title_case_name(value) if value else None
+    if name == "no_partner":
+        return "1" if form.get("no_partner") else None
     if name == "previous_roles":
         roles = form.getlist("previous_roles") if hasattr(form, "getlist") else []
         return ", ".join(roles) or None
@@ -1801,7 +1803,11 @@ PUBLIC_FORM_SKIPPED_FIELDS = {
 def contact_profile_values_from_form(form):
     """Returns {column: cleaned_value} for every CONTACT_PROFILE_FIELDS
     column, built from a submitted form (internal or public)."""
-    return {name: _clean_contact_field(name, form) for name in CONTACT_PROFILE_FIELDS}
+    values = {name: _clean_contact_field(name, form) for name in CONTACT_PROFILE_FIELDS}
+    if values.get("no_partner"):
+        for k in ("partner_name", "partner_first_name", "partner_last_name", "partner_cell", "partner_email"):
+            values[k] = None
+    return values
 
 
 def _create_past_sponsor(conn, name, phone, email, note):
@@ -2010,7 +2016,24 @@ PROFILE_REQUIRED = [
 
 def profile_missing(contact):
     """What is still blank for a complete profile: name, email + cell, address, emergency contact, photo."""
-    return [label for f, label in PROFILE_REQUIRED if not str(contact[f] or "").strip()]
+    missing = [label for f, label in PROFILE_REQUIRED if not str(contact[f] or "").strip()]
+    try:
+        no_partner = bool(contact["no_partner"])
+    except Exception:
+        no_partner = False
+    if not no_partner:
+        try:
+            pf, pl = contact["partner_first_name"], contact["partner_last_name"]
+        except Exception:
+            pf = pl = None
+        parts = str(contact["partner_name"] or "").split()
+        pf = pf or (parts[0] if parts else "")
+        pl = pl or (" ".join(parts[1:]) if len(parts) > 1 else "")
+        if not str(pf or "").strip():
+            missing.append("partner first name (or tick No partner)")
+        if not str(pl or "").strip() and str(pf or "").strip():
+            missing.append("partner last name")
+    return missing
 
 
 app.jinja_env.globals["profile_missing"] = profile_missing

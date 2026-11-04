@@ -21,6 +21,7 @@ def ensure(conn):
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS previous_roles TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS partner_first_name TEXT")
         conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS partner_last_name TEXT")
+        conn.execute("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS no_partner TEXT")
         conn.commit()
         _ready = True
     except Exception as e:

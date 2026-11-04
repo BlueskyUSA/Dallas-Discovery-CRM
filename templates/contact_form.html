@@ -64,6 +64,7 @@
 <h3 id="stage-family">Family &amp; emergency contact <span class="stage-note" data-stage="family"></span></h3>
 {% set _pn = (contact.partner_name or '').split() if contact else [] %}
 <div class="grid2" data-stage-box="family">
+  <div class="field" style="grid-column: 1 / -1;"><label style="display:flex; gap:8px; align-items:center; font-weight:600"><input type="checkbox" name="no_partner" value="1" id="no_partner" {% if contact and contact.no_partner %}checked{% endif %}> No partner</label></div>
   <div class="field"><label>Partner's first name</label><input name="partner_first_name" autocomplete="off" value="{{ (contact.partner_first_name or (_pn[0] if _pn else '')) if contact else '' }}"></div>
   <div class="field"><label>Partner's last name</label><input name="partner_last_name" autocomplete="off" value="{{ (contact.partner_last_name or (_pn[1:]|join(' '))) if contact else '' }}"></div>
   <div class="field"><label>Partner's cell</label><input name="partner_cell" class="phone-input" placeholder="000-000-0000" inputmode="numeric" maxlength="12" autocomplete="new-password" data-lpignore="true" value="{{ contact.partner_cell if contact and contact.partner_cell else '' }}"></div>
