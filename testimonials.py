@@ -506,7 +506,6 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                             p2_links = f"Please take a look at <a href=\"{home_url}\">our website</a> to see the new direction"
                             p2_links += (f", and if you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>. " if site_on else ". ")
                         body = (f"<p>Hi {_html.escape(first)},</p>"
-                                + (f"<p>{_note_html(note)}</p>" if note else "")
                                 + "<p>You may have heard we are inviting former trainees &amp; volunteers to share how Discovery! has touched "
                                   "their lives, and the lives of their family and friends. We'd love to hear about your experience with the "
                                   "training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your story "
@@ -515,7 +514,8 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                                   f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>"
                                   f"<p>{p2_links}Nothing is published without your approval. We'll show you the final version first, and we'll "
                                   "add testimonials to the website once enough of you have responded.</p>"
-                                  "<p>Thank you so much,<br>Kent</p>")
+                                  + (f"<p>{_note_html(note)}</p>" if note else "")
+                                  + "<p>Thank you so much,<br>Kent</p>")
                         try:
                             send_email(to_email=ct["email"], to_name=ct["full_name"],
                                        subject="Share your Discovery! experience", html_content=body,

@@ -2472,7 +2472,7 @@ def contact_send_profile_request(contact_id):
     try:
         send_email(to_email=contact["email"], to_name=contact["first_name"], subject=subject,
                    html_content=html_content, text_content=text_content)
-    except EmailSendError as e:
+    except Exception as e:
         flash(f"Couldn't send the email: {e}")
         return redirect(back)
     _log_contact_message(contact_id, "Profile update request", subject, html_content, contact["email"])
@@ -2519,7 +2519,7 @@ def contact_send_video_link(contact_id):
                    subject=subject, html_content=html, text_content=text)
         _log_contact_message(contact_id, "Video call link", subject, html, contact["email"])
         flash(f"Video call link emailed to {contact['first_name']} ({contact['email']}).")
-    except EmailSendError as e:
+    except Exception as e:
         flash(f"Couldn't send the email: {e}")
     return redirect(back)
 
@@ -2573,7 +2573,7 @@ def contact_send_business_plan(contact_id):
             flush=True,
         )
         flash(f"Business plan sent to {contact['first_name']} ({contact['email']}).")
-    except EmailSendError as e:
+    except Exception as e:
         print(f"EmailSendError sending business plan to {contact['email']}: {e}", flush=True)
         flash(f"Couldn't send the business plan: {e}")
     return redirect(url_for(".contact_detail", contact_id=contact_id))
