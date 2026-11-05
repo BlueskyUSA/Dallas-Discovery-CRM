@@ -44,6 +44,11 @@ def _child_columns(conn):
     return sorted(out)
 
 
+def _same_first(a, b):
+    a, b = (a or "").strip().lower(), (b or "").strip().lower()
+    return bool(a and b and (a == b or (min(len(a), len(b)) >= 3 and (a.startswith(b) or b.startswith(a)))))
+
+
 def find_pairs(conn):
     rows = conn.execute("SELECT id, first_name, last_name, email, email_2, email_3, cell_phone, home_phone, work_phone, status FROM contacts").fetchall()
     people = {r["id"]: dict(r) for r in rows}
@@ -67,9 +72,13 @@ def find_pairs(conn):
             continue
         for i in range(len(ids)):
             for j in range(i + 1, len(ids)):
-                pairs.setdefault((ids[i], ids[j]), set()).add(reason)
+                r = reason
+                if reason == "Same email address" and not _same_first(people[ids[i]]["first_name"], people[ids[j]]["first_name"]):
+                    r = "Shared email, different first names (may be a couple)"
+                pairs.setdefault((ids[i], ids[j]), set()).add(r)
     ignored = {(r["a"], r["b"]) for r in conn.execute("SELECT a, b FROM contact_dupe_ignore").fetchall()}
-    order = {"Same email address": 0, "Same first and last name": 1, "Same phone number": 2}
+    order = {"Same email address": 0, "Same first and last name": 1, "Same phone number": 2,
+             "Shared email, different first names (may be a couple)": 3}
     out = []
     for (a, b), reasons in pairs.items():
         if (a, b) in ignored:
@@ -248,7 +257,7 @@ def register(app, crm, area_required, leadership_required, get_db):
                 continue
             why = []
             if email and email in {(r[k] or "").strip().lower() for k in ("email", "email_2", "email_3")}:
-                why.append("same email")
+                why.append("same email" if _same_first(first, r["first_name"]) or not first else "same email, but a different first name, so possibly a couple")
             if cell and cell in {_digits(r[k]) for k in ("cell_phone", "home_phone", "work_phone")}:
                 why.append("same phone")
             if first and last and (r["first_name"] or "").strip().lower() == first and (r["last_name"] or "").strip().lower() == last:
