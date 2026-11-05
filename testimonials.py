@@ -391,7 +391,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         conn = get_db()
         rows = conn.execute(
             f"""SELECT r.id AS req_id, r.program_code AS req_program, r.created_at, r.sent_at, r.token,
-                       {full_name_sql('ct')} AS full_name, ct.id AS contact_id,
+                       {full_name_sql('ct')} AS full_name, ct.id AS contact_id, ct.email AS email,
                        t.id AS tid, t.status, t.confirm_state, t.display_name, t.body, (t.video_data IS NOT NULL) AS has_video
                 FROM testimonial_requests r
                 LEFT JOIN contacts ct ON ct.id = r.contact_id
@@ -410,7 +410,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         conn.close()
         items = []
         order = {"review": 0, "changes": 1, "ready": 2, "waiting_ok": 3, "waiting": 4, "published": 5, "hidden": 6}
-        all_rows = [dict(r) for r in rows] + [dict(r, req_id=None, sent_at=None, token=None, contact_id=None) for r in open_rows]
+        all_rows = [dict(r) for r in rows] + [dict(r, req_id=None, sent_at=None, token=None, contact_id=None, email=None) for r in open_rows]
         for d in all_rows:
             if d["tid"] is None:
                 d["stage"], d["label"], d["action"] = "waiting", "Waiting for their story", ""
