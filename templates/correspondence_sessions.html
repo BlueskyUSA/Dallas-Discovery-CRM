@@ -2,6 +2,8 @@
 {% block title %}{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence{% endblock %}
 {% block content %}
 <style>
+details[open] > summary .lt-arrow{font-size:0}
+details[open] > summary .lt-arrow::after{content:"\25BE  Hide"; font-size:1rem}
 table.sessTable th.sortkey{color:#1f5fbf; font-weight:800; text-decoration:underline; text-underline-offset:4px; cursor:pointer; background:#eef3fb; white-space:nowrap}
 table.sessTable th.sortkey:hover{background:#dde8f8}
 table.sessTable th.sortkey::after{content:" \21C5"; font-weight:400; opacity:.7}
@@ -31,6 +33,7 @@ table.sessTable th.sortkey.active::after{content:""}
 {% for l in letter_rows %}
 <details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; background:#fffdf7">
   <summary style="cursor:pointer; padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px">
+    <span class="lt-arrow" style="color:#1f5fbf; font-weight:800">&#9656; Read</span>
     <strong style="font-size:1.05rem">{{ l.title }}</strong>
     <span class="muted">{{ l.audience }}</span>
     <span>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</span>
