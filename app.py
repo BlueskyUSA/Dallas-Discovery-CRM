@@ -8181,8 +8181,6 @@ def correspondence_access(view):
 
 
 blasts.register(app, crm, correspondence_access, get_db)
-import contact_dupes
-contact_dupes.register(app, crm, area_required, leadership_required, get_db)
 import correspondence
 correspondence.register(app, crm, get_db, {
     "leadership_required": leadership_required, "correspondence_access": correspondence_access,

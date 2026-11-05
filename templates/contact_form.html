@@ -15,26 +15,6 @@
       {% for c in sponsor_choices %}<option value="{{ c.full_name }} [#{{ c.id }}]"></option>{% endfor %}
     </datalist>
 
-{% if not contact %}
-<div id="dupe-warn" style="display:none; background:#fdf0d5; border:1px solid #e0c27a; border-radius:8px; padding:10px 14px; margin:0 0 10px"></div>
-<script>
-(function(){
-  var f=document.getElementById('contact-form'); if(!f) return;
-  function v(n){var e=f.querySelector('[name="'+n+'"]'); return e?e.value:'';}
-  var box=document.getElementById('dupe-warn'), t=null;
-  function check(){
-    var u=new URL({{ url_for('.contact_check_duplicate')|tojson }}, location.origin);
-    u.searchParams.set('first',v('first_name')); u.searchParams.set('last',v('last_name')); u.searchParams.set('email',v('email')); u.searchParams.set('cell',v('cell_phone'));
-    fetch(u,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(h){
-      if(!h.length){box.style.display='none';return;}
-      box.innerHTML='<strong>Already in the Hub?</strong> '+h.map(function(x){return '<a href="'+x.url+'" target="_blank">'+x.name.replace(/</g,'&lt;')+'</a> ('+x.why+')';}).join(' &middot; ')+'. Open that contact instead, or keep going if this is a different person.';
-      box.style.display='block';
-    }).catch(function(){});
-  }
-  ['first_name','last_name','email','cell_phone'].forEach(function(n){var e=f.querySelector('[name="'+n+'"]'); if(e) e.addEventListener('blur',function(){clearTimeout(t); t=setTimeout(check,200);});});
-})();
-</script>
-{% endif %}
 <div id="basic-complete" class="stage-banner" style="display:none">&#10003; Basic Info Completed. Thank you!</div>
 <p class="muted" style="margin:0 0 6px">The green area is the basic information we ask everyone for.</p>
 
