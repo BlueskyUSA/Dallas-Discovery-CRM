@@ -39,24 +39,3 @@
 {% else %}
 <p class="muted">Nothing filed under {{ category }} yet.</p>
 {% endfor %}
-
-{% if can_edit_materials %}
-<h3>Upload to {{ category }}</h3>
-<div class="card">
-  <form method="post" action="{{ url_for('.program_material_new', program_id=program.id) }}" enctype="multipart/form-data">
-    <input type="hidden" name="category" value="{{ category }}">
-    <div class="grid2">
-      <div class="field"><label>Title</label><input name="title" placeholder="{{ upload_placeholder or 'Leave blank to use the file name' }}"></div>
-      <div class="field"><label>Day</label>
-        <select name="day_label">
-          {% for d in day_label_choices %}
-          <option value="{{ d }}" {{ 'selected' if d == default_day else '' }}>{{ d }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field"><label>File</label><input type="file" name="file" required></div>
-    </div>
-    <button class="btn" type="submit">Upload to {{ category }}</button>
-  </form>
-</div>
-{% endif %}
