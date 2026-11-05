@@ -160,6 +160,12 @@
   </main>
   <script src="{{ url_for('static', filename='phone-mask.js') }}"></script>
   <script>
+  // While you are typing or clicking on a Hub page, quietly stay signed in (so a long edit is not lost to the 30-minute idle log-out).
+  {% if session.staff_id %}(function(){var active=false;
+    ['keydown','input','click','scroll','touchstart'].forEach(function(ev){document.addEventListener(ev,function(){active=true;},{passive:true});});
+    setInterval(function(){if(!active)return;active=false;try{fetch({{ url_for('.keepalive')|tojson }},{method:'POST',credentials:'same-origin'});}catch(e){}},240000);})();{% endif %}
+  </script>
+  <script>
     // Top-menu drop-downs (Admin, Account): close on a click anywhere else, on Esc, or when another one opens.
     (function () {
       var menus = document.querySelectorAll('details.navmenu');

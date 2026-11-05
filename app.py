@@ -242,6 +242,12 @@ def require_staff_login():
     session["last_seen"] = now.isoformat()
 
 
+@crm.route("/keepalive", methods=["GET", "POST"])
+def keepalive():
+    """Quietly called by an open Hub page while someone is typing or clicking, so a long edit is not lost to the idle timeout."""
+    return ("", 204)
+
+
 def leadership_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
