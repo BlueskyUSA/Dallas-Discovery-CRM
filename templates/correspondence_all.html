@@ -100,7 +100,7 @@ details.subblock>summary{font-size:1.05rem}
     <td style="white-space:nowrap">
       {% if e.kind == 'edit' %}
         <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key, view=1) }}">View</a>
-        {% if is_owner %}<a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key) }}">Edit wording</a>{% endif %}
+        <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=e.key) if is_owner else '#' }}"{% if not is_owner %} onclick="alert('Only the Owner can edit correspondence. You can read every letter here, and use Suggest a change to ask for an edit.'); return false;"{% endif %}>Edit wording</a>
         <div class="muted" style="font-size:.85rem; margin-top:4px">
           {% if edits.get(e.key) %}Edited by {{ edits[e.key].updated_by or 'a team member' }}, {{ edits[e.key].updated_at[:10]|fdate }}{% else %}Original wording{% endif %}
           {% if nvers.get(e.key) %} &middot; {{ nvers[e.key] }} version{{ '' if nvers[e.key] == 1 else 's' }}{% endif %}

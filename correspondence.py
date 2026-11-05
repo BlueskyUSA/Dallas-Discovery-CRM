@@ -473,7 +473,9 @@ def register(app, crm, get_db, h):
                         link="[their private link]", partner=None, amount="$1,299 per couple", friday_end="[Friday end time]")
                 except Exception:
                     subj, body_html = None, None
+                entry = next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == k), {})
                 letter_rows.append(dict(key=k, title=et.SESSION_LETTERS[k]["title"], audience=et.SESSION_LETTERS[k]["audience"],
+                                        when=entry.get("when") or "By hand from the session's letters page.", who=entry.get("who") or et.SESSION_LETTERS[k]["audience"],
                                         edit=edits.get(k), subject=subj, html=body_html))
             from datetime import date as _date
             this_year = _date.today().year

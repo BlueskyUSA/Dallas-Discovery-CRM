@@ -30,24 +30,30 @@ table.sessTable th.sortkey.active::after{content:""}
 
 <h2>Letter wording</h2>
 <p class="muted">These are the letters. {% if session.is_owner %}Edit one and the new wording is used for every letter sent from then on. Letters already sent keep their original wording.{% else %}Open any letter to read it. Only the Owner changes the wording, and you can suggest a change from the letter's page.{% endif %}</p>
-{% for l in letter_rows %}
-<details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; background:#fffdf7">
-  <summary style="cursor:pointer; padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px">
-    <span class="lt-arrow" style="color:#1f5fbf; font-weight:800">&#9656; Read</span>
-    <strong style="font-size:1.05rem">{{ l.title }}</strong>
-    <span class="muted">{{ l.audience }}</span>
-    <span>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</span>
-    <a class="btn secondary" style="margin-left:auto" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}</a>
-  </summary>
-  <div style="padding:4px 18px 14px">
-    {% if l.html %}
-    <p class="muted" style="margin:0 0 6px">The letter as it will be sent. Words in [brackets] fill in by themselves for each person and session.</p>
-    <p style="margin:0 0 8px"><strong>Subject:</strong> {{ l.subject }}</p>
-    <div style="border-top:1px solid var(--border); padding-top:8px">{{ l.html|safe }}</div>
-    {% else %}<p class="muted">Open the wording to read this letter.</p>{% endif %}
-  </div>
-</details>
-{% endfor %}
+<table class="stack">
+  <tr><th>Letter</th><th>When it is sent</th><th>Who gets it</th><th>Wording</th></tr>
+  {% for l in letter_rows %}
+  <tr>
+    <td style="font-weight:600">{{ l.title }}</td>
+    <td data-label="When">{{ l.when }}</td>
+    <td data-label="Who gets it">{{ l.who }}</td>
+    <td>
+      <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key, view=1) }}">View</a>
+      <a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key) if session.is_owner else '#' }}"{% if not session.is_owner %} onclick="alert('Only the Owner can edit correspondence. You can read every letter here, and use Suggest a change to ask for an edit.'); return false;"{% endif %}>Edit wording</a>
+      <div class="muted" style="font-size:.85rem; margin-top:4px">{% if l.edit %}Edited by {{ l.edit.updated_by or 'a team member' }}, {{ l.edit.updated_at[:10]|fdate }}{% else %}Original wording{% endif %}</div>
+      {% if l.html %}
+      <details style="margin-top:6px"><summary style="cursor:pointer; color:#1f5fbf">Show wording</summary>
+        <div style="background:#fff; border:1px solid #d9d2c0; border-radius:6px; padding:4px 12px 10px; margin-top:6px; max-width:560px; white-space:normal">
+          <p style="margin:10px 0 2px"><strong>Subject</strong></p><div>{{ l.subject }}</div>
+          <p style="margin:10px 0 2px"><strong>Letter</strong></p><div>{{ l.html|safe }}</div>
+          <p class="muted" style="margin:10px 0 0; font-size:.85rem">Words in [brackets] are filled in for each person.</p>
+        </div>
+      </details>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
 
 {% if can_run %}
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
