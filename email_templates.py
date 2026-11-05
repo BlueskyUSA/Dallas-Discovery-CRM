@@ -923,7 +923,7 @@ GUIDE_LETTERS = {
         "signer": "The Discovery! Team",
     },
 }
-GUIDE_FIELDS = ("when_text", "First Name", "first name", "label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "client", "page_link")
+GUIDE_FIELDS = ("when_text", "First Name", "first name", "label", "vol_name", "vfirst", "vphone", "link", "pw", "first", "First name", "Name", "name", "client", "page_link")
 ALL_LETTERS = {**SESSION_LETTERS, **GUIDE_LETTERS}
 
 
@@ -933,7 +933,7 @@ def allowed_fields(key):
 
 # ---- editable wording: the app registers a loader that returns the saved edit for a letter (or None) ----
 _OVERRIDE = {"loader": None}
-LETTER_FIELDS = ("first", "First name", "Name", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
+LETTER_FIELDS = ("first", "First name", "Name", "name", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
 
 
 def set_override_loader(fn):
@@ -992,6 +992,7 @@ def render_spec(spec, fill, link=None):
     import re as _re
     fill = dict(fill)
     fill.setdefault("Name", fill.get("first", ""))
+    fill.setdefault("name", fill.get("first", ""))
     fill.setdefault("home_url", "our website")
     fill.setdefault("stories_url", "what others are saying")
     fill.setdefault("stories_sentence", "")

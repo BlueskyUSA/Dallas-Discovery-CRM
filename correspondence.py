@@ -569,6 +569,7 @@ def register(app, crm, get_db, h):
     FIELD_HELP = {
         "First Name": "the person's first name",
         "when_text": "\" on [day and time]\" when you type one, otherwise nothing",
+        "name": "the person's first name, wherever you put it in the letter",
         "Name": "the person's first name, wherever you put it in the letter",
         "First name": "the person's first name (the letter already opens with \"Dear [first name],\" by itself)",
         "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
