@@ -111,11 +111,13 @@
           <details class="subnav">
             <summary>Training Materials &#9662;</summary>
             {% for np in nav_programs %}
-            <div style="padding:6px 16px 0 30px; color:#cfc9b0; font-size:0.8rem; white-space:nowrap">{{ np.label }}</div>
-            <a href="{{ url_for('.program_materials', program_id=np.id, category='Syllabus') }}" style="padding-left:44px">Syllabus</a>
-            <a href="{{ url_for('.program_playlists', program_id=np.id) }}" style="padding-left:44px">Music</a>
-            <a href="{{ url_for('.program_materials', program_id=np.id, category='Handouts') }}" style="padding-left:44px">Handouts</a>
-            <a href="{{ url_for('.program_materials', program_id=np.id, category='Other') }}" style="padding-left:44px">Other</a>
+            <details class="subnav" style="margin-left:14px">
+              <summary>{{ np.label }} &#9662;</summary>
+              <a href="{{ url_for('.program_materials', program_id=np.id, category='Syllabus') }}" style="padding-left:44px">Syllabus</a>
+              <a href="{{ url_for('.program_playlists', program_id=np.id) }}" style="padding-left:44px">Music</a>
+              <a href="{{ url_for('.program_materials', program_id=np.id, category='Handouts') }}" style="padding-left:44px">Handouts</a>
+              <a href="{{ url_for('.program_materials', program_id=np.id, category='Other') }}" style="padding-left:44px">Other</a>
+            </details>
             {% endfor %}
           </details>
           {% else %}
