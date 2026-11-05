@@ -464,6 +464,7 @@ def register(app, crm, get_db, h):
             years = sorted({y for c in counts.values() for y in c}, reverse=True)
             edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
             keys = [k for k in et.SESSION_LETTER_ORDER if (k in et.SESSION_TRAINEE_LETTERS) == (kind == "trainees")]
+            conn.commit()  # let go of the table locks before the letters are rendered (rendering opens its own connection)
             letter_rows = []
             for k in keys:
                 try:
