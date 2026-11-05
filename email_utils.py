@@ -35,7 +35,7 @@ class EmailSendError(Exception):
     """Raised when Brevo rejects or fails to send a message."""
 
 
-def send_email(to_email, subject, html_content, to_name=None, text_content=None,
+def _send_email_raw(to_email, subject, html_content, to_name=None, text_content=None,
                 from_email=None, from_name=None, reply_to=None, attachments=None, bcc=None):
     """Sends one email through Brevo. Returns Brevo's message id on success.
     Raises EmailSendError on any failure (missing API key, bad request,
@@ -89,3 +89,36 @@ def send_email(to_email, subject, html_content, to_name=None, text_content=None,
         raise EmailSendError(f"Brevo rejected the send ({resp.status_code}): {resp.text}")
 
     return resp.json().get("messageId")
+
+
+# ---- a record of every email the app sends (set up by app.py) ----
+_SEND_LOGGER = {"fn": None}
+
+
+def set_send_logger(fn):
+    """fn(to_email, subject, html, message_id, bcc, status) is called after every send attempt."""
+    _SEND_LOGGER["fn"] = fn
+
+
+def _note_send(to_email, subject, html_content, message_id, bcc, status):
+    fn = _SEND_LOGGER["fn"]
+    if not fn:
+        return
+    try:
+        fn(to_email, subject, html_content, message_id, bcc, status)
+    except Exception as e:  # recording must never break a send
+        print(f"Couldn't record outgoing email to {to_email}: {e}", flush=True)
+
+
+def send_email(to_email, subject, html_content, to_name=None, text_content=None,
+               from_email=None, from_name=None, reply_to=None, attachments=None, bcc=None):
+    """Sends one email through Brevo (see _send_email_raw) and keeps a record of the attempt."""
+    try:
+        message_id = _send_email_raw(to_email, subject, html_content, to_name=to_name, text_content=text_content,
+                                     from_email=from_email, from_name=from_name, reply_to=reply_to,
+                                     attachments=attachments, bcc=bcc)
+    except Exception as e:
+        _note_send(to_email, subject, html_content, None, bcc, "Failed: " + str(e)[:300])
+        raise
+    _note_send(to_email, subject, html_content, message_id, bcc, "Accepted by Brevo")
+    return message_id

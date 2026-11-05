@@ -100,7 +100,9 @@
   <h3 style="margin-top:0">Messages sent from the HUB</h3>
   {% for m in sent_messages %}
   <details style="margin:6px 0">
-    <summary><strong>{{ m.kind }}</strong> &middot; {{ m.sent_at|fdate }}{% if m.sent_by %} &middot; by {{ m.sent_by }}{% endif %} <span class="muted">to {{ m.to_email }}</span></summary>
+    <summary><strong>{{ m.kind }}</strong> &middot; {{ m.sent_at|fdate }}{% if m.sent_by %} &middot; by {{ m.sent_by }}{% endif %} <span class="muted">to {{ m.to_email }}</span>
+      {% if m.status and m.status.startswith('Failed') %}<span class="badge" style="background:#f6dcd8; color:#7a2e22">Failed</span>{% else %}<span class="badge" style="background:#d7ecd0">Accepted by Brevo</span>{% endif %}</summary>
+    <div class="muted" style="font-size:.85rem; margin:4px 0 0 18px">{% if m.status and m.status.startswith('Failed') %}{{ m.status }}{% else %}Delivery status is in Brevo (Transactional &rarr; Logs).{% endif %}{% if m.brevo_id %} Brevo message id: {{ m.brevo_id }}.{% endif %}{% if m.bcc %} Copy sent to {{ m.bcc }}.{% endif %}</div>
     <div style="border-left:3px solid #ddd; padding:6px 12px; margin:6px 0"><strong>{{ m.subject }}</strong>{{ m.body_html|safe }}</div>
   </details>
   {% else %}

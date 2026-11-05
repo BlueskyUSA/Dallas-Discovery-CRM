@@ -2377,75 +2377,75 @@ def _set_setting(key, value):
 _contact_messages_ready = False
 
 
-def _log_contact_message(contact_id, kind, subject, html_content, to_email):
-    """Keeps a record of an email the Hub sent to one contact (shown on their page). Never blocks a send."""
+def _ensure_contact_messages(conn):
     global _contact_messages_ready
+    if _contact_messages_ready:
+        return
+    conn.execute("""CREATE TABLE IF NOT EXISTS contact_messages (
+        id SERIAL PRIMARY KEY, contact_id INTEGER, kind TEXT, subject TEXT, body_html TEXT,
+        to_email TEXT, sent_by TEXT, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+    conn.execute("ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS brevo_id TEXT")
+    conn.execute("ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS status TEXT")
+    conn.execute("ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS bcc TEXT")
+    conn.commit()
+    _contact_messages_ready = True
+
+
+def _staff_name_or_none():
+    try:
+        return session.get("staff_name")
+    except Exception:
+        return None
+
+
+def _record_outbound(to_email, subject, html_content, message_id, bcc, status):
+    """Called after every email the app sends: keeps a record on the contact's page (matched by email address)."""
+    if not to_email:
+        return
+    conn = get_db()
+    try:
+        _ensure_contact_messages(conn)
+        row = conn.execute(
+            "SELECT id FROM contacts WHERE LOWER(email) = LOWER(?) OR LOWER(email_2) = LOWER(?) OR LOWER(email_3) = LOWER(?) ORDER BY id LIMIT 1",
+            (to_email, to_email, to_email)).fetchone()
+        if not row:
+            return
+        conn.execute(
+            "INSERT INTO contact_messages (contact_id, kind, subject, body_html, to_email, sent_by, brevo_id, status, bcc) VALUES (?,?,?,?,?,?,?,?,?)",
+            (row["id"], "Email", subject, (html_content or "")[:60000], to_email, _staff_name_or_none(), message_id, status, bcc))
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
+
+
+import email_utils as _email_utils
+_email_utils.set_send_logger(_record_outbound)
+
+
+def _log_contact_message(contact_id, kind, subject, html_content, to_email):
+    """Labels the record of an email the Hub just sent (made automatically) with what kind of message it was.
+    If no automatic record exists, adds one. Never blocks a send."""
     try:
         conn = get_db()
-        if not _contact_messages_ready:
-            conn.execute("""CREATE TABLE IF NOT EXISTS contact_messages (
-                id SERIAL PRIMARY KEY, contact_id INTEGER, kind TEXT, subject TEXT, body_html TEXT,
-                to_email TEXT, sent_by TEXT, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-            conn.commit()
-            _contact_messages_ready = True
-        conn.execute("INSERT INTO contact_messages (contact_id, kind, subject, body_html, to_email, sent_by) VALUES (?,?,?,?,?,?)",
-                     (contact_id, kind, subject, html_content, to_email, session.get("staff_name")))
+        _ensure_contact_messages(conn)
+        row = conn.execute(
+            "SELECT id FROM contact_messages WHERE contact_id = ? AND subject = ? AND sent_at > CURRENT_TIMESTAMP - INTERVAL '3 minutes' ORDER BY id DESC LIMIT 1",
+            (contact_id, subject)).fetchone()
+        if row:
+            conn.execute("UPDATE contact_messages SET kind = ? WHERE id = ?", (kind, row["id"]))
+        else:
+            conn.execute("INSERT INTO contact_messages (contact_id, kind, subject, body_html, to_email, sent_by, status) VALUES (?,?,?,?,?,?,?)",
+                         (contact_id, kind, subject, html_content, to_email, _staff_name_or_none(), "Accepted by Brevo"))
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"Couldn't record message for contact {contact_id}: {e}", flush=True)
-
-
-@crm.route("/cohorts/<int:cohort_id>/send-needs-request", methods=["POST"])
-@area_required("contacts")
-@leadership_required
-def cohort_send_needs_request(cohort_id):
-    """Emails the session team members who have not yet answered the food / physical-needs questions."""
-    import email_templates as _T
-    conn = get_db()
-    people = needs.team_without_answers(conn, cohort_id)
-    sent, failed = 0, 0
-    for p in people:
-        token = p["profile_token"]
-        if not token:
-            token = secrets.token_urlsafe(24)
-            conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, p["id"]))
-            conn.commit()
-        link = url_for("public_complete_profile", token=token, _external=True)
-        subject, html_content, text_content = _T.guide_letter_content("needs_request", p["first_name"] or "there", "", "", "", link=link)
-        try:
-            send_email(to_email=p["email"], to_name=p["first_name"], subject=subject,
-                       html_content=html_content, text_content=text_content)
-            _log_contact_message(p["id"], "Food and physical needs request", subject, html_content, p["email"])
-            sent += 1
-        except EmailSendError as e:
-            failed += 1
-            print(f"needs request to {p['email']} failed: {e}", flush=True)
-    conn.close()
-    flash(f"Food and physical needs request emailed to {sent} team member{'' if sent == 1 else 's'}."
-          + (f" {failed} could not be sent." if failed else ""))
-    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
-
-
-@crm.route("/contacts/<int:contact_id>/preview-profile-request")
-@area_required("contacts")
-def contact_preview_profile_request(contact_id):
-    """Shows the profile update request exactly as it would be emailed, without sending anything."""
-    conn = get_db()
-    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
-    conn.close()
-    if not contact:
-        abort(404)
-    link = (url_for("public_complete_profile", token=contact["profile_token"], _external=True)
-            if contact["profile_token"] else "[their private link]")
-    import email_templates as _T
-    edit = _T.saved_edit("profile_request")
-    subject, html_content, _t = _T.render_spec(
-        _T.spec_with_edit("profile_request", edit) if edit else _T.GUIDE_LETTERS["profile_request"],
-        {"first": contact["first_name"] or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "", "link": link,
-         "pw": "", "client": "", "page_link": "", "when_text": ""}, link)
-    return _render_letter_preview(contact_id, "Profile update request", subject, html_content,
-                                  ".contact_send_profile_request", "Send profile request")
 
 
 @crm.route("/contacts/<int:contact_id>/send-profile-request", methods=["POST"])
@@ -3088,7 +3088,7 @@ def contact_detail(contact_id):
         guide = None
     try:
         sent_messages = conn.execute(
-            "SELECT kind, subject, body_html, to_email, sent_by, sent_at FROM contact_messages WHERE contact_id = ? ORDER BY sent_at DESC",
+            "SELECT kind, subject, body_html, to_email, sent_by, sent_at, brevo_id, status, bcc FROM contact_messages WHERE contact_id = ? ORDER BY sent_at DESC",
             (contact_id,)).fetchall()
     except Exception:
         conn.rollback()

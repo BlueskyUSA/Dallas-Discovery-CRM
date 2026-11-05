@@ -139,12 +139,12 @@ def pass_it_on(first, link):
     """The ready-made note a person can send to a friend who also attended."""
     who = (first or "").strip()
     greeting = f"Hey there, it's {who}!" if who else "Hey there!"
-    return (greeting + "\n"
+    return (greeting + "\n\n"
             "I just shared a short testimonial about my experience with Discovery!, and I thought you might enjoy "
-            "sharing yours, too.\n"
+            "sharing yours, too.\n\n"
             "We'd love to hear what Discovery! meant to you and what you took away from the experience. It only takes "
-            "a few minutes, and you can share your story in writing or through a short video.\n"
-            "Just enter your name, email, and cell number to get started.\n"
+            "a few minutes, and you can share your story in writing or through a short video. "
+            "Just enter your name, email, and cell number to get started.\n\n"
             "Here's the link to share your story:\n" + link)
 
 
