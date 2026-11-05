@@ -798,6 +798,24 @@ GUIDE_LETTERS = {
         "signoff": "Thanks so much, and have a great day!",
         "signer": "The Discovery! Team",
     },
+    "testimonial_request": {
+        "title": "Testimonial request (email)",
+        "audience": "Former trainees and volunteers you invite to share their story",
+        "greeting": "Hi",
+        "subject": "Share your Discovery! experience",
+        "paras": [
+            "You may have heard we are inviting former trainees & volunteers to share how Discovery! has touched their lives, "
+            "and the lives of their family and friends. We'd love to hear about your experience with the training. It only takes a "
+            "couple of minutes. You can speak it, type it, or record yourself. Your story may help someone else take their first step.",
+            "{link}",
+            "Your story will not be published without your approval. We'll show you the final edited version first, and when "
+            "approved by you, we will add it to other testimonials that are ready to be added to the website.",
+            "When you have a free moment, please take a look at {home_url} to see the new direction we are heading with Discovery!. "
+            "The program names and branding are very different from the past.{stories_sentence}",
+        ],
+        "signoff": "Thank you so much,",
+        "signer": "Kent",
+    },
     "needs_request": {
         "title": "Food and physical needs request (session team)",
         "audience": "Team members on a session who have not answered",
@@ -959,6 +977,9 @@ def render_spec(spec, fill, link=None):
     import html as _html
     import re as _re
     fill = dict(fill)
+    fill.setdefault("home_url", "our website")
+    fill.setdefault("stories_url", "what others are saying")
+    fill.setdefault("stories_sentence", "")
     fill.setdefault("First name", fill.get("first", ""))
     fill.setdefault("First Name", fill.get("first", ""))
     fill.setdefault("first name", fill.get("first", ""))

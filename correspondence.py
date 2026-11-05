@@ -243,6 +243,7 @@ def catalog():
         ("contacts", "Contacts (anyone in the Hub)",
          "Messages you send to any contact from their record.", [
             E("profile_request", "Profile update request (email, text and the profile page)", "By hand, from a contact's record: the Email request and Text request buttons. The same wording opens the contact's profile page.", "Any contact"),
+            E("testimonial_request", "Testimonial request (email)", "By hand, from Testimonials \u2192 Request a testimonial: \"Send it by email now\". Your personal note goes just above the closing. The Hub keeps a record on the contact.", "Former trainees and volunteers"),
             E("needs_request", "Food and physical needs request (session team)", "By hand, from a session page: the \"Email the team members who haven't answered\" button. The Hub sends it and keeps a record.", "Team members on a session"),
             E("video_call", "Video call link (Google Meet)", "By hand, from a contact's record: \"Email the link\". The Hub sends it and keeps a record.", "Any contact"),
          ]),
@@ -704,7 +705,7 @@ def register(app, crm, get_db, h):
             used = [f for f in fields if "{" + f + "}" in blob and f not in (("first",) if _own_greeting else ("first", "First name"))]
             versions = conn.execute("SELECT * FROM letter_versions WHERE letter_key = ? ORDER BY version DESC", (key,)).fetchall()
             return render_template("correspondence_letter_edit.html", key=key, can_edit=can_edit, is_owner=bool(session.get("is_owner")),
-                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key not in ("sponsor_welcome", "sponsor_page", "profile_request", "video_call", "needs_request") else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
+                                   entry=next((e for _i, _t, _d, es in catalog() for e in es if e.get("key") == key), {}), guide_note=(GUIDE_EXPLAINER if key in et.GUIDE_LETTERS and key not in ("sponsor_welcome", "sponsor_page", "profile_request", "video_call", "needs_request", "testimonial_request") else None), guides=(guides_by_group(conn) if key in et.GUIDE_LETTERS else []), orig=orig, form=form, error=error,
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else

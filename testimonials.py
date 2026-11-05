@@ -56,6 +56,37 @@ def _note_html(note, home_url="", stories_url=""):
     return esc.replace(chr(10), "<br>")
 
 
+def letter_parts(include_links, site_on, home_url, stories_url):
+    """The testimonial request letter (wording from the Correspondence page, or the original), as ready-to-show parts."""
+    import email_templates as et
+    spec = et.GUIDE_LETTERS["testimonial_request"]
+    fill = {"first": "", "link": "\x00LINK\x00", "home_url": home_url, "stories_url": stories_url,
+            "stories_sentence": (f" If you'd like ideas, see {stories_url}." if site_on else "")}
+
+    def build(sp):
+        paras = []
+        for raw in sp["paras"]:
+            text = raw.format(**fill).strip()
+            if not text:
+                continue
+            if text == "\x00LINK\x00":
+                paras.append(("button", ""))
+            elif "{home_url}" in raw:
+                if include_links:
+                    paras.append(("links", _note_html(text, home_url, stories_url)))
+            else:
+                paras.append(("text", _note_html(text, home_url, stories_url)))
+        return dict(subject=sp["subject"].format(**fill), greeting=sp.get("greeting", "Hi"), paras=paras,
+                    signoff=sp["signoff"].format(**fill), signer=sp.get("signer", "Kent").format(**fill))
+    edit = et.saved_edit("testimonial_request")
+    if edit:
+        try:
+            return build(et.spec_with_edit("testimonial_request", edit))
+        except Exception:
+            pass
+    return build(spec)
+
+
 _ready = False
 
 
@@ -501,26 +532,21 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                         err = "This contact has no email address, so use the text message below instead."
                     else:
                         site_on = stories_on(get_db)
-                        p2_links = ""
-                        if include_links:
-                            p2_links = (f"<p>When you have a free moment, please take a look at <a href=\"{home_url}\">the new direction</a> "
-                                        "we are heading with Discovery!. The program names and branding are very different from the past.")
-                            p2_links += (f" If you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>.</p>" if site_on else "</p>")
-                        body = (f"<p>Hi {_html.escape(first)},</p>"
-                                + "<p>You may have heard we are inviting former trainees &amp; volunteers to share how Discovery! has touched "
-                                  "their lives, and the lives of their family and friends. We'd love to hear about your experience with the "
-                                  "training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your story "
-                                  "may help someone else take their first step.</p>"
-                                  f"<p style=\"margin:22px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:14px 28px;"
-                                  f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>"
-                                  "<p>Your story will not be published without your approval. We'll show you the final edited version first, "
-                                  "and when approved by you, we will add it to other testimonials that are ready to be added to the website.</p>"
-                                  + p2_links
-                                  + (f"<p>{_note_html(note)}</p>" if note else "")
-                                  + "<p>Thank you so much,<br>Kent</p>")
+                        lp = letter_parts(include_links, site_on, home_url, stories_url)
+                        parts = [f"<p>{_html.escape(lp['greeting'])} {_html.escape(first)},</p>"]
+                        for kind, txt in lp["paras"]:
+                            if kind == "button":
+                                parts.append(f"<p style=\"margin:22px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:14px 28px;"
+                                             f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>")
+                            else:
+                                parts.append(f"<p>{txt}</p>")
+                        if note:
+                            parts.append(f"<p>{_note_html(note)}</p>")
+                        parts.append(f"<p>{_html.escape(lp['signoff'])}<br>{_html.escape(lp['signer'])}</p>")
+                        body = "".join(parts)
                         try:
                             send_email(to_email=ct["email"], to_name=ct["full_name"],
-                                       subject="Share your Discovery! experience", html_content=body,
+                                       subject=lp["subject"], html_content=body,
                                        bcc=DEFAULT_FROM_EMAIL)
                             emailed = True
                             conn.execute("UPDATE testimonial_requests SET sent_at = ?, sent_by = ? WHERE token = ?",
@@ -546,6 +572,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
         want = request.args.get("c", "")
         prefill = next((p_ for p_ in picks if str(p_["id"]) == want), None) if want.isdigit() else None
         return render_template("testimonial_request.html", picks=picks, programs=STORY_PROGRAMS, result=result, prefill=prefill, site_on=stories_on(get_db),
+                               ltr=letter_parts(True, stories_on(get_db), url_for("public_home", _external=True), url_for("public_stories", _external=True)),
                                home_url=url_for("public_home", _external=True), stories_url=url_for("public_stories", _external=True))
 
     @crm.route("/testimonials/<int:tid>", methods=["GET", "POST"])

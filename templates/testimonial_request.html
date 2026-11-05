@@ -28,13 +28,12 @@
   <select name="program">{% for code, label in programs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
   <label style="margin-top:14px">The letter they will receive</label>
   <div style="border:1px solid #cfd8dc;border-radius:8px;background:#fff;padding:16px 20px;max-width:640px;line-height:1.5">
-    <p style="margin:0 0 10px">Hi <b id="ltr-first">[first name]</b>,</p>
-    <p style="margin:10px 0">You may have heard we are inviting former trainees &amp; volunteers to share how Discovery! has touched their lives, and the lives of their family and friends. We'd love to hear about your experience with the training. It only takes a couple of minutes. You can speak it, type it, or record yourself. Your story may help someone else take their first step.</p>
-    <p style="margin:14px 0"><span style="display:inline-block;background:#0c4561;color:#fff;font-weight:bold;padding:11px 24px;border-radius:6px">Share your experience</span></p>
-    <p style="margin:10px 0">Your story will not be published without your approval. We'll show you the final edited version first, and when approved by you, we will add it to other testimonials that are ready to be added to the website.</p>
-    <p style="margin:10px 0" id="ltr-links">When you have a free moment, please take a look at <u style="color:#1a56b0">the new direction</u> we are heading with Discovery!. The program names and branding are very different from the past.{% if site_on %} If you'd like ideas, see <u style="color:#1a56b0">what others have been saying</u>.{% endif %}</p>
+    <p style="margin:0 0 10px">{{ ltr.greeting }} <b id="ltr-first">[first name]</b>,</p>
+    {% for kind, txt in ltr.paras %}{% if kind == 'button' %}<p style="margin:14px 0"><span style="display:inline-block;background:#0c4561;color:#fff;font-weight:bold;padding:11px 24px;border-radius:6px">Share your experience</span></p>
+    {% else %}<p style="margin:10px 0"{% if kind == 'links' %} class="ltr-links"{% endif %}>{{ txt|safe }}</p>
+    {% endif %}{% endfor %}
     <textarea name="note" id="note-box" rows="5" style="width:100%;background:#eef5ee;border:1px dashed #6f9a73" placeholder="(Insert your personal comments here. Your greeting and closing are already in the letter, so you don't need to type them.)"></textarea>
-    <p style="margin:10px 0 0">Thank you so much,<br>Kent</p>
+    <p style="margin:10px 0 0">{{ ltr.signoff }}<br>{{ ltr.signer }}</p>
   </div>
   <p style="margin:8px 0 14px"><label style="display:inline;font-weight:400"><input type="checkbox" name="include_links" id="inc-links" value="1" checked style="width:auto;display:inline">
      <b>Include website links</b></label> <span class="muted"> (the two website links in the second paragraph)</span></p>
@@ -55,7 +54,7 @@ var h=document.getElementById('ct-id');
 function show(){var c=CT[i.value];h.value=c?c.i:'';document.getElementById('ltr-first').textContent=(c&&c.f)?c.f:'[first name]';if(!c){o.textContent='';return;}
  o.innerHTML='Email: <b>'+(c.e||'<span style="color:#b3261e">none on file</span>')+'</b> &nbsp;&middot;&nbsp; Phone: <b>'+(c.p||'<span style="color:#b3261e">none on file</span>')+'</b>'+(c.e?'':' &mdash; the email button will not work; use the link and text it.');}
 i.addEventListener('input',show);i.addEventListener('change',show);show();})();
-(function(){var cb=document.getElementById('inc-links'),l=document.getElementById('ltr-links');
-function u(){l.style.display=cb.checked?'':'none';}cb.addEventListener('change',u);u();})();
+(function(){var cb=document.getElementById('inc-links'),l=document.querySelectorAll('.ltr-links');
+function u(){l.forEach(function(e){e.style.display=cb.checked?'':'none';});}cb.addEventListener('change',u);u();})();
 </script>
 {% endblock %}
