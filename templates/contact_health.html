@@ -1,0 +1,62 @@
+{% extends "crm_base.html" %}
+{% block title %}Contact health check — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contacts_list') }}">&larr; Contacts</a></p>
+<h1>Contact health check</h1>
+<p class="muted" style="max-width:720px">Checks a list for missing or badly formed information and likely duplicates. <strong>Nothing is added to or changed in the Hub.</strong> An uploaded file is read, checked, and then discarded.</p>
+
+<div class="card" style="max-width:720px">
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="mode" value="file">
+    <h3 style="margin-top:0">Check a file</h3>
+    <p class="muted" style="margin:0 0 8px">A spreadsheet (.xlsx) or a CSV file. The first row should be the column headings, like First Name, Last Name, Email, Cell.</p>
+    <input type="file" name="file" accept=".csv,.xlsx,.xlsm,.txt" required>
+    <p style="margin:10px 0 0"><button class="btn" type="submit">Check this file</button></p>
+  </form>
+  <hr style="margin:16px 0">
+  <form method="post">
+    <input type="hidden" name="mode" value="hub">
+    <h3 style="margin-top:0">Or check the contacts already in the Hub</h3>
+    <button class="btn secondary" type="submit">Check the Hub's contacts</button>
+  </form>
+</div>
+
+{% if report %}
+<h2 style="margin-top:24px">Report for {{ report.source_label }}</h2>
+<div style="display:flex; flex-wrap:wrap; gap:10px; margin:8px 0 14px">
+  {% for lbl, n in report.stats %}<div class="card" style="padding:10px 16px; min-width:120px"><div class="muted" style="font-size:.85rem">{{ lbl }}</div><div style="font-size:1.5rem; font-weight:700">{{ '{:,}'.format(n) }}</div></div>{% endfor %}
+  <div class="card" style="padding:10px 16px; min-width:120px"><div class="muted" style="font-size:.85rem">Rows with a problem</div><div style="font-size:1.5rem; font-weight:700">{{ '{:,}'.format(report.problem_rows) }}</div></div>
+</div>
+
+{% if report.source == 'file' %}
+<p class="muted">Columns the Hub recognized: {% for k in report.cols %}<strong>{{ k }}</strong>{{ ', ' if not loop.last }}{% else %}none{% endfor %}.
+   {% if report.headers %}Headings in your file: {{ report.headers|join(', ') }}.{% endif %}
+   If a column you expected isn't recognized, rename its heading (for example to "Email" or "Cell") and check again.</p>
+{% if report.hub %}
+<div class="card" style="max-width:720px">
+  <strong>Compared with the contacts already in the Hub</strong>
+  <ul style="margin:6px 0 0">
+    <li><strong>{{ '{:,}'.format(report.hub.new) }}</strong> look new (no match by email or name).</li>
+    <li><strong>{{ '{:,}'.format(report.hub.exact) }}</strong> are already in the Hub (same email and first name).</li>
+    <li><strong>{{ '{:,}'.format(report.hub.maybe) }}</strong> might be someone already in the Hub (same name, different or missing email).</li>
+  </ul>
+</div>
+{% endif %}
+{% endif %}
+
+<p style="margin:14px 0"><a class="btn" href="{{ url_for('.contact_health_download', token=report.token) }}">Download the list of problem rows (spreadsheet)</a></p>
+
+{% for key, label, n, sample in report.issues %}
+<details class="card" style="margin:8px 0; max-width:900px">
+  <summary style="cursor:pointer"><strong>{{ label }}</strong> &mdash; {{ '{:,}'.format(n) }}</summary>
+  <table class="stack" style="margin-top:8px">
+    <tr><th>{{ 'Row' if report.source == 'file' else 'Contact #' }}</th><th>Name</th><th>Email</th><th>Cell</th></tr>
+    {% for r in sample %}<tr><td>{{ r._row }}</td><td>{{ r.first }} {{ r.last }}</td><td>{{ r.email }}</td><td>{{ r.cell }}</td></tr>{% endfor %}
+  </table>
+  {% if n > sample|length %}<p class="muted" style="margin:6px 0 0">Showing the first {{ sample|length }}. The downloaded list has all {{ '{:,}'.format(n) }}.</p>{% endif %}
+</details>
+{% else %}
+<div class="card"><p style="margin:0">No problems found.</p></div>
+{% endfor %}
+{% endif %}
+{% endblock %}
