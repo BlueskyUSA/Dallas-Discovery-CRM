@@ -494,7 +494,7 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                        + (f"\n\n{note}" if note else "")
                        + ((f"\n\nNeed ideas? Take a look at our website: {home_url}\nSee what others have been saying: {stories_url}"
                            if stories_on(get_db) else f"\n\nTake a look at our website: {home_url}") if include_links else "")
-                       + "\n\nNothing is published without your approval.")
+                       + "\n\nYour story will not be published without your approval.")
                 emailed, err = False, ""
                 if request.form.get("action") == "email":
                     if not ct["email"]:
@@ -503,8 +503,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                         site_on = stories_on(get_db)
                         p2_links = ""
                         if include_links:
-                            p2_links = f"Please take a look at <a href=\"{home_url}\">our website</a> to see the new direction"
-                            p2_links += (f", and if you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>. " if site_on else ". ")
+                            p2_links = (f"<p>When you have a free moment, please take a look at <a href=\"{home_url}\">the new direction</a> "
+                                        "we are heading with Discovery!. The program names and branding are very different from the past.")
+                            p2_links += (f" If you'd like ideas, see <a href=\"{stories_url}\">what others have been saying</a>.</p>" if site_on else "</p>")
                         body = (f"<p>Hi {_html.escape(first)},</p>"
                                 + "<p>You may have heard we are inviting former trainees &amp; volunteers to share how Discovery! has touched "
                                   "their lives, and the lives of their family and friends. We'd love to hear about your experience with the "
@@ -512,8 +513,9 @@ def register(app, crm, leadership_required, get_db, send_email, full_name_sql, p
                                   "may help someone else take their first step.</p>"
                                   f"<p style=\"margin:22px 0\"><a href=\"{link}\" style=\"background:#0c4561;color:#fff;padding:14px 28px;"
                                   f"border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold\">Share your experience</a></p>"
-                                  f"<p>{p2_links}Nothing is published without your approval. We'll show you the final version first, and we'll "
-                                  "add testimonials to the website once enough of you have responded.</p>"
+                                  "<p>Your story will not be published without your approval. We'll show you the final edited version first, "
+                                  "and when approved by you, we will add it to other testimonials that are ready to be added to the website.</p>"
+                                  + p2_links
                                   + (f"<p>{_note_html(note)}</p>" if note else "")
                                   + "<p>Thank you so much,<br>Kent</p>")
                         try:
