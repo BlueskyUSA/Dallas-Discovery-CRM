@@ -13,4 +13,4 @@
   </a>
   {% endfor %}
 </nav>
-<p class="muted">{{ category_blurb }}{% if not can_edit_materials %} You can view these on the page; uploading, moving and deleting is for Leadership, and downloading is for the Owner.{% elif not can_download %} You can view these on the page; downloading is limited to the Owner.{% endif %}</p>
+<p class="muted">{% if not can_edit_materials %}You can view these on the page; uploading, moving and deleting is for Leadership, and downloading is for the Owner.{% elif not can_download %}You can view these on the page; downloading is limited to the Owner.{% endif %}</p>

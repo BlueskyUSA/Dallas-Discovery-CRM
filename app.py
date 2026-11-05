@@ -4086,9 +4086,9 @@ def program_materials(program_id):
         abort(404)
     by_category, counts = _load_materials(conn, program_id)
     conn.close()
-    by_day = by_category[category]
+    by_day = {"": [m for day_files in by_category[category].values() for m in day_files]}
     return render_template(
-        "program_materials.html", program=program, by_day=by_day, ordered_days=_ordered_days(by_day),
+        "program_materials.html", program=program, by_day=by_day, ordered_days=[""],
         day_label_choices=DAY_LABEL_ORDER, category=category, categories=allowed,
         category_counts=counts, category_blurb=MATERIAL_CATEGORY_BLURBS[category],
         can_download=_can_download_materials(),
@@ -7739,12 +7739,28 @@ def _nav_programs():
         conn = get_db()
         try:
             rows = conn.execute("SELECT id, code, name FROM programs ORDER BY id").fetchall()
+            have = {r["code"] for r in rows}
+            missing = [(c, n) for c, n in (("D5", "Refocus"), ("D6", "Spiritual")) if c not in have]
+            if missing:
+                try:
+                    for c, n in missing:
+                        conn.execute("INSERT INTO programs (code, name) VALUES (?, ?)", (c, n))
+                    conn.commit()
+                    rows = conn.execute("SELECT id, code, name FROM programs ORDER BY id").fetchall()
+                except Exception:
+                    conn.rollback()
         finally:
             conn.close()
+        from public_programs_data import PROGRAM_PAGES
+        titles = {pg["code"]: pg["title"] for pg in PROGRAM_PAGES.values()}
+        titles.update({"D5": "Refocus", "D6": "Spiritual"})
         out = []
         for r in rows:
-            nm = r["name"] or ""
-            out.append({"id": r["id"], "label": nm if nm.startswith(r["code"] or "") else f"{r['code']}-{nm}"})
+            nm = (r["name"] or "").strip()
+            code = r["code"] or ""
+            if nm.startswith(code + "-"):
+                nm = nm[len(code) + 1:].strip()
+            out.append({"id": r["id"], "label": titles.get(code) or nm or code})
         return out
     except Exception:
         return []
