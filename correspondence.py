@@ -257,6 +257,7 @@ def catalog():
             X("Questionnaire: The Art of Us (Relationship Training)", "Sent as a private link by the Guide's \"Email it\" or from the session page.", "Each partner of a couple, separately", "/cep-letters/q-rt"),
             X("Questionnaire: The Beginning", "Sent as a private link from the session page.", "Each person, separately. The Beginning's own questions are still to be written (shown as TBD).", "/cep-letters/q-d1"),
             C("Questionnaire: other programs", "Sent as a private link from the session page.", "Each person", "Awakening, Vision, Renew and Spiritual use a short standard set: first time attending, goals, food and access needs, injuries, anything else."),
+            E("what_to_bring_aou", sl["what_to_bring_aou"]["title"], "By hand from the session's letters page. Starts as a copy of the standard \"What to bring\" letter, so you can word it just for The Art of Us.", "Trainees"),
             E("what_to_bring", sl["what_to_bring"]["title"], "Automatically 7 days before the training for people who have paid (reserved through a Guide); also by hand.", "Trainees"),
             V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
             V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
@@ -570,6 +571,7 @@ def register(app, crm, get_db, h):
     FIELD_HELP = {
         "First Name": "the person's first name",
         "when_text": "\" on [day and time]\" when you type one, otherwise nothing",
+        "Name": "the person's first name, wherever you put it in the letter",
         "First name": "the person's first name (the letter already opens with \"Dear [first name],\" by itself)",
         "training": "the name of the training", "dates": "the session dates", "where": "\" at\" and the place, when there is one",
         "link": "the person's private link (must stay)", "role": "Lead Facilitator or Support Facilitator",

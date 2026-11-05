@@ -671,6 +671,20 @@ SESSION_LETTERS = {
         ],
         "signoff": "Warmly,",
     },
+    "what_to_bring_aou": {
+        "title": "What to Bring \u2013 The Art of Us",
+        "audience": "Trainees",
+        "subject": "What to bring to {training}",
+        "paras": [
+            "{training} begins soon, {dates}{where}. Here is how to be comfortable and ready.",
+            "What to wear: Please wear comfortable, casual clothing and shoes. Tennis shoes are perfect. "
+            "The training rooms are sometimes cool, so bring something warm to put on. If it is raining, bring an umbrella.",
+            "Arriving: The training starts promptly, so please be at the training room door at least 10 minutes before the training starts.",
+            "Friday: Come rested, hydrated and well nourished. {friday_end}",
+            "If you have any questions, just reply to this email. We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
     "facilitator_confirm": {
         "title": "Facilitator confirmation",
         "audience": "Facilitators",
@@ -711,7 +725,7 @@ SESSION_LETTERS = {
         "signoff": "With gratitude,",
     },
 }
-SESSION_TRAINEE_LETTERS = ["seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
+SESSION_TRAINEE_LETTERS = ["seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring", "what_to_bring_aou"]
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
@@ -919,7 +933,7 @@ def allowed_fields(key):
 
 # ---- editable wording: the app registers a loader that returns the saved edit for a letter (or None) ----
 _OVERRIDE = {"loader": None}
-LETTER_FIELDS = ("first", "First name", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
+LETTER_FIELDS = ("first", "First name", "Name", "training", "dates", "where", "role", "duties", "link", "amount_sentence", "partner_sentence", "friday_end")
 
 
 def set_override_loader(fn):
@@ -977,6 +991,7 @@ def render_spec(spec, fill, link=None):
     import html as _html
     import re as _re
     fill = dict(fill)
+    fill.setdefault("Name", fill.get("first", ""))
     fill.setdefault("home_url", "our website")
     fill.setdefault("stories_url", "what others are saying")
     fill.setdefault("stories_sentence", "")
