@@ -4010,6 +4010,9 @@ def _ensure_material_categories(conn):
     if _material_category_ready:
         return
     conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS category TEXT")
+    conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS version_date TEXT")
+    conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS change_note TEXT")
+    conn.execute("ALTER TABLE program_materials ADD COLUMN IF NOT EXISTS replaces_id INTEGER")
     for row in conn.execute(
         "SELECT id, title, original_filename FROM program_materials WHERE category IS NULL"
     ).fetchall():
@@ -4073,23 +4076,72 @@ def _materials_url(program_id, category):
     return url_for(".program_materials", program_id=program_id, category=category)
 
 
-def _load_materials(conn, program_id):
-    """Every material for a program (without the file bytes -- those are only
-    read when a file is actually opened), grouped by heading and then by day.
-    Returns (by_category, counts)."""
+def _material_date(m):
+    """The date a version counts from: the date the Owner/Leadership gave it, else the upload date."""
+    return (m["version_date"] or (m["uploaded_at"] or "")[:10] or "")
+
+
+def _material_versions(conn, program_id):
+    """Every file for a program as plain dicts, newest version first within each lineage.
+    Returns (current, all_rows): current = files nobody has replaced yet, each with
+    an 'earlier' list of the versions it replaced (newest first)."""
     _ensure_material_categories(conn)
     rows = conn.execute(
-        """SELECT id, program_id, day_label, title, original_filename, uploaded_at, category
+        """SELECT id, program_id, day_label, title, original_filename, uploaded_at, category,
+                  version_date, change_note, replaces_id
            FROM program_materials WHERE program_id = ? ORDER BY uploaded_at, id""",
         (program_id,),
     ).fetchall()
+    items = {}
+    for r in rows:
+        d = {k: r[k] for k in ("id", "program_id", "day_label", "title", "original_filename", "uploaded_at",
+                                "category", "version_date", "change_note", "replaces_id")}
+        d["category"] = _material_category(r)
+        d["date"] = _material_date(d)
+        items[d["id"]] = d
+    replaced = {d["replaces_id"] for d in items.values() if d["replaces_id"] in items}
+    current = []
+    for d in items.values():
+        if d["id"] in replaced:
+            continue
+        earlier, seen, nxt = [], {d["id"]}, d["replaces_id"]
+        while nxt in items and nxt not in seen:
+            earlier.append(items[nxt]); seen.add(nxt); nxt = items[nxt]["replaces_id"]
+        d["earlier"] = earlier
+        current.append(d)
+    return current, items
+
+
+def _load_materials(conn, program_id):
+    """Every current material for a program (without the file bytes -- those are only
+    read when a file is actually opened), grouped by heading and then by day, each
+    carrying its earlier versions. Returns (by_category, counts)."""
+    current, _items = _material_versions(conn, program_id)
     by_category = {c: {} for c in MATERIAL_CATEGORIES}
     counts = {c: 0 for c in MATERIAL_CATEGORIES}
-    for r in rows:
-        cat = _material_category(r)
-        by_category[cat].setdefault(r["day_label"] or "General", []).append(r)
-        counts[cat] += 1
+    for d in current:
+        by_category[d["category"]].setdefault(d["day_label"] or "General", []).append(d)
+        counts[d["category"]] += 1
     return by_category, counts
+
+
+def _materials_in_effect(conn, program_id, on_date):
+    """For each file, the version that was current on a given date (the latest version
+    dated on or before it). Used on a training's page to show what it was taught from."""
+    current, _items = _material_versions(conn, program_id)
+    out = []
+    for d in current:
+        chain = [d] + d["earlier"]
+        ok = [v for v in chain if v["date"] and v["date"] <= (on_date or "")]
+        if not ok:
+            continue
+        v = max(ok, key=lambda x: (x["date"], x["id"]))
+        if v["category"] == "Music":
+            continue
+        out.append(v)
+    order = {c: i for i, c in enumerate(MATERIAL_CATEGORIES)}
+    out.sort(key=lambda v: (order.get(v["category"], 9), v["title"].lower()))
+    return out
 
 
 def _ordered_days(by_day):
@@ -4116,7 +4168,7 @@ def program_materials(program_id):
         "program_materials.html", program=program, by_day=by_day, ordered_days=[""],
         day_label_choices=DAY_LABEL_ORDER, category=category, categories=allowed,
         category_counts=counts, category_blurb=MATERIAL_CATEGORY_BLURBS[category],
-        can_download=_can_download_materials(),
+        can_download=_can_download_materials(), today_iso=date.today().isoformat(),
     )
 
 
@@ -4206,6 +4258,11 @@ def program_material_new(program_id):
     category = request.form.get("category", "")
     if category not in MATERIAL_CATEGORIES:
         category = "Other"
+    version_date = (request.form.get("version_date") or "").strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", version_date):
+        version_date = date.today().isoformat()
+    change_note = (request.form.get("change_note") or "").strip()[:500]
+    replaces = request.form.get("replaces_id", "").strip()
     material_result = process_program_material(request.files.get("file"))
     if material_result:
         data, content_type = material_result
@@ -4213,15 +4270,26 @@ def program_material_new(program_id):
         filename = f"program_{program_id}_{secrets.token_hex(6)}"
         conn = get_db()
         _ensure_material_categories(conn)
+        replaces_id = None
+        if replaces.isdigit():
+            old = conn.execute("SELECT id, category, title, day_label FROM program_materials WHERE id = ? AND program_id = ?",
+                               (int(replaces), program_id)).fetchone()
+            if old:
+                replaces_id = old["id"]
+                category = _material_category(old)
+                day_label = old["day_label"] or day_label
+                title = title or old["title"]
         conn.execute(
             """INSERT INTO program_materials
-               (program_id, day_label, title, filename, original_filename, data, content_type, category)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type, category),
+               (program_id, day_label, title, filename, original_filename, data, content_type, category,
+                version_date, change_note, replaces_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (program_id, day_label, title or original_filename, filename, original_filename, data, content_type, category,
+             version_date, change_note or None, replaces_id),
         )
         conn.commit()
         conn.close()
-        flash(f"Uploaded to {category}.")
+        flash(f"Uploaded to {category}" + (" as a new version; the earlier version is kept." if replaces_id else "."))
     return redirect(_materials_url(program_id, category))
 
 
@@ -4967,6 +5035,13 @@ def cohort_detail(cohort_id):
             conn.rollback()
             print(f"needs team check skipped: {e}", flush=True)
     pay_info = _payment_info_for_cohort(conn, cohort_id, roster)
+    materials_in_effect = []
+    if _is_leader():
+        try:
+            materials_in_effect = _materials_in_effect(conn, cohort["program_id"], (cohort["session_date"] or "")[:10])
+        except Exception as e:
+            conn.rollback()
+            print(f"materials in effect skipped: {e}", flush=True)
     # Keep each couple together (alphabetical by the first of them) and shade every other group,
     # so a long list (80+ trainees) is easy to scan.
     by_id = {e["id"]: e for e in roster}
@@ -5054,6 +5129,7 @@ def cohort_detail(cohort_id):
         needs_rows=needs_rows, needs_total=needs_total, needs_help=needs.HELP_TEXT,
         fee_default=TRAINING_FEES.get(cohort["code"]), payment_methods=PAYMENT_METHODS, today_iso=date.today().isoformat(),
         is_leader=_is_leader(), can_money=_can_handle_money(),
+        materials_in_effect=materials_in_effect,
         small_groups=small_groups,
         staffing=staffing,
         team_unanswered=team_unanswered,

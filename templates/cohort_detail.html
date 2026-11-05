@@ -324,6 +324,22 @@
   </form>
 </div>
 </details>
+{% if is_leader %}
+<details class="bandsec" id="sec-materials"><summary class="bandhead">Materials in effect for this training <span class="bandcnt">({{ materials_in_effect|length }})</span></summary>
+<div class="card">
+  <p class="muted" style="margin-top:0">The version of each file that was current on {{ cohort.session_date }}, based on its version date.</p>
+  {% if materials_in_effect %}
+  <table>
+    <tr><th>Heading</th><th>File</th><th>Version date</th><th>What changed</th><th></th></tr>
+    {% for v in materials_in_effect %}
+    <tr><td>{{ v.category }}</td><td>{{ v.title }}</td><td>{{ v.date }}</td><td class="muted">{{ v.change_note or '' }}</td>
+        <td><a class="btn secondary" href="{{ url_for('.program_material_read', program_id=cohort.program_id, material_id=v.id) }}">View</a></td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No dated materials yet for this program.</p>{% endif %}
+</div>
+</details>
+{% endif %}
 {% if session.is_owner or session.staff_role == 'Leadership' %}
 <h2 class="bandhead" style="padding:0"><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="display:block; width:100%; box-sizing:border-box; padding:16px 22px 16px 52px; color:#fff !important; font-size:inherit !important; text-decoration:none">Letters to Trainees &amp; Team <span style="color:#ffe08a">&rarr;</span></a></h2>
 {% endif %}

@@ -17,6 +17,17 @@
       <div class="field"><label>Title</label><input name="title" placeholder="Leave blank to use the file name"></div>
       <div class="field"><label>File</label><input type="file" name="file" required></div>
     </div>
+    <div class="grid2">
+      <div class="field"><label>Version date</label><input type="date" name="version_date" value="{{ today_iso }}"></div>
+      <div class="field"><label>What changed (optional)</label><input name="change_note" placeholder="e.g. Updated Saturday schedule"></div>
+    </div>
+    <div class="field"><label>Is this a new version of a file already here?</label>
+      <select name="replaces_id">
+        <option value="">No, this is a new file</option>
+        {% for m in by_day[""] %}<option value="{{ m.id }}">Replaces: {{ m.title }} ({{ m.date }})</option>{% endfor %}
+      </select>
+      <span class="muted" style="font-size:.85rem">The earlier version is kept under &ldquo;Earlier versions.&rdquo;</span>
+    </div>
     <button class="btn" type="submit">Upload to {{ category }}</button>
   </form>
 </div>
