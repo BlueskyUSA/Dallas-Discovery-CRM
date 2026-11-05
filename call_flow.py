@@ -333,7 +333,6 @@ def letter_venue(first, partner, vol_name, vphone, photo_url=None, room_url=None
 {('<p><img src="' + room_url + '" alt="A guest room at the hotel" width="389" style="max-width:100%;height:auto;border-radius:8px"></p>') if room_url else ''}
 <ul><li><strong>Two nights in the hotel</strong> (Friday and Saturday) in a room for the two of you</li>
 <li><strong>Saturday night dinner and dance</strong>, a celebration you will remember</li>
-<li><strong>Snacks, coffee, tea and water</strong> available throughout the weekend</li>
 <li><strong>All training sessions and materials</strong></li></ul>
 <h3>Getting there</h3>
 <ul><li><strong>From DFW Airport:</strong> the hotel\u2019s complimentary shuttle runs 24 hours a day, every hour on the hour. Ask at the hotel\u2019s front desk or call 469-702-6311 to arrange your ride.</li>
