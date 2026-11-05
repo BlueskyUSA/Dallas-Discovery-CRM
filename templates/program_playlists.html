@@ -70,13 +70,6 @@
 <div class="card">
   <form class="inline" method="post" action="{{ url_for('.program_playlist_new', program_id=program.id) }}">
     <div class="grid2">
-      <div class="field"><label>Day</label>
-        <select name="day_label">
-          {% for d in day_label_choices %}
-          <option value="{{ d }}">{{ d }}</option>
-          {% endfor %}
-        </select>
-      </div>
       <div class="field"><label>Category</label><input name="category" placeholder="e.g. Dinner Entry, Stretch Songs" required></div>
     </div>
     <button class="btn" type="submit">Create playlist</button>
