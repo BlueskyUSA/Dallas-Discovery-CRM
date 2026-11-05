@@ -2448,6 +2448,58 @@ def _log_contact_message(contact_id, kind, subject, html_content, to_email):
         print(f"Couldn't record message for contact {contact_id}: {e}", flush=True)
 
 
+@crm.route("/cohorts/<int:cohort_id>/send-needs-request", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def cohort_send_needs_request(cohort_id):
+    """Emails the session team members who have not yet answered the food / physical-needs questions."""
+    import email_templates as _T
+    conn = get_db()
+    people = needs.team_without_answers(conn, cohort_id)
+    sent, failed = 0, 0
+    for p in people:
+        token = p["profile_token"]
+        if not token:
+            token = secrets.token_urlsafe(24)
+            conn.execute("UPDATE contacts SET profile_token = ? WHERE id = ?", (token, p["id"]))
+            conn.commit()
+        link = url_for("public_complete_profile", token=token, _external=True)
+        subject, html_content, text_content = _T.guide_letter_content("needs_request", p["first_name"] or "there", "", "", "", link=link)
+        try:
+            send_email(to_email=p["email"], to_name=p["first_name"], subject=subject,
+                       html_content=html_content, text_content=text_content)
+            _log_contact_message(p["id"], "Food and physical needs request", subject, html_content, p["email"])
+            sent += 1
+        except EmailSendError as e:
+            failed += 1
+            print(f"needs request to {p['email']} failed: {e}", flush=True)
+    conn.close()
+    flash(f"Food and physical needs request emailed to {sent} team member{'' if sent == 1 else 's'}."
+          + (f" {failed} could not be sent." if failed else ""))
+    return redirect(url_for(".cohort_detail", cohort_id=cohort_id))
+
+
+@crm.route("/contacts/<int:contact_id>/preview-profile-request")
+@area_required("contacts")
+def contact_preview_profile_request(contact_id):
+    """Shows the profile update request exactly as it would be emailed, without sending anything."""
+    conn = get_db()
+    contact = conn.execute("SELECT * FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    conn.close()
+    if not contact:
+        abort(404)
+    link = (url_for("public_complete_profile", token=contact["profile_token"], _external=True)
+            if contact["profile_token"] else "[their private link]")
+    import email_templates as _T
+    edit = _T.saved_edit("profile_request")
+    subject, html_content, _t = _T.render_spec(
+        _T.spec_with_edit("profile_request", edit) if edit else _T.GUIDE_LETTERS["profile_request"],
+        {"first": contact["first_name"] or "Friend", "label": "", "vol_name": "", "vfirst": "", "vphone": "", "link": link,
+         "pw": "", "client": "", "page_link": "", "when_text": ""}, link)
+    return _render_letter_preview(contact_id, "Profile update request", subject, html_content,
+                                  ".contact_send_profile_request", "Send profile request")
+
+
 @crm.route("/contacts/<int:contact_id>/send-profile-request", methods=["POST"])
 @area_required("contacts")
 def contact_send_profile_request(contact_id):
@@ -7672,7 +7724,7 @@ def inject_area_access():
     if not session.get("staff_id"):
         return {"has_contacts_access": False, "has_program_access": False, "has_donations_access": False,
                 "has_contracts_access": False, "has_accounting_access": False,
-                "has_correspondence_access": False, "has_budgets_access": False, "nav_sessions": []}
+                "has_correspondence_access": False, "has_budgets_access": False, "nav_sessions": [], "nav_programs": []}
     return {
         "has_contacts_access": _has_area_access("contacts"),
         "has_program_access": _has_any_program_access(),
@@ -7682,7 +7734,27 @@ def inject_area_access():
         "has_correspondence_access": _has_area_access("correspondence"),
         "has_budgets_access": _has_area_access("budgets"),
         "nav_sessions": _nav_sessions(),
+        "nav_programs": _nav_programs(),
     }
+
+
+def _nav_programs():
+    """Every program, for the Training Materials drop-down (one group per program)."""
+    try:
+        if not (session.get("is_owner") or session.get("staff_role") == "Leadership" or _has_any_program_access()):
+            return []
+        conn = get_db()
+        try:
+            rows = conn.execute("SELECT id, code, name FROM programs ORDER BY id").fetchall()
+        finally:
+            conn.close()
+        out = []
+        for r in rows:
+            nm = r["name"] or ""
+            out.append({"id": r["id"], "label": nm if nm.startswith(r["code"] or "") else f"{r['code']}-{nm}"})
+        return out
+    except Exception:
+        return []
 
 
 def _nav_sessions():

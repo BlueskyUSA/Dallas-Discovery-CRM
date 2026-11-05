@@ -107,7 +107,18 @@
       <details class="navmenu">
         <summary>Programs &#9662;</summary>
         <div class="navmenu-items">
-          <a href="{{ url_for('.programs_list') }}">All Programs</a>
+          {% if nav_programs %}
+          <details class="subnav">
+            <summary>Training Materials &#9662;</summary>
+            {% for np in nav_programs %}
+            <div style="padding:6px 16px 0 30px; color:#cfc9b0; font-size:0.8rem; white-space:nowrap">{{ np.label }}</div>
+            <a href="{{ url_for('.program_materials', program_id=np.id) }}" style="padding-left:44px">Training materials</a>
+            <a href="{{ url_for('.program_playlists', program_id=np.id) }}" style="padding-left:44px">Music &amp; playlists</a>
+            {% endfor %}
+          </details>
+          {% else %}
+          <a href="{{ url_for('.programs_list') }}">Training Materials</a>
+          {% endif %}
           <a href="{{ url_for('.calendar_view') }}">Calendar &amp; Quick Schedule</a>
           <div style="padding:8px 16px 2px; color:#cfc9b0; font-size:0.78rem; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap">Upcoming sessions</div>
           {% for n in nav_sessions %}<a href="{{ url_for('.cohort_detail', cohort_id=n.id) }}">{{ n.label }} &middot; {{ n.span }}</a>{% endfor %}
