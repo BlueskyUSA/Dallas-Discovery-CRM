@@ -206,10 +206,10 @@ def _problem_csv(rows, by_row, source_name):
     return out.getvalue()
 
 
-def register(app, crm, area_required, get_db):
+def register(app, crm, owner_required, get_db):
 
     @crm.route("/contacts/health", methods=["GET", "POST"])
-    @area_required("contacts")
+    @owner_required
     def contact_health():
         if request.method == "GET":
             return render_template("contact_health.html", report=None)
@@ -253,7 +253,7 @@ def register(app, crm, area_required, get_db):
         return render_template("contact_health.html", report=report)
 
     @crm.route("/contacts/health/download/<token>")
-    @area_required("contacts")
+    @owner_required
     def contact_health_download(token):
         conn = get_db()
         try:
