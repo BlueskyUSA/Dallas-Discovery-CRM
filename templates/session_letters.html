@@ -25,6 +25,13 @@
 <h2 style="margin-top:12px">{{ spec.title }}
   <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a>
   <a class="btn secondary" style="margin-left:8px; font-size:0.9rem" href="{{ url_for('.correspondence_letter_edit', key=key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}{% if key in edited %} (edited){% endif %}</a></h2>
+{% if previews.get(key) %}
+<div class="card" style="background:#fffdf7; margin-bottom:10px">
+  <p class="muted" style="margin:0 0 6px"><strong>The letter as it will be sent</strong> (with [First name] standing in for the person){% if key in edited %} &middot; edited wording{% endif %}</p>
+  <p style="margin:0 0 8px"><strong>Subject:</strong> {{ previews[key][0] }}</p>
+  <div style="border-top:1px solid var(--border); padding-top:8px">{{ previews[key][1]|safe }}</div>
+</div>
+{% endif %}
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
@@ -68,6 +75,13 @@
 <h2 style="margin-top:12px">{{ spec.title }}
   <a class="btn secondary" style="margin-left:12px; font-size:0.9rem" href="{{ url_for('.session_letter_view', cohort_id=cohort.id, key=key) }}">View Letter</a>
   <a class="btn secondary" style="margin-left:8px; font-size:0.9rem" href="{{ url_for('.correspondence_letter_edit', key=key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}{% if key in edited %} (edited){% endif %}</a></h2>
+{% if previews.get(key) %}
+<div class="card" style="background:#fffdf7; margin-bottom:10px">
+  <p class="muted" style="margin:0 0 6px"><strong>The letter as it will be sent</strong> (with [First name] standing in for the person){% if key in edited %} &middot; edited wording{% endif %}</p>
+  <p style="margin:0 0 8px"><strong>Subject:</strong> {{ previews[key][0] }}</p>
+  <div style="border-top:1px solid var(--border); padding-top:8px">{{ previews[key][1]|safe }}</div>
+</div>
+{% endif %}
 <div class="card">
   {% if people %}
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"

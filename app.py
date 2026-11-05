@@ -5626,7 +5626,15 @@ def session_letters(cohort_id):
         "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
     edited = {r["letter_key"] for r in conn.execute("SELECT letter_key FROM session_letter_text").fetchall()}
     conn.close()
-    return render_template("session_letters.html", edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
+    previews = {}
+    sample = {"contact_id": 0, "name": "", "first_name": "[First name]", "email": "", "roles": ["Lead Facilitator"], "duties": []}
+    for k in SESSION_LETTER_ORDER:
+        try:
+            subj, html_c, _t = _session_letter_for(cohort, sample, k)
+            previews[k] = (subj, html_c)
+        except Exception as e:
+            print(f"letter preview {k} skipped: {e}", flush=True)
+    return render_template("session_letters.html", previews=previews, edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
                            recipients=recipients, sent=sent, live=_session_letters_live(),
                            only=(request.args.get("only") if request.args.get("only") in ("trainees", "team") else None))
 
