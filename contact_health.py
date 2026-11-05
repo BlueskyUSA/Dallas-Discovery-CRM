@@ -143,8 +143,9 @@ def check_rows(rows, cols_found):
         letters = re.sub(r"[^A-Za-z]", "", nm)
         if len(letters) >= 3 and (letters.isupper() or letters.islower()):
             mark("caps")
-        low = nm.lower() + " " + email.lower()
-        if re.search(r"\b(test|testing|asdf|xxx|zzz|dummy|sample|delete me|unknown)\b", low) or re.search(r"@(example|test)\.", low):
+        local, _, domain = email.lower().partition("@")
+        low = nm.lower() + " " + local
+        if re.search(r"\b(test|testing|asdf|xxx|zzz|dummy|sample|delete me|unknown)\b", low) or re.search(r"^(example\.(com|org|net)|test\.com)$", domain):
             mark("junk")
         if email:
             others = [o for o in by_email.get(email.lower(), []) if o is not r]
