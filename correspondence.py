@@ -464,8 +464,16 @@ def register(app, crm, get_db, h):
             years = sorted({y for c in counts.values() for y in c}, reverse=True)
             edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
             keys = [k for k in et.SESSION_LETTER_ORDER if (k in et.SESSION_TRAINEE_LETTERS) == (kind == "trainees")]
-            letter_rows = [dict(key=k, title=et.SESSION_LETTERS[k]["title"], audience=et.SESSION_LETTERS[k]["audience"],
-                                edit=edits.get(k)) for k in keys]
+            letter_rows = []
+            for k in keys:
+                try:
+                    subj, body_html, _t = et.session_letter_content(
+                        k, "[First name]", "[the training]", "[session dates]", "[place]", role="Lead Facilitator", duties=[],
+                        link="[their private link]", partner=None, amount="$1,299 per couple", friday_end="[Friday end time]")
+                except Exception:
+                    subj, body_html = None, None
+                letter_rows.append(dict(key=k, title=et.SESSION_LETTERS[k]["title"], audience=et.SESSION_LETTERS[k]["audience"],
+                                        edit=edits.get(k), subject=subj, html=body_html))
             from datetime import date as _date
             this_year = _date.today().year
             with_sessions = {int(x["session_date"][:4]) for x in sessions if x["session_date"]}

@@ -28,14 +28,23 @@ table.sessTable th.sortkey.active::after{content:""}
 
 <h2>Letter wording</h2>
 <p class="muted">These are the letters. {% if session.is_owner %}Edit one and the new wording is used for every letter sent from then on. Letters already sent keep their original wording.{% else %}Open any letter to read it. Only the Owner changes the wording, and you can suggest a change from the letter's page.{% endif %}</p>
-<table class="stack">
-  <tr><th>Letter</th><th>Goes to</th><th>Wording</th><th></th></tr>
-  {% for l in letter_rows %}
-  <tr><td style="font-weight:600">{{ l.title }}</td><td data-label="Goes to">{{ l.audience }}</td>
-      <td>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</td>
-      <td><a class="btn secondary" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}</a></td></tr>
-  {% endfor %}
-</table>
+{% for l in letter_rows %}
+<details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; background:#fffdf7">
+  <summary style="cursor:pointer; padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px">
+    <strong style="font-size:1.05rem">{{ l.title }}</strong>
+    <span class="muted">{{ l.audience }}</span>
+    <span>{% if l.edit %}<span class="badge good">Edited</span> <span class="muted">{{ l.edit.updated_by or '' }}, {{ l.edit.updated_at[:10]|fdate }}</span>{% else %}<span class="muted">Original</span>{% endif %}</span>
+    <a class="btn secondary" style="margin-left:auto" href="{{ url_for('.correspondence_letter_edit', key=l.key) }}">{{ 'Edit wording' if session.is_owner else 'View wording' }}</a>
+  </summary>
+  <div style="padding:4px 18px 14px">
+    {% if l.html %}
+    <p class="muted" style="margin:0 0 6px">The letter as it will be sent. Words in [brackets] fill in by themselves for each person and session.</p>
+    <p style="margin:0 0 8px"><strong>Subject:</strong> {{ l.subject }}</p>
+    <div style="border-top:1px solid var(--border); padding-top:8px">{{ l.html|safe }}</div>
+    {% else %}<p class="muted">Open the wording to read this letter.</p>{% endif %}
+  </div>
+</details>
+{% endfor %}
 
 {% if can_run %}
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
