@@ -51,10 +51,22 @@
         {% if s.is_owner %}
         <span class="muted">Everything (Owner)</span>
         {% else %}
+          {% set groups = access_groups_by_staff.get(s.id, []) %}
+          {% set n_access = namespace(n=0) %}{% for h, items in groups %}{% set n_access.n = n_access.n + items|length %}{% endfor %}
+          <details class="acc-view">
+            <summary style="cursor:pointer; font-size:0.9rem;">Access given ({{ n_access.n }}) &#9662;</summary>
+            <div style="margin-top:6px; font-size:0.86rem; max-width:340px">
+              {% for h, items in groups %}
+              <div style="margin-bottom:6px"><strong>{{ h }}</strong><br><span class="muted">{{ items|join(', ') }}</span></div>
+              {% else %}
+              <span class="muted">None granted</span>
+              {% endfor %}
+            </div>
+          </details>
           {% if session.is_owner %}
           {% set granted_keys = granted_keys_by_staff.get(s.id, []) %}
-          <details style="margin-top:4px;">
-            <summary style="cursor:pointer; font-size:0.9rem;">Access &#9662;</summary>
+          <details style="margin-top:8px;">
+            <summary class="btn secondary" style="display:inline-block; cursor:pointer; font-size:0.9rem;">Modify access</summary>
             <div style="margin-top:8px; min-width:280px; border:1px solid var(--pub-border, #ccc); padding:10px; border-radius:6px;">
               {% if s.role == 'Accounting' %}
               <form method="post" action="{{ url_for('.staff_access', staff_id=s.id) }}">
@@ -111,8 +123,6 @@
               {% endif %}
             </div>
           </details>
-          {% else %}
-          <span class="muted" style="font-size:0.88rem">{{ (access_by_staff.get(s.id, [])|join(', ')) or 'None granted' }}</span>
           {% endif %}
         {% endif %}
       </td>
@@ -205,7 +215,7 @@
   }
   pick.addEventListener('change', function(){
     // Picking "Everyone" (or another person) closes any Access box that is open for someone else.
-    document.querySelectorAll('#staffTable tr[data-staff] details[open]').forEach(function(d){
+    document.querySelectorAll('#staffTable tr[data-staff] details:not(.acc-view)[open]').forEach(function(d){
       if (!pick.value || d.closest('tr[data-staff]').getAttribute('data-staff') !== pick.value) d.open = false;
     });
     show(pick.value);
@@ -213,19 +223,19 @@
   // After saving, come back to the same person's open Access box so the checkmarks can be checked.
   var want = new URLSearchParams(location.search).get('open');
   if (want) {
-    var wr = document.querySelector('#staffTable tr[data-staff="' + want + '"] details');
+    var wr = document.querySelector('#staffTable tr[data-staff="' + want + '"] details:not(.acc-view)');
     if (wr) { wr.open = true; }
   }
   // Opening someone's Access box shows only that person; closing it brings everyone back.
-  document.querySelectorAll('#staffTable tr[data-staff] details').forEach(function(d){
+  document.querySelectorAll('#staffTable tr[data-staff] details:not(.acc-view)').forEach(function(d){
     d.addEventListener('toggle', function(){
       var row = d.closest('tr[data-staff]'), id = row.getAttribute('data-staff');
       if (d.open) {
-        document.querySelectorAll('#staffTable tr[data-staff] details[open]').forEach(function(o){ if (o !== d && o.closest('tr') !== row) o.open = false; });
+        document.querySelectorAll('#staffTable tr[data-staff] details:not(.acc-view)[open]').forEach(function(o){ if (o !== d && o.closest('tr') !== row) o.open = false; });
         pick.value = id; show(id);
         row.scrollIntoView({block:'start'});
         window.scrollBy(0, -130);
-      } else if (!row.querySelector('details[open]')) {
+      } else if (!row.querySelector('details:not(.acc-view)[open]')) {
         pick.value = ''; show('');
       }
     });

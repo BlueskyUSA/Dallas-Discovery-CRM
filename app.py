@@ -820,8 +820,27 @@ def staff_list():
     for g in grants:
         access_by_staff.setdefault(g["staff_id"], []).append(area_labels.get(g["area_key"], g["area_key"]))
         granted_keys_by_staff.setdefault(g["staff_id"], set()).add(g["area_key"])
+    # Group each person's access into readable headings for the dropdown list.
+    own_keys = {"accounting", "donations", "contracts", "marketing", "correspondence", "guides"}
+    access_groups_by_staff = {}
+    for g in grants:
+        key = g["area_key"]
+        label = area_labels.get(key, key)
+        m = re.match(r"^(D\d+) \u2014 (.+?): (.+)$", label)
+        if key in own_keys:
+            head, item = "Ownership access", label
+        elif m:
+            head, item = (m.group(2) if m.group(2) != m.group(1) else m.group(1)), m.group(3)
+        else:
+            head, item = "General access", label
+        access_groups_by_staff.setdefault(g["staff_id"], {}).setdefault(head, []).append(item)
+    _order = {"Ownership access": 0, "General access": 1}
+    access_groups_by_staff = {
+        sid: sorted(((h, sorted(v)) for h, v in d.items()), key=lambda t: (_order.get(t[0], 2), t[0]))
+        for sid, d in access_groups_by_staff.items()}
     return render_template(
         "staff_list.html", staff=rows, access_by_staff=access_by_staff,
+        access_groups_by_staff=access_groups_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
         ownership_areas=[("accounting", "Accounting"), ("donations", "Donations"),
