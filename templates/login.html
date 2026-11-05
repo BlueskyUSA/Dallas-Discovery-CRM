@@ -4,10 +4,13 @@
 <h1>Welcome to HUB</h1>
 <p class="muted" style="margin-top:-6px"><strong>{{ page_title }}</strong></p>
 <div class="card" style="max-width:380px">
-  <form method="post">
+  <form method="post" id="loginform">
     <input type="hidden" name="next" value="{{ next }}">
-    <div class="field"><label>Email</label><input type="email" name="email" value="{{ prefill_email or '' }}" required {{ '' if prefill_email else 'autofocus' }}></div>
-    <div class="field"><label>Password</label><input type="password" name="password" required {{ 'autofocus' if prefill_email else '' }}></div>
+    <div class="field"><label>Email</label><input type="email" name="email" id="login_email" autocomplete="username" value="{{ prefill_email or '' }}" required {{ '' if prefill_email else 'autofocus' }}></div>
+    <div class="field"><label>Password</label><input type="password" name="password" id="login_pw" autocomplete="current-password" required {{ 'autofocus' if prefill_email else '' }}></div>
+    <label style="display:flex; gap:8px; align-items:center; font-size:0.9rem; margin:0 0 12px">
+      <input type="checkbox" id="remember_email" style="width:auto; margin:0"> Remember my email on this computer
+    </label>
     <button class="btn" type="submit" style="width:100%">Log in</button>
   </form>
   <div style="margin-top:20px; padding-top:14px; border-top:1px solid var(--border, #ddd)">
@@ -24,4 +27,17 @@
     For security, you'll be logged out automatically after 30 minutes of inactivity.
   </p>
 </div>
+<script>
+(function(){
+  var K="hub_remember_email", e=document.getElementById("login_email"),
+      c=document.getElementById("remember_email"), pw=document.getElementById("login_pw");
+  try {
+    var saved=localStorage.getItem(K);
+    if(saved){ c.checked=true; if(!e.value){ e.value=saved; pw.focus(); } }
+  } catch(x){}
+  document.getElementById("loginform").addEventListener("submit", function(){
+    try { if(c.checked){ localStorage.setItem(K, e.value.trim()); } else { localStorage.removeItem(K); } } catch(x){}
+  });
+})();
+</script>
 {% endblock %}
