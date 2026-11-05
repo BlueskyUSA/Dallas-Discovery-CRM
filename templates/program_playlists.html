@@ -6,7 +6,6 @@
 
 <h2>Playlists</h2>
 {% for day in ordered_days %}
-<h3>{{ day }}</h3>
 {% for pl in by_day[day] %}
 <div class="card">
   <h4 style="margin:0 0 8px; font-size:1.05rem; display:flex; justify-content:space-between; align-items:center">
@@ -60,7 +59,7 @@
   </details>
 </div>
 {% else %}
-<p class="muted" style="margin:4px 0 12px">No playlists in {{ day }} yet.</p>
+<p class="muted" style="margin:4px 0 12px">No playlists yet.</p>
 {% endfor %}
 {% else %}
 <p class="muted">No playlists yet.</p>

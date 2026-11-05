@@ -2,7 +2,7 @@
    Expects: program, category, categories, file_days (day -> files),
    file_day_order, day_label_choices. #}
 {% for day in file_day_order %}
-<h3>{{ day }}</h3>
+{% if day %}<h3>{{ day }}</h3>{% endif %}
 <div class="card">
   <table>
     <tr><th>Title</th><th>File</th><th>Uploaded</th>{% if can_edit_materials %}<th>Move to</th><th></th>{% endif %}</tr>

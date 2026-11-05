@@ -4258,17 +4258,10 @@ def program_playlists(program_id):
         ).fetchall()
     by_category, counts = _load_materials(conn, program_id)
     conn.close()
-    by_day = {}
-    for pl in playlists:
-        label = pl["day_label"] or "General"
-        by_day.setdefault(label, []).append(pl)
-    files_by_day = by_category["Music"]
-    # Every section shows, even when empty, so it is clear where to add songs and music files.
-    labels = _music_day_labels(program)
-    extra_days = [d for d in list(by_day) + list(files_by_day) if d not in labels]
-    all_days = labels + [d for i, d in enumerate(extra_days) if d not in extra_days[:i]]
-    by_day = {d: by_day.get(d, []) for d in all_days}
-    files_by_day = {d: files_by_day.get(d, []) for d in all_days}
+    # One simple list: no Friday / Saturday / Sunday sections.
+    all_days = [""]
+    by_day = {"": list(playlists)}
+    files_by_day = {"": [m for day_files in by_category["Music"].values() for m in day_files]}
     return render_template(
         "program_playlists.html", program=program, by_day=by_day, ordered_days=all_days,
         day_label_choices=all_days, songs_by_playlist=songs_by_playlist,
