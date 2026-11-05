@@ -8,7 +8,8 @@ table.sessTable th.sortkey::after{content:" \21C5"; font-weight:400; opacity:.7}
 table.sessTable th.sortkey.active::after{content:""}
 .sortnote{display:inline-block; background:#eef3fb; border:1px solid #c9d8f0; border-radius:6px; padding:4px 10px; margin:0 0 6px; color:#1f5fbf}
 </style>
-<p><a href="{{ url_for('.correspondence_home') }}">&larr; Correspondence</a></p>
+{% set can_run = session.is_owner or session.staff_role == 'Leadership' %}
+<p><a href="{{ url_for('.correspondence_home') if can_run else url_for('.correspondence_all') }}">&larr; Correspondence</a></p>
 <h1>{{ 'Trainee' if kind == 'trainees' else 'Team' }} Correspondence</h1>
 {% if not live %}
 <div class="card" style="border-left:4px solid #b3261e; max-width:760px">
@@ -17,7 +18,7 @@ table.sessTable th.sortkey.active::after{content:""}
 </div>
 {% endif %}
 
-{% if kind == 'team' %}
+{% if kind == 'team' and can_run %}
 <h2>Write a note to a group</h2>
 <p class="muted">A free-form note, one email per person. Facilitators, TA's and Support Team can be limited to one session.</p>
 <p>
@@ -26,7 +27,7 @@ table.sessTable th.sortkey.active::after{content:""}
 {% endif %}
 
 <h2>Letter wording</h2>
-<p class="muted">These are the letters. Edit one and the new wording is used for every letter sent from then on. Letters already sent keep their original wording.</p>
+<p class="muted">These are the letters. {% if session.is_owner %}Edit one and the new wording is used for every letter sent from then on. Letters already sent keep their original wording.{% else %}Open any letter to read it. Only the Owner changes the wording, and you can suggest a change from the letter's page.{% endif %}</p>
 <table class="stack">
   <tr><th>Letter</th><th>Goes to</th><th>Wording</th><th></th></tr>
   {% for l in letter_rows %}
@@ -36,6 +37,7 @@ table.sessTable th.sortkey.active::after{content:""}
   {% endfor %}
 </table>
 
+{% if can_run %}
 <h2>{{ 'Trainee letters for a session' if kind == 'trainees' else 'Session letters for facilitators and TA\'s' }}</h2>
 <p style="margin:8px 0">Letters sent in:
   <select id="yearFilter" style="padding:6px; font-size:1rem">
@@ -138,4 +140,5 @@ table.sessTable th.sortkey.active::after{content:""}
 })();
 </script>
 {% if kind == 'team' %}<p class="muted">The Support Team has no session letters; write to them with a note above.</p>{% endif %}
+{% endif %}
 {% endblock %}

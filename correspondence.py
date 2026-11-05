@@ -481,12 +481,10 @@ def register(app, crm, get_db, h):
             conn.close()
 
     @crm.route("/correspondence/trainees")
-    @leadership_required
     def correspondence_trainees():
         return _sessions_page("trainees")
 
     @crm.route("/correspondence/team")
-    @leadership_required
     def correspondence_team():
         return _sessions_page("team")
 

@@ -38,11 +38,9 @@
         <summary>Correspondence &#9662;</summary>
         <div class="navmenu-items">
           <a href="{{ url_for('.correspondence_all') }}">All Letters</a>
-          {% if session.is_owner or is_lead %}
           <a href="{{ url_for('.correspondence_trainees') }}">Trainee Correspondence</a>
           <a href="{{ url_for('.correspondence_team') }}">Team Correspondence</a>
           <a href="{{ url_for('.correspondence_all') }}#cat-guides">Volunteer Correspondence</a>
-          {% endif %}
           {% if has_correspondence_access %}
           <a href="{{ url_for('.correspondence_note', group='accounting') }}">Accounting &amp; Legal</a>
           <a href="{{ url_for('.email_blasts') }}">Marketing &amp; Email Blasts</a>
