@@ -1,0 +1,53 @@
+{% extends "crm_base.html" %}
+{% block title %}Possible duplicate contacts — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contacts_list') }}">&larr; Contacts</a></p>
+<h1>Possible duplicate contacts</h1>
+<p class="muted" style="max-width:760px">Pairs of contacts that may be the same person, found by matching email address, phone number, or first and last name. Nothing is merged automatically. Choose which one to keep, and you'll see exactly what will move before anything changes.</p>
+{% if not can_merge %}<p class="muted"><strong>Only the Owner and Leadership can merge.</strong> You can still look through the list.</p>{% endif %}
+
+{% if not pairs %}
+<div class="card"><p style="margin:0">No possible duplicates right now.</p></div>
+{% endif %}
+
+{% macro person(p, counts) %}
+<div>
+  <strong><a href="{{ url_for('.contact_detail', contact_id=p.id) }}">{{ p.first_name }} {{ p.last_name or '' }}</a></strong>
+  <span class="muted">#{{ p.id }}{% if p.status %} &middot; {{ p.status }}{% endif %}</span><br>
+  <span>{{ p.email or 'no email' }}</span><br>
+  <span class="muted">{{ p.cell_phone or 'no cell' }}</span><br>
+  <span class="muted" style="font-size:.85rem">{% set c = counts.get(p.id, {}) %}{% if c %}{% for k, v in c.items() %}{{ v }} {{ k }}{{ ', ' if not loop.last }}{% endfor %}{% else %}No sessions, team roles or donations{% endif %}</span>
+</div>
+{% endmacro %}
+
+{% for pr in pairs %}
+<div class="card" style="margin:12px 0">
+  <p style="margin:0 0 8px"><span class="badge" style="background:#d7e4f5">{{ pr.reasons|join(' + ') }}</span></p>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px">
+    {{ person(pr.a, counts) }}
+    {{ person(pr.b, counts) }}
+  </div>
+  <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px">
+    {% if can_merge %}
+    <a class="btn" href="{{ url_for('.contact_merge', keeper=pr.a.id, dup=pr.b.id) }}">Keep {{ pr.a.first_name }} (#{{ pr.a.id }}), merge the other into it</a>
+    <a class="btn" href="{{ url_for('.contact_merge', keeper=pr.b.id, dup=pr.a.id) }}">Keep {{ pr.b.first_name }} (#{{ pr.b.id }}), merge the other into it</a>
+    {% endif %}
+    <form method="post" action="{{ url_for('.contact_duplicates_ignore') }}" style="display:inline">
+      <input type="hidden" name="a" value="{{ pr.a.id }}"><input type="hidden" name="b" value="{{ pr.b.id }}">
+      <button class="btn secondary" type="submit">Not the same person</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+{% if merges %}
+<h2>Recent merges</h2>
+<table class="stack">
+  <tr><th>When</th><th>Merged</th><th>Into</th><th>By</th></tr>
+  {% for m in merges %}
+  <tr><td>{{ m.merged_at|fdate }}</td><td>{{ m.duplicate_name }} (#{{ m.duplicate_id }})</td>
+      <td><a href="{{ url_for('.contact_detail', contact_id=m.keeper_id) }}">#{{ m.keeper_id }}</a></td><td>{{ m.merged_by or '' }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

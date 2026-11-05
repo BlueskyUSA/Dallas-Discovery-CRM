@@ -1,0 +1,26 @@
+{% extends "crm_base.html" %}
+{% block title %}Merge contacts — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('.contact_duplicates') }}">&larr; Possible duplicates</a></p>
+<h1>Merge these two contacts?</h1>
+<div class="card" style="max-width:760px">
+  <p style="margin:0 0 6px"><strong>Keep:</strong> {{ keeper.first_name }} {{ keeper.last_name or '' }} <span class="muted">#{{ keeper.id }} &middot; {{ keeper.email or 'no email' }} &middot; {{ keeper.cell_phone or 'no cell' }}</span></p>
+  <p style="margin:0"><strong>Merge in and remove:</strong> {{ dup.first_name }} {{ dup.last_name or '' }} <span class="muted">#{{ dup.id }} &middot; {{ dup.email or 'no email' }} &middot; {{ dup.cell_phone or 'no cell' }}</span></p>
+</div>
+<h2>What will happen</h2>
+<p class="muted">This is a preview. Nothing has been changed yet. Nothing the kept contact already has is overwritten.</p>
+<ul>{% for l in lines %}<li>{{ l }}</li>{% endfor %}</ul>
+{% if problems %}
+<div class="card" style="border-left:4px solid #b3261e; max-width:760px">
+  <strong style="color:#b3261e">This merge can't be done yet.</strong>
+  <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+  <p class="muted" style="margin:0">Nothing was changed.</p>
+</div>
+{% else %}
+<form method="post" onsubmit="return confirm('Merge these contacts now? The duplicate will be removed.');">
+  <input type="hidden" name="keeper" value="{{ keeper.id }}"><input type="hidden" name="dup" value="{{ dup.id }}">
+  <button class="btn" type="submit">Merge now</button>
+  <a class="btn secondary" href="{{ url_for('.contact_duplicates') }}">Cancel</a>
+</form>
+{% endif %}
+{% endblock %}

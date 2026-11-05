@@ -19,6 +19,7 @@
   <input type="hidden" name="sort" value="{{ sort }}">{% if desc %}<input type="hidden" name="dir" value="desc">{% endif %}
   <button class="btn secondary" type="submit">Search</button>
   <a class="btn" href="{{ url_for('.contact_new') }}">+ Add contact</a>
+  <a class="btn secondary" href="{{ url_for('.contact_duplicates') }}">Possible duplicates</a>
 </form>
 
 {% if list_id or q or prof %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
