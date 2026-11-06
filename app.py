@@ -2033,7 +2033,8 @@ def dashboard():
         print(f"dashboard alerts skipped: {e}", flush=True)
     conn.close()
     return render_template("dashboard.html", contact_count=contact_count, upcoming=upcoming, programs=programs,
-                           next_sessions=next_sessions, alerts=alerts)
+                           next_sessions=next_sessions, alerts=alerts,
+                           show_alerts=bool(session.get("is_owner") or session.get("staff_role") == "Leadership" or _can_handle_money()))
 
 
 # ---------- contacts ----------

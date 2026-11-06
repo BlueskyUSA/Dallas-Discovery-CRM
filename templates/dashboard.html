@@ -4,9 +4,10 @@
 <h1>HUB Dashboard</h1>
 <p class="muted">{{ program_name }} — registration &amp; training management</p>
 
-{% if alerts %}
-<div class="card" style="max-width:860px; border-left:5px solid {{ '#b3412f' if alerts[0].level == 'urgent' else '#a8892f' }}">
-  <h2 style="margin-top:0">Needs attention <span class="muted" style="font-weight:400; font-size:.95rem">({{ alerts|length }})</span></h2>
+{% if show_alerts %}
+<div class="card" style="max-width:860px; border-left:5px solid {{ '#b3412f' if alerts and alerts[0].level == 'urgent' else ('#a8892f' if alerts else '#6b8f71') }}">
+  <h2 style="margin-top:0">Needs attention {% if alerts %}<span class="muted" style="font-weight:400; font-size:.95rem">({{ alerts|length }})</span>{% endif %}</h2>
+  {% if not alerts %}<p class="muted" style="margin:0">None</p>{% endif %}
   {% for a in alerts %}
   <div style="padding:8px 0; {{ 'border-top:1px solid var(--border);' if not loop.first else '' }} display:flex; gap:10px; align-items:baseline; flex-wrap:wrap">
     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ '#b3412f' if a.level == 'urgent' else '#a8892f' }}; flex:none"></span>
