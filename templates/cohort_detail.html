@@ -255,7 +255,7 @@
   <p class="muted" style="margin-top:-4px">Facilitators, TAs, and other whole-session roles not tied to a specific small group.</p>
   {% if staffing %}
   <table class="sticky-head stack">
-    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Duty</th><th></th></tr>
+    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Duty</th><th>Invitation sent</th><th>Attendance confirmed</th><th></th></tr>
     {% for t in staffing %}
     <tr>
       <td>{{ t.full_name }}{% if t.spouse_name %} <span class="muted" style="font-size:0.8rem">(with {{ t.spouse_name }})</span>{% endif %}</td>
@@ -264,6 +264,10 @@
       <td data-label="Duty">
         {% for d in t.duties %}<span style="display:inline-block; background:#eef3ec; border:1px solid var(--border); border-radius:12px; padding:1px 8px; margin:1px 4px 1px 0; font-size:0.85rem; white-space:nowrap">{{ d.duty }}{% if session.is_owner or session.staff_role == 'Leadership' %}<form method="post" action="{{ url_for('.staffing_remove', cohort_id=cohort.id, staffing_id=d.id) }}" style="display:inline" onsubmit="return confirm('Remove the duty &quot;{{ d.duty }}&quot; from {{ t.full_name }}?');"><button type="submit" title="Remove this duty" style="border:0; background:none; color:#c0392b; cursor:pointer; padding:0 0 0 5px; font-size:0.9rem; line-height:1">&times;</button></form>{% endif %}</span>{% endfor %}
       </td>
+      <td data-label="Invitation sent">{% if 'TA' in t.roles or 'Back-up TA' in t.roles %}{% set st = ta_status.get(t.contact_id) or {} %}{% if st.sent %}<span class="badge good">&#10003; {{ st.sent[:10]|fdate }}</span>{% else %}<span class="muted">not sent</span>{% endif %}{% else %}<span class="muted">&mdash;</span>{% endif %}</td>
+      <td data-label="Attendance confirmed">{% if 'TA' in t.roles or 'Back-up TA' in t.roles %}{% set st = ta_status.get(t.contact_id) or {} %}{% if st.response == 'Yes' %}<span class="badge good">&#10003; Confirmed</span>{% elif st.response == 'No' %}<span class="badge warn">&#10007; Can't make it</span>{% else %}<span class="muted">not yet</span>{% endif %}
+        {% if st.note %}<div class="muted" style="font-size:.8rem">{{ st.note }}</div>{% endif %}
+        {% if is_leader %}<div style="font-size:.8rem; margin-top:3px"><a href="#" onclick="return markTA({{ url_for('.ta_invite_mark', cohort_id=cohort.id, contact_id=t.contact_id)|tojson }}, 'Yes');">Mark confirmed</a> &middot; <a href="#" onclick="return markTA({{ url_for('.ta_invite_mark', cohort_id=cohort.id, contact_id=t.contact_id)|tojson }}, 'No');">Mark can't make it</a></div>{% endif %}{% else %}<span class="muted">&mdash;</span>{% endif %}</td>
       <td style="min-width:150px">{% if session.is_owner or session.staff_role == 'Leadership' %}
         <details style="display:inline-block; vertical-align:top">
           <summary class="btn secondary" style="padding:1px 8px; font-size:0.78rem; cursor:pointer; list-style:none; display:inline-block">Modify</summary>
@@ -344,4 +348,11 @@
 <h2 class="bandhead" style="padding:0"><a href="{{ url_for('.session_letters', cohort_id=cohort.id) }}" style="display:block; width:100%; box-sizing:border-box; padding:16px 22px 16px 52px; color:#fff !important; font-size:inherit !important; text-decoration:none">Letters to Trainees &amp; Team <span style="color:#ffe08a">&rarr;</span></a></h2>
 {% endif %}
 {% endif %}
+<script>
+function markTA(url, answer){
+  var f=document.createElement('form'); f.method='post'; f.action=url;
+  [['answer',answer],['back','session']].forEach(function(p){var i=document.createElement('input'); i.type='hidden'; i.name=p[0]; i.value=p[1]; f.appendChild(i);});
+  document.body.appendChild(f); f.submit(); return false;
+}
+</script>
 {% endblock %}

@@ -5176,9 +5176,22 @@ def cohort_detail(cohort_id):
                GROUP BY enrolled_by_contact_id"""
         ).fetchall()
     }
+    ta_status = {}
+    try:
+        import ta_invites
+        _ensure_session_letters_table(conn)
+        for r in conn.execute("SELECT contact_id, sent_at FROM session_letters_sent WHERE cohort_id = ? AND letter_key = 'ta_invitation'", (cohort_id,)).fetchall():
+            ta_status.setdefault(r["contact_id"], {})["sent"] = r["sent_at"]
+        for cid, r in ta_invites.responses(conn, cohort_id).items():
+            ta_status.setdefault(cid, {}).update(response=r["response"], note=r["response_note"])
+    except Exception as e:
+        print(f"ta status skipped: {e}", flush=True)
+        try: conn.rollback()
+        except Exception: pass
     conn.close()
     return render_template(
         "cohort_detail.html",
+        ta_status=ta_status,
         cohort=cohort,
         roster=roster, partner_names=partner_names, bands=bands, pay_info=pay_info,
         needs_rows=needs_rows, needs_total=needs_total, needs_help=needs.HELP_TEXT,
@@ -5692,6 +5705,7 @@ def _session_letter_recipients(conn, cohort_id):
             out["facilitator_confirm"].append(p)
         elif "TA" in p["roles"]:
             out["ta_confirm"].append(p)
+            out["ta_invitation"].append(p)
         elif "Back-up TA" in p["roles"]:
             out["backup_confirm"].append(p)
     return out
@@ -5728,6 +5742,13 @@ def _questionnaire_link(enrollment_id):
     return url_for("public_questionnaire", token=token, _external=True) if token else None
 
 
+def _ta_invite_link(cohort_id, person):
+    if not person.get("contact_id"):
+        return "[their private link]"
+    import ta_invites
+    return url_for("public_ta_invite", token=ta_invites.token_for(get_db, cohort_id, person["contact_id"]), _external=True)
+
+
 def _letter_link(person, key):
     if key == "questionnaire_reminder":
         return _questionnaire_link(person.get("enrollment_id"))
@@ -5744,7 +5765,7 @@ FRIDAY_END = {"D4": "The Friday session ends by 11:00 pm at the latest."}
 def _session_letter_for(cohort, person, key):
     code, name = cohort["code"], cohort["name"]
     training = name if name.startswith(code) else f"{code}-{name}"
-    if code != "D4":
+    if code != "D4" or key == "ta_invitation":
         training = NAV_PROGRAM_LABEL.get(code, name)   # "The Beginning" rather than "D1-The Beginning"
     role = "Lead Facilitator" if "Lead Facilitator" in person["roles"] else "Support Facilitator"
     from email_templates import content_key as _content_key
@@ -5752,7 +5773,7 @@ def _session_letter_for(cohort, person, key):
     return session_letter_content(
         key, person["first_name"], training, date_span(cohort), cohort["location"] if "location" in cohort.keys() else None,
         role=role, duties=person["duties"],
-        link=_letter_link(person, key),
+        link=(_ta_invite_link(cohort["id"], person) if key == "ta_invitation" else _letter_link(person, key)),
         partner=person.get("partner_name"),
         amount=("$1,299 per couple" if code == "D4" else None),
         friday_end=FRIDAY_END.get(code))
@@ -5779,6 +5800,8 @@ def session_letters(cohort_id):
     sent = {(r["contact_id"], r["letter_key"]): r["sent_at"] for r in conn.execute(
         "SELECT contact_id, letter_key, sent_at FROM session_letters_sent WHERE cohort_id = ?", (cohort_id,)).fetchall()}
     edited = {r["letter_key"] for r in conn.execute("SELECT letter_key FROM session_letter_text").fetchall()}
+    import ta_invites
+    ta_resp = ta_invites.responses(conn, cohort_id)
     conn.close()
     previews = {}
     sample = {"contact_id": 0, "name": "", "first_name": "[First name]", "email": "", "roles": ["Lead Facilitator"], "duties": []}
@@ -5790,9 +5813,30 @@ def session_letters(cohort_id):
             print(f"letter preview {k} skipped: {e}", flush=True)
     from email_templates import content_key as _content_key
     vkey = {k: _content_key(k, cohort["code"]) for k in SESSION_LETTER_ORDER}
-    return render_template("session_letters.html", vkey=vkey, previews=previews, edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
+    return render_template("session_letters.html", ta_resp=ta_resp, vkey=vkey, previews=previews, edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
                            recipients=recipients, sent=sent, live=_session_letters_live(),
                            only=(request.args.get("only") if request.args.get("only") in ("trainees", "team") else None))
+
+
+@crm.route("/cohorts/<int:cohort_id>/ta-invite/<int:contact_id>/mark", methods=["POST"])
+@area_required("contacts")
+@leadership_required
+def ta_invite_mark(cohort_id, contact_id):
+    """Record a TA's answer by hand (for example, they said yes on the phone)."""
+    import ta_invites
+    answer = request.form.get("answer")
+    if answer in ("Yes", "No"):
+        ta_invites.token_for(get_db, cohort_id, contact_id)       # makes sure the row exists
+        conn = get_db()
+        conn.execute("UPDATE ta_invitations SET response = ?, response_note = ?, "
+                     "responded_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE cohort_id = ? AND contact_id = ?",
+                     (answer, f"Marked by {session.get('staff_name') or 'a leader'}", cohort_id, contact_id))
+        conn.commit()
+        conn.close()
+        flash("Recorded: " + ("confirmed." if answer == "Yes" else "can't make it."))
+    if request.form.get("back") == "session":
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id) + "#sec-team")
+    return redirect(url_for(".session_letters", cohort_id=cohort_id) + "#team")
 
 
 @crm.route("/cohorts/<int:cohort_id>/letters/<key>/preview/<int:contact_id>")
@@ -8341,6 +8385,8 @@ import contact_dupes
 contact_dupes.register(app, crm, area_required, leadership_required, get_db)
 import contact_health
 contact_health.register(app, crm, owner_required, get_db)
+import ta_invites
+ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
 import correspondence
 correspondence.register(app, crm, get_db, {
     "leadership_required": leadership_required, "correspondence_access": correspondence_access,
