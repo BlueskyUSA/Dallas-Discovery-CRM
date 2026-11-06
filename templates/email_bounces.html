@@ -1,0 +1,27 @@
+{% extends "crm_base.html" %}
+{% block title %}Email bounces — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Email bounces</h1>
+<p class="muted">Emails that were sent but came back undelivered. When you correct the person's email address on their Contact page, the bounce clears by itself. Addresses that don't exist are skipped by future email blasts.</p>
+{% if rows %}
+<div class="card"><table class="stack">
+  <tr><th>Person</th><th>Address</th><th>What happened</th><th>Letter</th><th>When</th><th></th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{% if r.contact_id %}<a href="{{ url_for('.contact_detail', contact_id=r.contact_id) }}">{{ ((r.first_name or '') ~ ' ' ~ (r.last_name or ''))|trim or 'Contact' }}</a>{% else %}<span class="muted">not in Contacts</span>{% endif %}</td>
+    <td>{{ r.email }}</td>
+    <td>{{ nice.get(r.event, r.event) }}{% if r.reason %}<div class="muted" style="font-size:.8rem">{{ r.reason }}</div>{% endif %}</td>
+    <td>{{ r.subject or '' }}{% if r.is_blast %} <span class="badge">email blast</span>{% endif %}</td>
+    <td>{{ (r.happened_at or r.created_at|string)[:10] }}</td>
+    <td><form method="post" action="{{ url_for('.email_bounce_resolve', bounce_id=r.id) }}"><button class="btn secondary" type="submit">Clear</button></form></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<p>No bounces. 🎉</p>{% endif %}
+{% if hook %}
+<div class="card"><h3 style="margin-top:0">One-time setup in Brevo (Owner only)</h3>
+<p>So Brevo can tell the Hub about bounces: in Brevo go to <b>Transactional → Settings → Webhooks → Add a new webhook</b>, paste this address, and tick <b>Hard bounce, Soft bounce, Blocked, Invalid email, Spam</b>. Choose the <b>Transactional</b> type.</p>
+<input type="text" readonly value="{{ hook }}" style="width:100%" onclick="this.select()">
+<p class="muted">Keep this address private; it's the password for the connection.</p></div>
+{% endif %}
+{% endblock %}

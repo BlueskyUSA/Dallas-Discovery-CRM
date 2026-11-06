@@ -259,6 +259,11 @@ def recipients(conn, aud):
     # an address that has unsubscribed on ANY contact record is never emailed (people are sometimes in the database twice)
     blocked = {r["e"] for r in conn.execute("SELECT DISTINCT LOWER(email) AS e FROM contacts WHERE COALESCE(do_not_email, 0) = 1 AND email IS NOT NULL").fetchall()}
     blocked |= {r["e"] for r in conn.execute("SELECT DISTINCT LOWER(email) AS e FROM call_volunteers WHERE COALESCE(blast_optout, 0) = 1 AND email IS NOT NULL").fetchall()}
+    try:
+        import bounces as _bn
+        blocked |= _bn.hard_bounced_addresses(conn)
+    except Exception:
+        pass
     seen, out = set(blocked), []
     for cid, first, email in rows:
         e = (email or "").strip()

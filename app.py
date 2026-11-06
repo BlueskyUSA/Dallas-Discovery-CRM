@@ -8386,6 +8386,8 @@ contact_dupes.register(app, crm, area_required, leadership_required, get_db)
 import contact_health
 contact_health.register(app, crm, owner_required, get_db)
 import ta_invites
+import bounces
+bounces.register(app, crm, leadership_required, get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
 import correspondence
 correspondence.register(app, crm, get_db, {

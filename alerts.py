@@ -102,6 +102,23 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
                                 links=links))
         safe(failed_emails)
 
+        def bounced_emails():
+            import bounces
+            rows = bounces.open_rows(conn, important_only=True)
+            allrows = bounces.open_rows(conn)
+            if rows:
+                names = []
+                for r in rows:
+                    nm = (f"{r['first_name'] or ''} {r['last_name'] or ''}").strip() or r["email"]
+                    if r["contact_id"]:
+                        names.append((nm, url_for(".contact_detail", contact_id=r["contact_id"])))
+                out.append(dict(level="urgent", text=f"{_plural(len(rows), 'important email')} bounced (the address did not work). Fix the address so they get it.",
+                                links=names[:4], url=url_for(".email_bounces"), cta="See bounces"))
+            elif len(allrows) > 0 and is_lead:
+                out.append(dict(level="note", text=f"{_plural(len(allrows), 'email')} bounced, mostly from email blasts. Clean up when you have a moment.",
+                                url=url_for(".email_bounces"), cta="See bounces"))
+        safe(bounced_emails)
+
         def ta_declines():
             import ta_invites
             ta_invites.ensure(conn)
