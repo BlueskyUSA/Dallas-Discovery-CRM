@@ -13,6 +13,7 @@ import html as _html
 import os
 import re
 
+from markupsafe import Markup, escape
 from flask import abort, flash, redirect, render_template, request, session, url_for
 
 import string
@@ -249,16 +250,21 @@ def catalog():
          ]),
         ("trainees", "Trainee Correspondence",
          "Letters and questionnaires for the people registered for a session. Each session's page shows who has received each letter. The questionnaires are the forms trainees fill in on their private link; their questions are fixed in the program code for now, and making them editable per program is the next piece.", [
-            E("seminar_registration", sl["seminar_registration"]["title"], "By hand from the session's letters page.", "Trainees"),
-            E("trainee_confirm", sl["trainee_confirm"]["title"], "By hand from the session's letters page; also automatically to couples who reserve through a Guide's link.", "Trainees"),
-            E("payment_reminder", sl["payment_reminder"]["title"], "By hand only. The Guide is nudged every 7 days while payment is late and decides whether to send a reminder.", "Trainees who have not paid"),
-            E("payment_received", sl["payment_received"]["title"], "Automatically when payment is recorded (for people who reserved through a Guide); also by hand from the session's letters page.", "Trainees who have paid"),
-            E("questionnaire_reminder", sl["questionnaire_reminder"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire"),
+            E("seminar_registration", sl["seminar_registration"]["title"] + " \u2013 The Art of Us", "By hand from the session's letters page.", "Trainees (The Art of Us)"),
+            E("seminar_registration_other", sl["seminar_registration_other"]["title"], "By hand from the session's letters page.", "Trainees (The Beginning and every other training)"),
+            E("trainee_confirm", sl["trainee_confirm"]["title"] + " \u2013 The Art of Us", "By hand from the session's letters page; also automatically to people who reserve through a Guide's link.", "Trainees (The Art of Us)"),
+            E("trainee_confirm_other", sl["trainee_confirm_other"]["title"], "By hand from the session's letters page; also automatically to people who reserve through a Guide's link.", "Trainees (The Beginning and every other training)"),
+            E("payment_reminder", sl["payment_reminder"]["title"] + " \u2013 The Art of Us", "By hand only. The Guide is nudged every 7 days while payment is late and decides whether to send a reminder.", "Trainees who have not paid (The Art of Us)"),
+            E("payment_reminder_other", sl["payment_reminder_other"]["title"], "By hand only. The Guide is nudged every 7 days while payment is late and decides whether to send a reminder.", "Trainees who have not paid (The Beginning and every other training)"),
+            E("payment_received", sl["payment_received"]["title"] + " \u2013 The Art of Us", "Automatically when payment is recorded (for people who reserved through a Guide); also by hand from the session's letters page.", "Trainees who have paid (The Art of Us)"),
+            E("payment_received_other", sl["payment_received_other"]["title"], "Automatically when payment is recorded (for people who reserved through a Guide); also by hand from the session's letters page.", "Trainees who have paid (The Beginning and every other training)"),
+            E("questionnaire_reminder", sl["questionnaire_reminder"]["title"] + " \u2013 The Art of Us", "By hand from the session's letters page.", "Trainees without a completed questionnaire (The Art of Us)"),
+            E("questionnaire_reminder_other", sl["questionnaire_reminder_other"]["title"], "By hand from the session's letters page.", "Trainees without a completed questionnaire (The Beginning and every other training)"),
             X("Questionnaire: The Art of Us (Relationship Training)", "Sent as a private link by the Guide's \"Email it\" or from the session page.", "Each partner of a couple, separately", "/cep-letters/q-rt"),
             X("Questionnaire: The Beginning", "Sent as a private link from the session page.", "Each person, separately. The Beginning's own questions are still to be written (shown as TBD).", "/cep-letters/q-d1"),
             C("Questionnaire: other programs", "Sent as a private link from the session page.", "Each person", "Awakening, Vision, Renew and Spiritual use a short standard set: first time attending, goals, food and access needs, injuries, anything else."),
-            E("what_to_bring_aou", sl["what_to_bring_aou"]["title"], "By hand from the session's letters page. Starts as a copy of the standard \"What to bring\" letter, so you can word it just for The Art of Us.", "Trainees"),
-            E("what_to_bring", sl["what_to_bring"]["title"], "Automatically 7 days before the training for people who have paid (reserved through a Guide); also by hand.", "Trainees"),
+            E("what_to_bring_aou", sl["what_to_bring_aou"]["title"], "Automatically 7 days before The Art of Us for people who have paid (reserved through a Guide); also by hand from the session's letters page.", "Trainees (The Art of Us)"),
+            E("what_to_bring", "What to Bring \u2013 Other Trainings", "Automatically 7 days before the training for people who have paid (reserved through a Guide); also by hand.", "Trainees (The Beginning and every other training)"),
             V("completion", "After the training", "Automatically, a short time after the training ends.", "Trainees who completed"),
             V("contract", "Contract information request", "By hand, from a contact's record.", "Trainees who completed"),
          ]),
@@ -430,6 +436,72 @@ def register(app, crm, get_db, h):
         finally:
             conn.close()
 
+    @crm.route("/correspondence/search")
+    def correspondence_search():
+        """Search the current wording of every letter. Everyone with a login may read, so everyone may search."""
+        q = (request.args.get("q") or "").strip()
+        results, checked = [], 0
+        if q:
+            import html as _html
+            ql = q.lower()
+            conn = get_db()
+            try:
+                h["ensure_letters_table"](conn)
+                saved = {r["letter_key"]: r for r in conn.execute("SELECT * FROM session_letter_text").fetchall()}
+            finally:
+                conn.close()
+            can_mkt = h["has_correspondence_access"]()
+
+            def plain(t):
+                t = re.sub(r"<(br|/p|/li|/h\d|/div|/tr)\s*/?>", "\n", t or "", flags=re.I)
+                t = re.sub(r"<[^>]+>", " ", t)
+                return re.sub(r"[ \t]+", " ", _html.unescape(t)).strip()
+
+            for _cid, ctitle, _intro, entries in catalog():
+                for e in entries:
+                    if e.get("owner") and not can_mkt:
+                        continue
+                    kind, text, link = e.get("kind"), "", None
+                    try:
+                        if kind == "edit" and e["key"] in et.ALL_LETTERS:
+                            sv = saved.get(e["key"])
+                            if sv:
+                                text = " \n".join([sv["subject"] or "", sv["body"] or "", sv["signoff"] or ""])
+                            else:
+                                o = et.ALL_LETTERS[e["key"]]
+                                text = " \n".join([o.get("subject", ""), et.original_body(e["key"]), o.get("signoff", "")])
+                            link = url_for(".correspondence_letter_edit", key=e["key"], view=1)
+                        elif kind == "view":
+                            fn = _preview_map().get(e["slug"])
+                            if fn:
+                                subj, body = fn()
+                                text = (subj or "") + " \n" + plain(body)
+                            link = url_for(".correspondence_letter_view", slug=e["slug"])
+                        elif kind == "code":
+                            text = (e.get("text") or "") + " " + (e.get("note") or "")
+                    except Exception:
+                        continue
+                    if not text.strip():
+                        continue
+                    checked += 1
+                    text = plain(text) if "<" in text else text
+                    low, hits, start = text.lower(), [], 0
+                    n = low.count(ql)
+                    if not n:
+                        continue
+                    while len(hits) < 4:
+                        i = low.find(ql, start)
+                        if i < 0:
+                            break
+                        a, b = max(0, i - 70), min(len(text), i + len(q) + 70)
+                        seg = ("\u2026" if a else "") + text[a:b].replace("\n", " ") + ("\u2026" if b < len(text) else "")
+                        seg = str(escape(seg))
+                        seg = re.sub(re.escape(str(escape(q))), lambda m: "<mark>" + m.group(0) + "</mark>", seg, flags=re.I)
+                        hits.append(Markup(seg))
+                        start = i + len(q)
+                    results.append(dict(name=e["name"], category=ctitle, link=link, count=n, hits=hits))
+        return render_template("correspondence_search.html", q=q, results=results, checked=checked)
+
     @crm.route("/correspondence/letters/view/<slug>")
     def correspondence_letter_view(slug):
         fn = _preview_map().get(slug)
@@ -464,6 +536,15 @@ def register(app, crm, get_db, h):
             years = sorted({y for c in counts.values() for y in c}, reverse=True)
             edits = {r["letter_key"]: r for r in conn.execute("SELECT letter_key, updated_by, updated_at FROM session_letter_text").fetchall()}
             keys = [k for k in et.SESSION_LETTER_ORDER if (k in et.SESSION_TRAINEE_LETTERS) == (kind == "trainees")]
+            if kind == "trainees":
+                expanded = []
+                for k in keys:
+                    expanded.append(k)
+                    if k in et.OTHER_VARIANTS:
+                        expanded.append(et.OTHER_VARIANTS[k])
+                    if k == "what_to_bring":
+                        expanded.append("what_to_bring_aou")
+                keys = expanded
             conn.commit()  # let go of the table locks before the letters are rendered (rendering opens its own connection)
             letter_rows = []
             for k in keys:
@@ -721,6 +802,6 @@ def register(app, crm, get_db, h):
                                    saved=saved, preview_subject=subject, preview_html=html, used=used, help=FIELD_HELP,
                                    versions=versions, note=note, current_version=(versions[0]["version"] if versions and saved else None),
                                    back=("correspondence_all" if key in et.GUIDE_LETTERS else
-                                         ("correspondence_trainees" if key in et.SESSION_TRAINEE_LETTERS else "correspondence_team")))
+                                         ("correspondence_trainees" if (key in et.SESSION_TRAINEE_LETTERS or key in et.OTHER_VARIANTS.values() or key == "what_to_bring_aou") else "correspondence_team")))
         finally:
             conn.close()

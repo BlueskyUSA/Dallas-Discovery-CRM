@@ -5744,7 +5744,11 @@ FRIDAY_END = {"D4": "The Friday session ends by 11:00 pm at the latest."}
 def _session_letter_for(cohort, person, key):
     code, name = cohort["code"], cohort["name"]
     training = name if name.startswith(code) else f"{code}-{name}"
+    if code != "D4":
+        training = NAV_PROGRAM_LABEL.get(code, name)   # "The Beginning" rather than "D1-The Beginning"
     role = "Lead Facilitator" if "Lead Facilitator" in person["roles"] else "Support Facilitator"
+    from email_templates import content_key as _content_key
+    key = _content_key(key, code)
     return session_letter_content(
         key, person["first_name"], training, date_span(cohort), cohort["location"] if "location" in cohort.keys() else None,
         role=role, duties=person["duties"],
@@ -5784,7 +5788,9 @@ def session_letters(cohort_id):
             previews[k] = (subj, html_c)
         except Exception as e:
             print(f"letter preview {k} skipped: {e}", flush=True)
-    return render_template("session_letters.html", previews=previews, edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
+    from email_templates import content_key as _content_key
+    vkey = {k: _content_key(k, cohort["code"]) for k in SESSION_LETTER_ORDER}
+    return render_template("session_letters.html", vkey=vkey, previews=previews, edited=edited, cohort=cohort, letters=SESSION_LETTERS, order=SESSION_LETTER_ORDER, trainee_keys=SESSION_TRAINEE_LETTERS,
                            recipients=recipients, sent=sent, live=_session_letters_live(),
                            only=(request.args.get("only") if request.args.get("only") in ("trainees", "team") else None))
 

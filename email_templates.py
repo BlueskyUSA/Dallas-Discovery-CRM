@@ -685,6 +685,81 @@ SESSION_LETTERS = {
         ],
         "signoff": "Warmly,",
     },
+    # ---- The same trainee letters for every training EXCEPT The Art of Us (couples). The Art of Us keeps the originals above. ----
+    "seminar_registration_other": {
+        "title": "Seminar registration \u2013 Other Trainings",
+        "audience": "Trainees",
+        "subject": "Your registration for {training}",
+        "paras": [
+            "Thank you for registering for {training}, {dates}{where}.",
+            "To complete your registration, please fill out your personal registration form at the link below. "
+            "It covers your contact details, emergency contact and health information, and your answers save as you go.",
+            "{link}",
+            "A separate letter will follow with your questionnaire.",
+            "If anything needs to change, or you have any questions, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "trainee_confirm_other": {
+        "title": "Trainee Registration Confirmation \u2013 Other Trainings",
+        "audience": "Trainees",
+        "subject": "You're confirmed for {training}",
+        "paras": [
+            "We are delighted to confirm your registration for {training}, {dates}{where}.",
+            "This will be a powerful experience for you, and we are honored that you have chosen to be part of it.",
+            "Soon you will receive a separate email with your personal link to a questionnaire we ask you to seriously ponder. Take your time to complete each question. "
+            "Let your experience, heart, and mind flow into your words. "
+            "Your thoughts are yours alone\u2026we want just your voice. The form is designed so you can close your work and "
+            "pick up right where you left off by opening that same link again. For privacy, if you wish to create a password, please do so. "
+            "Your password will be saved, so if you forget it, reply to this email and we will call to help.",
+            "When we receive your completed questionnaire, we will email the program schedule, what to bring, and directions "
+            "as the training gets closer.",
+            "In the meantime, please hold these dates open. If anything changes for you, or if you have any questions at all, "
+            "just reply to this email and let us know.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+        "signer": "Coach Kent and the Discovery! Team",
+    },
+    "payment_reminder_other": {
+        "title": "Payment reminder \u2013 Other Trainings",
+        "audience": "Trainees who have not paid",
+        "subject": "A friendly reminder: payment for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to send a friendly reminder that "
+            "we have not yet received your payment.",
+            "{amount_sentence}",
+            "Please complete your payment before the training so your place is fully secured. If you have already "
+            "paid, thank you, and please disregard this note.",
+            "If you have any questions, or would like to talk about payment options, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "payment_received_other": {
+        "title": "Thank you \u2013 We\u2019re so excited \u2013 Other Trainings",
+        "audience": "Trainees who have paid",
+        "subject": "Thank you \u2013 we\u2019re so excited to see you at {training}!",
+        "paras": [
+            "Thank you! We have received the payment for {training}, {dates}{where}, and we are so excited that you are coming.",
+            "Your place is secured. If you have any questions, just reply to this email.",
+            "We look forward to seeing you.",
+        ],
+        "signoff": "Warmly,",
+    },
+    "questionnaire_reminder_other": {
+        "title": "Questionnaire reminder \u2013 Other Trainings",
+        "audience": "Trainees who have not completed the questionnaire",
+        "subject": "A friendly reminder: your questionnaire for {training}",
+        "paras": [
+            "We are looking forward to {training}, {dates}{where}, and wanted to remind you that we have not yet "
+            "received your questionnaire (see link below).",
+            "Your answers help us prepare for you, so please complete it before the training. It is for you alone, "
+            "so please answer in your own words. If you have already done so, thank you, and please disregard this note.",
+            "{link}",
+            "If you have any questions, just reply to this email.",
+        ],
+        "signoff": "Warmly,",
+    },
     "facilitator_confirm": {
         "title": "Facilitator confirmation",
         "audience": "Facilitators",
@@ -725,7 +800,21 @@ SESSION_LETTERS = {
         "signoff": "With gratitude,",
     },
 }
-SESSION_TRAINEE_LETTERS = ["seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring", "what_to_bring_aou"]
+SESSION_TRAINEE_LETTERS = ["seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder", "what_to_bring"]
+# Each trainee letter above is the one used for The Art of Us (couples; "What to bring" uses its own Art of Us copy).
+# Every other training uses the "_other" copy below. Sending records stay under the letter's main name above.
+OTHER_VARIANTS = {k: k + "_other" for k in ("seminar_registration", "trainee_confirm", "payment_reminder", "payment_received", "questionnaire_reminder")}
+ART_OF_US_CODE = "D4"
+
+
+def content_key(key, program_code):
+    """The letter whose wording is used for this program: Art of Us (D4) gets the originals, everything else the other copies."""
+    if key == "what_to_bring":
+        return "what_to_bring_aou" if program_code == ART_OF_US_CODE else "what_to_bring"
+    if key in OTHER_VARIANTS and program_code != ART_OF_US_CODE:
+        return OTHER_VARIANTS[key]
+    return key
+
 SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
 
 
