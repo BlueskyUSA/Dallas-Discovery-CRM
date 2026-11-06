@@ -55,7 +55,6 @@
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
           {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Website Leaders</a>{% endif %}
-          {% if session.is_owner %}<a href="{{ url_for('.owner_instructions') }}">Owner Instructions</a>{% endif %}
           {% if show_contacts %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
@@ -91,9 +90,10 @@
           {% endif %}
           {% if session.is_owner %}
           <details class="subnav">
-            <summary>Database Features &#9662;</summary>
+            <summary>Database &#9662;</summary>
             <a href="{{ url_for('.feature_guide') }}" style="padding-left:30px">How the site works</a>
             <a href="{{ url_for('.database_map') }}" style="padding-left:30px">Database map</a>
+            <a href="{{ url_for('.owner_instructions') }}" style="padding-left:30px">Owner Instructions</a>
           </details>
           {% endif %}
           {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
