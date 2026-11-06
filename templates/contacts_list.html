@@ -4,8 +4,9 @@
 {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
 <h1>Contacts</h1>
 {% if group_buttons %}
-<div class="card" style="margin-bottom:12px">
-  <div style="font-weight:700; margin-bottom:6px">Leadership and team groups <span class="muted" style="font-weight:400">&mdash; click a group to see who is in it</span></div>
+<details class="card" style="margin-bottom:12px" {{ 'open' if list_id }}>
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Sort &amp; Email a Group <span class="muted" style="font-weight:400; font-size:.9rem">&mdash; Leadership Team, Facilitators, TAs, Guides and more &#9662;</span></summary>
+  <p class="muted" style="margin:8px 0 6px">Click a group to see who is in it{% if session.is_owner %}, then email everyone in it with one button{% endif %}.</p>
   <div style="display:flex; flex-wrap:wrap; gap:6px">
     {% for g in group_buttons %}
     <a class="btn {{ '' if list_id == g.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=g.id) }}" style="font-size:.88rem; padding:4px 12px">{{ g.name }} <span style="opacity:.75">({{ g.n }})</span></a>
@@ -17,7 +18,7 @@
     <span class="muted" style="font-size:.85rem">Opens a letter to this group. People without an email address, or who unsubscribed, are skipped.</span>
   </div>
   {% endif %}
-</div>
+</details>
 {% endif %}
 <form class="inline" method="get">
   <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
