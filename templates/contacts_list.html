@@ -48,6 +48,14 @@
   a.sortlink { color: #111; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 3px 8px; border-radius: 6px; background: #e3ece3; border: 1px solid #7f9f7f; }
   a.sortlink:hover { background: #cfdfcf; }
   a.sortlink.on { background: #bcd3bc; border-color: #4f7a4f; }
+  @media (min-width: 761px) {
+    table.stack th a.sortlink { white-space: nowrap; font-size: .8rem; padding: 2px 6px; }
+    table.stack th { white-space: nowrap; padding-left: 6px; padding-right: 6px; }
+    table.stack td { padding-left: 6px; padding-right: 6px; }
+    table.stack td[data-label="Cell"] { white-space: nowrap; }
+    table.stack td.ph { width: 44px; }
+    table.stack td[data-label="Hub Login"] select { width: 118px; max-width: 118px; }
+  }
 </style>
 <p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Relationship) to sort the list. Click it again to reverse.</p>
 <div class="sortbar">
