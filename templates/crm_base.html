@@ -94,10 +94,10 @@
             <a href="{{ url_for('.feature_guide') }}" style="padding-left:30px">How the site works</a>
             <a href="{{ url_for('.database_map') }}" style="padding-left:30px">Database map</a>
             <a href="{{ url_for('.owner_instructions') }}" style="padding-left:30px">Owner Instructions</a>
+            <a href="{{ url_for('.lists_manage') }}" style="padding-left:30px">Data Sources</a>
+            <a href="{{ url_for('.export_for_claude') }}" style="padding-left:30px">Download for Claude</a>
           </details>
           {% endif %}
-          {% if is_lead %}<a href="{{ url_for('.lists_manage') }}">Data Sources</a>{% endif %}
-          {% if session.is_owner %}<a href="{{ url_for('.export_for_claude') }}">Download for Claude</a>{% endif %}
         </div>
       </details>
       {% endif %}
