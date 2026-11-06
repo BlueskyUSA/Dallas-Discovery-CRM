@@ -2416,8 +2416,15 @@ def contacts_list():
     except Exception:
         try: conn.rollback()
         except Exception: pass
+    logins = {}
+    try:
+        for r in conn.execute("SELECT contact_id, role, is_owner FROM staff WHERE active = 1 AND contact_id IS NOT NULL").fetchall():
+            logins[r["contact_id"]] = "Owner" if r["is_owner"] else role_label(r["role"])
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
+    return render_template("contacts_list.html", logins=logins, contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
                            group_buttons=group_buttons, list_name=list_name, list_count=list_count)
 
 
