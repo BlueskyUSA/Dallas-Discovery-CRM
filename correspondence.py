@@ -271,6 +271,7 @@ def catalog():
         ("team", "Team (Facilitators, TA's, Support Team, Leadership)",
          "Letters to the people who run a session.", [
             E("facilitator_confirm", sl["facilitator_confirm"]["title"], "By hand from the session's letters page.", "Facilitators"),
+            E("ta_invitation", sl["ta_invitation"]["title"], "By hand from the session's letters page, to the people chosen as TAs. The button opens a private page where they answer Yes or No.", "People chosen as a TA"),
             E("ta_confirm", sl["ta_confirm"]["title"], "By hand from the session's letters page.", "TA's"),
             E("backup_confirm", sl["backup_confirm"]["title"], "By hand from the session's letters page.", "Back-up TA's"),
             dict(kind="link", name="Team notes", when="Written by you each time, to Facilitators, TA's, Support Team or Leadership.",

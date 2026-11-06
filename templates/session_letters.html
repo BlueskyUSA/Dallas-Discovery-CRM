@@ -67,7 +67,7 @@
 {% if only != 'trainees' %}
 <details {{ 'open' if only }} style="margin:14px 0; background:#f6f4ec; border:1px solid var(--border); border-radius:8px; padding:8px 14px">
   <summary style="cursor:pointer; font-size:1.15rem; font-weight:700; color:#1f5fbf">Letters to Team</summary>
-  {% for key in order if key == 'facilitator_confirm' or key == 'ta_confirm' or key == 'backup_confirm' %}
+  {% for key in order if key == 'facilitator_confirm' or key == 'ta_invitation' or key == 'ta_confirm' or key == 'backup_confirm' %}
 {% set spec = letters[key] %}
 {% set people = recipients[key] %}
 <details style="margin:8px 0; border:1px solid var(--border); border-radius:8px; padding:6px 12px; background:#fffdf7">
@@ -87,7 +87,7 @@
   <form method="post" action="{{ url_for('.session_letter_send', cohort_id=cohort.id, key=key) }}"
         onsubmit="return confirm('Send the {{ spec.title }} to every checked person now?');">
     <table>
-      <tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>Sent</th><th></th></tr>
+      <tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>{{ 'Invitation sent' if key == 'ta_invitation' else 'Sent' }}</th>{% if key in ('ta_invitation', 'ta_confirm') %}<th>Attendance confirmed</th>{% endif %}<th></th></tr>
       {% for p in people %}
       {% set when = sent.get((p.contact_id, key)) %}
       <tr>
@@ -95,6 +95,12 @@
         <td>{{ p.name }}{% if p.partner_name %} <span class="muted">(with {{ p.partner_name }})</span>{% endif %}</td>
         <td>{% if p.email %}{{ p.email }}{% else %}<span class="badge warn">no email</span>{% endif %}</td>
         <td>{% if when %}<a href="{{ url_for('.session_letter_sent_copy', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}" title="See the letter as it was sent"><span class="badge good">&#10003; {{ when[:10]|fdate }}</span></a>{% else %}<span class="muted">not sent</span>{% endif %}</td>
+        {% if key in ('ta_invitation', 'ta_confirm') %}{% set ans = ta_resp.get(p.contact_id) %}<td>
+          {% if ans and ans.response == 'Yes' %}<span class="badge good">&#10003; Confirmed</span>{% elif ans and ans.response == 'No' %}<span class="badge warn">&#10007; Can't make it</span>{% else %}<span class="muted">not yet</span>{% endif %}
+          {% if ans and ans.response_note %}<div class="muted" style="font-size:.8rem">{{ ans.response_note }}</div>{% endif %}
+          {% if key == 'ta_invitation' %}<div style="font-size:.8rem; margin-top:3px">
+            <a href="#" onclick="return markTA({{ url_for('.ta_invite_mark', cohort_id=cohort.id, contact_id=p.contact_id)|tojson }}, 'Yes');">Mark confirmed</a> &middot;
+            <a href="#" onclick="return markTA({{ url_for('.ta_invite_mark', cohort_id=cohort.id, contact_id=p.contact_id)|tojson }}, 'No');">Mark can't make it</a></div>{% endif %}</td>{% endif %}
         <td><a href="{{ url_for('.session_letter_preview', cohort_id=cohort.id, key=key, contact_id=p.contact_id) }}">Preview</a></td>
       </tr>
       {% endfor %}
@@ -115,4 +121,11 @@
 </details>
 <p class="muted">The Support Team does not receive these letters. Write to them from <a href="{{ url_for('.correspondence_note', group='support') }}">Team Correspondence</a>.</p>
 {% endif %}
+<script>
+function markTA(url, answer){
+  var f=document.createElement('form'); f.method='post'; f.action=url;
+  var i=document.createElement('input'); i.type='hidden'; i.name='answer'; i.value=answer; f.appendChild(i);
+  document.body.appendChild(f); f.submit(); return false;
+}
+</script>
 {% endblock %}

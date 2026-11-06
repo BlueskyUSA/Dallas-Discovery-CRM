@@ -760,6 +760,22 @@ SESSION_LETTERS = {
         ],
         "signoff": "Warmly,",
     },
+    "ta_invitation": {
+        "title": "TA invitation",
+        "audience": "People invited to be a TA",
+        "subject": "You're invited to serve as a TA for {training}",
+        "button": "Let us know if you can join us",
+        "paras": [
+            "TAs are the heartbeat of a Discovery! training. We believe the training's effectiveness depends on your skill, your ability and your leadership.",
+            "That is why we have chosen you to be a TA for {training}.",
+            "We so appreciate your work, your dedication and your skill as you partner with us to bring healing and wholeness to the world.",
+            "Please let us know whether you can join us on {dates}{where} by clicking the button below. If anything changes for you, just let us know.",
+            "{link}",
+            "Thanks so much.",
+        ],
+        "signoff": "God bless you,",
+        "signer": "The Discovery! Team",
+    },
     "facilitator_confirm": {
         "title": "Facilitator confirmation",
         "audience": "Facilitators",
@@ -815,7 +831,7 @@ def content_key(key, program_code):
         return OTHER_VARIANTS[key]
     return key
 
-SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_confirm", "backup_confirm"]
+SESSION_LETTER_ORDER = SESSION_TRAINEE_LETTERS + ["facilitator_confirm", "ta_invitation", "ta_confirm", "backup_confirm"]
 
 
 # The letters the Guide-call flow sends. Same shape as the session letters, so they can be edited the same way.
@@ -1102,11 +1118,13 @@ def render_spec(spec, fill, link=None):
     html_content = (
         open_html
         + "".join(
-            (f'<p><a href="{_html.escape(p)}">{_html.escape(p)}</a></p>' if ((link and p == link) or (fill.get("page_link") and p == fill.get("page_link")))
+            (f'<p style="margin:18px 0"><a href="{_html.escape(p)}" style="background:#3f5446;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">{_html.escape(spec["button"])}</a></p>'
+             if (link and p == link and spec.get("button"))
+             else f'<p><a href="{_html.escape(p)}">{_html.escape(p)}</a></p>' if ((link and p == link) or (fill.get("page_link") and p == fill.get("page_link")))
              else f"<p>{h(p)}</p>") for p in paras)
         + f"<p>{_html.escape(signoff)}<br>{_html.escape(signer)}</p>"
     )
-    text_content = (open_text + "\n\n".join(p.replace("**", "") for p in paras)
+    text_content = (open_text + "\n\n".join((f'{spec["button"]}: {p}' if (link and p == link and spec.get("button")) else p.replace("**", "")) for p in paras)
                     + f"\n\n{signoff}\n{signer}")
     return subject, html_content, text_content
 

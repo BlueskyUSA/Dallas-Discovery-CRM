@@ -102,6 +102,20 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
                                 links=links))
         safe(failed_emails)
 
+        def ta_declines():
+            import ta_invites
+            ta_invites.ensure(conn)
+            for s in sessions:
+                rows = conn.execute(
+                    """SELECT ct.first_name, ct.last_name FROM ta_invitations i JOIN contacts ct ON ct.id = i.contact_id
+                       WHERE i.cohort_id = ? AND i.response = 'No'""", (s["id"],)).fetchall()
+                if rows:
+                    names = ", ".join(((r["first_name"] or "") + " " + (r["last_name"] or "")).strip() for r in rows[:4])
+                    out.append(dict(level="urgent" if s["days"] <= 30 else "note",
+                                    text=f"{names} can't be a TA for {s['name']} ({when(s)}). Find a replacement.",
+                                    url=url_for(".session_letters", cohort_id=s["id"]) + "#team", cta="Open the session"))
+        safe(ta_declines)
+
     if can_money or is_lead:
         def unpaid():
             for s in sessions:
