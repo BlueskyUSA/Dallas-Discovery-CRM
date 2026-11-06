@@ -141,7 +141,7 @@
       </td>
       <td style="white-space:nowrap">
         {% set is_self_owner_row = (s.id == session.staff_id and s.is_owner) %}
-        {% if session.is_owner %}
+        {% if session.is_owner and not s.contact_id %}
         <details style="display:inline-block; vertical-align:middle;">
           <summary class="btn secondary" style="display:inline-block; cursor:pointer;">Edit</summary>
           <form method="post" action="{{ url_for('.staff_edit', staff_id=s.id) }}" style="margin-top:8px; min-width:220px;">
