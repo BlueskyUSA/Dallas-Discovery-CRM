@@ -9,6 +9,7 @@
     <option value="">All lists</option>
     {% for l in all_lists %}<option value="{{ l.id }}" {{ 'selected' if list_id == l.id }}>{{ l.name }}</option>{% endfor %}
   </select>
+  {% if list_id and session.is_owner %}<a class="btn secondary" href="{{ url_for('.email_blast_from_list', list_id=list_id) }}" title="Write one email to everyone on this list who has an email address">&#9993; Email this list</a>{% endif %}
   <select name="profile" onchange="this.form.submit()" title="Filter by profile">
     <option value="">All profiles</option>
     <option value="incomplete" {{ 'selected' if prof == 'incomplete' }}>Profile incomplete (Basic or Personal)</option>

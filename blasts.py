@@ -583,6 +583,28 @@ def register(app, crm, owner_required, get_db):
                     sent_count=n_sent, empty=(l["kind"] != "standard" and not (l["body"] or "").strip()),
                     shown_name=(l["title"] or l["subject"] or "Letter"))
 
+    @crm.route("/email-blasts/from-list/<int:list_id>", methods=["GET", "POST"])
+    @owner_required
+    def email_blast_from_list(list_id):
+        """From the Contacts page: start (or reopen) an email to everyone on one contact list."""
+        ensure_tables(get_db)
+        conn = get_db()
+        try:
+            lst = conn.execute("SELECT id, name FROM contact_lists WHERE id = ?", (list_id,)).fetchone()
+            if not lst:
+                flash("Couldn't find that list.")
+                return redirect(url_for(".email_blasts"))
+            a = conn.execute("SELECT id FROM blast_audiences WHERE list_id = ? AND kind = 'text' AND scope IS NULL ORDER BY id LIMIT 1", (list_id,)).fetchone()
+            if not a:
+                conn.execute("INSERT INTO blast_audiences (name, kind, list_id, subject, body, sort_order, scope, created_at) VALUES (?, 'text', ?, '', '', 90, NULL, ?)",
+                             (lst["name"][:120], list_id, cf._ts(cf._utc_now())))
+                a = conn.execute("SELECT id FROM blast_audiences ORDER BY id DESC LIMIT 1").fetchone()
+                _new_letter(conn, a["id"], "Draft letter")
+                conn.commit()
+            return redirect(url_for(".email_blast_edit", aid=a["id"]))
+        finally:
+            conn.close()
+
     @crm.route("/email-blasts", methods=["GET", "POST"])
     @owner_required
     def email_blasts():
