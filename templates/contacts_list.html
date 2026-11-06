@@ -1,6 +1,20 @@
 {% extends "crm_base.html" %}
 {% block title %}Contacts — {{ program_name }} ERP{% endblock %}
 {% block content %}
+<script>
+function hubLoginChange(sel){
+  var f = sel.form, b = f.querySelector('button'), n = f.querySelector('.notsaved');
+  var cur = f.dataset.cur || '', v = sel.value, name = f.dataset.name || 'this person';
+  if (v === cur) { b.className = 'btn secondary'; b.textContent = 'Set'; if (n) n.style.display = 'none'; return; }
+  var label, note;
+  if (!v) { label = 'Remove login'; note = 'NOT DONE YET. Press "Remove login" to take ' + name + ' out of the Hub and Site Access (they stay a contact).'; }
+  else if (!cur) { label = 'Send login'; note = 'NOT DONE YET. Press "Send login" to email ' + name + ' a login link and a temporary password.'; }
+  else { label = 'Change login'; note = 'NOT DONE YET. Press "Change login" to switch ' + name + ' to ' + sel.options[sel.selectedIndex].text + ' (no email is sent).'; }
+  b.className = 'btn'; b.textContent = label;
+  if (n) { n.textContent = note; n.style.display = 'block'; }
+}
+</script>
+
 {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
 <h1>Contacts</h1>
 {% if group_buttons %}
@@ -58,7 +72,7 @@
   }
 </style>
 {% if can_assign_logins %}<div class="card" style="margin:6px 0; padding:10px 14px; border-left:4px solid #3d5a3d; font-size:.92rem">
-  <strong>Hub Login:</strong> pick a choice in a person's row, then <strong>press Set</strong>. Nothing changes until you press Set.<br>
+  <strong>Hub Login:</strong> pick a choice in a person's row. A red note and a green button then appear: <strong>press the green button</strong> (Send login, Change login or Remove login) to make it happen. Nothing changes until you do.<br>
   &bull; <strong>Volunteer Team / Leadership / Accounting &amp; Legal</strong>: they are emailed a login link and a <strong>temporary password</strong>, and choose their own password the first time they log in.<br>
   &bull; <strong>No login</strong>: removes their Hub login and clears their Site Access. They stay in Contacts.
 </div>{% endif %}
@@ -88,10 +102,10 @@
         {% set cur_login = logins.get(c.id) %}
         {% if can_assign_logins and cur_login != 'Owner' and (session.is_owner or cur_login in (None, 'Volunteer Team')) %}
         <form method="post" action="{{ url_for('.contact_login_role', contact_id=c.id) }}" style="display:flex; gap:4px; align-items:center; margin:0"
-              onsubmit="var s=this.login_role; if(s.value && s.value != this.dataset.cur){ return confirm('Give {{ c.full_name|e }} a ' + s.options[s.selectedIndex].text + ' login? They will be emailed a login link.'); } if(!s.value && this.dataset.cur){ return confirm('Remove the login for {{ c.full_name|e }}? They stay a contact but can no longer log in.'); } return true;" data-cur="{{ {'Volunteer Team':'Team','Leadership':'Leadership','Accounting & Legal':'Accounting'}.get(cur_login, '') }}">
+              onsubmit="var s=this.login_role; if(s.value && s.value != this.dataset.cur){ return confirm('Give {{ c.full_name|e }} a ' + s.options[s.selectedIndex].text + ' login? They will be emailed a login link.'); } if(!s.value && this.dataset.cur){ return confirm('Remove the login for {{ c.full_name|e }}? They stay a contact but can no longer log in.'); } return true;" data-name="{{ c.full_name|e }}" data-cur="{{ {'Volunteer Team':'Team','Leadership':'Leadership','Accounting & Legal':'Accounting'}.get(cur_login, '') }}">
           <input type="hidden" name="return_to" value="list"><input type="hidden" name="return_qs" value="{{ request.query_string.decode() }}">
           <select name="login_role" style="padding:2px 4px; font-size:.85rem"
-                  onchange="var f=this.form, b=f.querySelector('button'), n=f.querySelector('.notsaved'); var chg=(this.value !== f.dataset.cur); b.className = chg ? 'btn' : 'btn secondary'; if(n){ n.style.display = chg ? 'block' : 'none'; }">
+                  onchange="hubLoginChange(this)">
             <option value="" {{ 'selected' if not cur_login }}>No login</option>
             <option value="Team" {{ 'selected' if cur_login == 'Volunteer Team' }}>Volunteer Team</option>
             {% if session.is_owner %}<option value="Leadership" {{ 'selected' if cur_login == 'Leadership' }}>Leadership</option>
@@ -99,7 +113,7 @@
           </select>
           <button class="btn secondary" type="submit" style="padding:2px 8px; font-size:.8rem">Set</button>
         </form>
-        <div class="notsaved" style="display:none; color:#b3412f; font-size:.78rem; font-weight:600">Not saved yet &mdash; press Set</div>
+        <div class="notsaved" style="display:none; color:#b3412f; font-size:.8rem; font-weight:600; max-width:260px; white-space:normal"></div>
         {% elif cur_login %}<span class="badge good">{{ cur_login }}</span>{% else %}<span class="muted">&mdash;</span>{% endif %}
       </td>{% endif %}
     </tr>
