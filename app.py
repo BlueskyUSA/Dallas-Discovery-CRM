@@ -1190,6 +1190,10 @@ def contact_login_role(contact_id):
     owner = bool(session.get("is_owner"))
     staff = conn.execute("SELECT * FROM staff WHERE contact_id = ? ORDER BY active DESC LIMIT 1", (contact_id,)).fetchone()
     back = redirect(url_for(".contact_detail", contact_id=contact_id))
+    if request.form.get("return_to") == "list":
+        from urllib.parse import parse_qsl
+        keep = {k: v for k, v in parse_qsl(request.form.get("return_qs") or "") if k in ("q", "list", "sort", "dir", "profile")}
+        back = redirect(url_for(".contacts_list", **keep))
     if staff and staff["is_owner"]:
         conn.close()
         flash("This person is an Owner. Owner logins are managed under Site Access.")
@@ -2299,7 +2303,8 @@ def profile_stages(conn, contact):
 
 
 _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
-                  "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
+                  "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))",
+                  "login": "COALESCE((SELECT CASE WHEN s.is_owner = 1 THEN 'Owner' ELSE s.role END FROM staff s WHERE s.contact_id = contacts.id AND s.active = 1 ORDER BY s.id LIMIT 1), 'zzz')"}
 
 
 TEAM_LISTS = [  # (list name, session roles that put someone on it)
@@ -2365,7 +2370,7 @@ def contacts_list():
     q = request.args.get("q", "").strip()
     list_id = request.args.get("list", type=int)
     sort = request.args.get("sort", "last")
-    if sort not in ("last", "first", "email", "cell", "status"):
+    if sort not in ("last", "first", "email", "cell", "status", "login"):
         sort = "last"
     desc = request.args.get("dir") == "desc"
     conn = get_db()
@@ -2424,7 +2429,7 @@ def contacts_list():
         try: conn.rollback()
         except Exception: pass
     conn.close()
-    return render_template("contacts_list.html", logins=logins, contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
+    return render_template("contacts_list.html", logins=logins, can_assign_logins=_has_area_access("assign_logins"), contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
                            group_buttons=group_buttons, list_name=list_name, list_count=list_count)
 
 

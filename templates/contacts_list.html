@@ -56,7 +56,7 @@
 </div>
 <div class="card">
   <table class="stack">
-    <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Relationship') }}</th>{% if session.is_owner or session.staff_role == 'Leadership' %}<th>Login</th>{% endif %}</tr>
+    <tr><th></th><th>{{ sh('first','First') }} &nbsp;&middot;&nbsp; {{ sh('last','Last') }}</th><th>{{ sh('email','Email') }}</th><th>{{ sh('cell','Cell') }}</th><th>{{ sh('status','Relationship') }}</th>{% if session.is_owner or session.staff_role == 'Leadership' %}<th>{{ sh('login','Login') }}</th>{% endif %}</tr>
     {% for c in contacts %}
     <tr>
       <td class="ph">
@@ -71,7 +71,22 @@
       <td data-label="Email" style="word-break:break-all">{{ c.email or '' }}</td>
       <td data-label="Cell">{{ c.cell_phone or '' }}</td>
       <td data-label="Relationship"><span class="badge">{{ c.status }}</span></td>
-      {% if session.is_owner or session.staff_role == 'Leadership' %}<td data-label="Login">{% if logins.get(c.id) %}<span class="badge good">{{ logins[c.id] }}</span>{% else %}<span class="muted">&mdash;</span>{% endif %}</td>{% endif %}
+      {% if session.is_owner or session.staff_role == 'Leadership' %}<td data-label="Login">
+        {% set cur_login = logins.get(c.id) %}
+        {% if can_assign_logins and cur_login != 'Owner' and (session.is_owner or cur_login in (None, 'Volunteer Team')) %}
+        <form method="post" action="{{ url_for('.contact_login_role', contact_id=c.id) }}" style="display:flex; gap:4px; align-items:center; margin:0"
+              onsubmit="var s=this.login_role; if(s.value && s.value != this.dataset.cur){ return confirm('Give {{ c.full_name|e }} a ' + s.options[s.selectedIndex].text + ' login? They will be emailed a login link.'); } if(!s.value && this.dataset.cur){ return confirm('Remove the login for {{ c.full_name|e }}? They stay a contact but can no longer log in.'); } return true;" data-cur="{{ {'Volunteer Team':'Team','Leadership':'Leadership','Accounting & Legal':'Accounting'}.get(cur_login, '') }}">
+          <input type="hidden" name="return_to" value="list"><input type="hidden" name="return_qs" value="{{ request.query_string.decode() }}">
+          <select name="login_role" style="padding:2px 4px; font-size:.85rem">
+            <option value="" {{ 'selected' if not cur_login }}>No login</option>
+            <option value="Team" {{ 'selected' if cur_login == 'Volunteer Team' }}>Volunteer Team</option>
+            {% if session.is_owner %}<option value="Leadership" {{ 'selected' if cur_login == 'Leadership' }}>Leadership</option>
+            <option value="Accounting" {{ 'selected' if cur_login == 'Accounting & Legal' }}>Accounting &amp; Legal</option>{% endif %}
+          </select>
+          <button class="btn secondary" type="submit" style="padding:2px 8px; font-size:.8rem">Set</button>
+        </form>
+        {% elif cur_login %}<span class="badge good">{{ cur_login }}</span>{% else %}<span class="muted">&mdash;</span>{% endif %}
+      </td>{% endif %}
     </tr>
     {% else %}
     <tr><td colspan="6" class="muted">No contacts yet.</td></tr>
