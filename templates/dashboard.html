@@ -4,6 +4,19 @@
 <h1>HUB Dashboard</h1>
 <p class="muted">{{ program_name }} — registration &amp; training management</p>
 
+{% if alerts %}
+<div class="card" style="max-width:860px; border-left:5px solid {{ '#b3412f' if alerts[0].level == 'urgent' else '#a8892f' }}">
+  <h2 style="margin-top:0">Needs attention <span class="muted" style="font-weight:400; font-size:.95rem">({{ alerts|length }})</span></h2>
+  {% for a in alerts %}
+  <div style="padding:8px 0; {{ 'border-top:1px solid var(--border);' if not loop.first else '' }} display:flex; gap:10px; align-items:baseline; flex-wrap:wrap">
+    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ '#b3412f' if a.level == 'urgent' else '#a8892f' }}; flex:none"></span>
+    <span style="flex:1; min-width:240px">{{ a.text }}
+      {% if a.links %}<br>{% for label, u in a.links %}<a href="{{ u }}">{{ label }}</a>{{ ', ' if not loop.last }}{% endfor %}{% endif %}</span>
+    {% if a.url %}<a class="btn secondary" href="{{ a.url }}" style="font-size:.85rem; padding:3px 12px">{{ a.cta or 'Open' }}</a>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 {% set can_contacts = session.staff_role != 'Accounting' and (session.staff_role == 'Leadership' or has_contacts_access) %}
 {% set is_lead = session.is_owner or session.staff_role == 'Leadership' %}
 {% if next_sessions and (is_lead or can_contacts) %}

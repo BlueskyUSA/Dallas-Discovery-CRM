@@ -2022,9 +2022,18 @@ def dashboard():
         conn.rollback()
         print(f"dashboard next sessions skipped: {e}", flush=True)
         next_sessions = []
+    alerts = []
+    try:
+        import alerts as _alerts
+        is_lead = bool(session.get("is_owner") or session.get("staff_role") == "Leadership")
+        alerts = _alerts.collect(conn, bool(session.get("is_owner")), is_lead,
+                                 bool(_can_handle_money()), lambda code, name: NAV_PROGRAM_LABEL.get(code, name), url_for)
+    except Exception as e:
+        conn.rollback()
+        print(f"dashboard alerts skipped: {e}", flush=True)
     conn.close()
     return render_template("dashboard.html", contact_count=contact_count, upcoming=upcoming, programs=programs,
-                           next_sessions=next_sessions)
+                           next_sessions=next_sessions, alerts=alerts)
 
 
 # ---------- contacts ----------
