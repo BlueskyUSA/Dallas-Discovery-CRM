@@ -2302,6 +2302,46 @@ def contact_new():
     )
 
 
+def _sync_login_email(conn, contact_id, old_email, new_email):
+    """If this contact has a team login that uses their old email, move the login to the corrected email,
+    give them a new temporary password and email it. The old address can no longer be used to log in.
+    Never breaks the contact save."""
+    try:
+        old = (old_email or "").strip().lower()
+        new = (new_email or "").strip().lower()
+        if not old or not new or old == new:
+            return
+        st = conn.execute("SELECT * FROM staff WHERE contact_id = ? AND active = 1 AND LOWER(email) = ?", (contact_id, old)).fetchone()
+        if not st:
+            return
+        if st["is_owner"] or st["role"] == ACCOUNTING_ROLE:
+            flash("Note: their team login still uses the old email. Only the Owner can change that one, under Site Access.")
+            return
+        allowed = session.get("is_owner") or (session.get("staff_role") == "Leadership" and st["role"] == "Team")
+        if not allowed:
+            flash("Note: their team login still uses the old email. Ask the Owner (or Leadership, for a Team account) to update it under Site Access.")
+            return
+        if conn.execute("SELECT 1 FROM staff WHERE LOWER(email) = ? AND id <> ?", (new, st["id"])).fetchone():
+            flash("Their team login was not changed because another account already uses that email.")
+            return
+        temp_password = secrets.token_urlsafe(9)
+        _ensure_must_change()
+        conn.execute("UPDATE staff SET email = ?, password_hash = ?, must_change_password = 1 WHERE id = ?",
+                     (new, generate_password_hash(temp_password), st["id"]))
+        conn.commit()
+        first = (conn.execute("SELECT first_name FROM contacts WHERE id = ?", (contact_id,)).fetchone() or {})["first_name"]
+        sent, err, sms = _email_team_login(first, st["name"], new, st["role"], temp_password,
+                                           "Your login email has been corrected for the")
+        if sent:
+            flash(f"Their team login moved to {new}, and a new login email with a temporary password was sent there. The old address no longer works for logging in.")
+        else:
+            flash(f"Their team login moved to {new}, but the email could not be sent ({err}). Temporary password: {temp_password}")
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        print(f"login email sync skipped: {e}", flush=True)
+
+
 @crm.route("/contacts/<int:contact_id>/edit", methods=["GET", "POST"])
 @area_required("contacts")
 def contact_edit(contact_id):
@@ -2350,6 +2390,7 @@ def contact_edit(contact_id):
         if photo_result:
             upsert_contact_photo(conn, contact_id, *photo_result)
             conn.commit()
+        _sync_login_email(conn, contact_id, contact["email"], values.get("email"))
         conn.close()
         flash("Contact updated.")
         return redirect(url_for(".contact_detail", contact_id=contact_id))
