@@ -103,6 +103,8 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
         safe(failed_emails)
 
         def bounced_emails():
+            if not is_lead:
+                return
             import bounces
             rows = bounces.open_rows(conn, important_only=True)
             allrows = bounces.open_rows(conn)
