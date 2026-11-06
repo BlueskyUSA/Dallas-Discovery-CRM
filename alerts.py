@@ -12,9 +12,17 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
     today = today or date.today()
     out = []
 
+    CATS = {"failed_emails": "Email", "bounced_emails": "Email", "call_requests": "Call requests",
+            "team_gaps": "Sessions and team", "team_needs": "Sessions and team", "ta_declines": "Sessions and team",
+            "questionnaires": "Trainees and payments", "unpaid": "Trainees and payments",
+            "suggestions": "Letters and testimonials", "testimonials": "Letters and testimonials"}
+
     def safe(fn):
+        start = len(out)
         try:
             fn()
+            for item in out[start:]:
+                item["cat"] = CATS.get(fn.__name__, "Other")
         except Exception as e:
             try:
                 conn.rollback()
@@ -162,5 +170,6 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
                                 url=url_for(".testimonials_review"), cta="Open Testimonials"))
         safe(testimonials)
 
-    out.sort(key=lambda a: 0 if a["level"] == "urgent" else 1)
+    order = ["Email", "Call requests", "Sessions and team", "Trainees and payments", "Letters and testimonials", "Other"]
+    out.sort(key=lambda a: (order.index(a.get("cat", "Other")), 0 if a["level"] == "urgent" else 1))
     return out
