@@ -225,6 +225,14 @@
     });
     show(pick.value);
   });
+  // The top "Back" button first steps out of one person's view (open Modify access box, or a person picked
+  // in "Find a person") back to the full Site Access list, instead of leaving the page.
+  window.hubBackHook = function(){
+    var openBox = document.querySelector('#staffTable tr[data-staff] details:not(.acc-view)[open]');
+    if (openBox) { openBox.open = false; pick.value = ''; show(''); window.scrollTo(0, 0); return true; }
+    if (pick.value) { pick.value = ''; show(''); window.scrollTo(0, 0); return true; }
+    return false;
+  };
   // After saving, come back to the same person's open Access box so the checkmarks can be checked.
   var want = new URLSearchParams(location.search).get('open');
   if (want) {
