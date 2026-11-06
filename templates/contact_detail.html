@@ -64,6 +64,31 @@
 <p class="muted">Address: {{ contact.street_address or '' }}{% if contact.street_address_2 %}{{ ' ' if contact.street_address }}{{ contact.street_address_2 }}{% endif %}{% if contact.city %}{{ ', ' if contact.street_address or contact.street_address_2 }}{{ contact.city }}{% endif %}{% if contact.state %}, {{ contact.state }}{% endif %}{% if contact.zip %} {{ contact.zip }}{% endif %}</p>
 {% endif %}
 
+{% if can_assign_logins %}
+<div class="card">
+  <h3 style="margin-top:0">Login <span class="muted" style="font-weight:400; font-size:.85rem">(can this person log in to the Hub?)</span></h3>
+  {% set cur = (login_staff.role if (login_staff and login_staff.active) else '') %}
+  {% if login_staff and login_staff.is_owner %}
+  <p>Owner. Managed under Site Access.</p>
+  {% else %}
+  <form method="post" action="{{ url_for('.contact_login_role', contact_id=contact.id) }}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+    <select name="login_role">
+      <option value="" {{ 'selected' if not cur }}>No login (contact only)</option>
+      <option value="Team" {{ 'selected' if cur == 'Team' }}>Volunteer Team</option>
+      {% if session.is_owner %}<option value="Leadership" {{ 'selected' if cur == 'Leadership' }}>Leadership</option>
+      <option value="Accounting" {{ 'selected' if cur == 'Accounting' }}>Accounting &amp; Legal (view-only)</option>{% endif %}
+    </select>
+    <button class="btn" type="submit">Save</button>
+  </form>
+  <p class="muted" style="margin:8px 0 0; font-size:.85rem">
+    No login: a contact only. They get letters and invitations but can't open the Hub.<br>
+    Volunteer Team: views and updates contacts and session information.
+    {% if session.is_owner %}<br>Leadership: helps run the Hub day to day.<br>Accounting &amp; Legal: view-only access to the areas you choose.{% endif %}<br>
+    The first time you choose a login, they're emailed a login link and a temporary password. Fine-tune their areas under Site Access.
+  </p>
+  {% endif %}
+</div>
+{% endif %}
 <div class="card">
   <h3 style="margin-top:0">Private profile link</h3>
   <p class="muted" style="margin-top:0">

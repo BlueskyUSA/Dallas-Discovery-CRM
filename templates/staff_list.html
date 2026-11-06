@@ -10,7 +10,7 @@
 </p>
 
 <div style="position:sticky; top:56px; z-index:40; background:var(--bg, #f5f1e8); padding:8px 0; margin-bottom:8px">
-  <a class="btn" href="{{ url_for('.staff_new_search') }}">+ Add a team account</a>
+  {% if can_assign_logins %}<a class="btn" href="{{ url_for('.staff_new_search') }}">+ Add a team account</a>{% else %}<span class="muted">Only the Owner, or a leader the Owner has authorized, can add logins.</span>{% endif %}
   <span class="muted" style="margin-left:10px; font-size:.9rem">Find them in Contacts (or add them as a contact) first.</span>
 </div>
 {% if session.is_owner %}

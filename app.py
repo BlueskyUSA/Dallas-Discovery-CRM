@@ -290,7 +290,12 @@ def leadership_required(view):
 # welcome letter), "Leadership", and "Accounting" (shown as "Accounting & Legal":
 # the accountant, bookkeeper and attorney). The Owner is a flag (is_owner) on a
 # Leadership account, not a separate role value.
-ROLE_LABELS = {"Team": "Team", "Leadership": "Leadership", "Accounting": "Accounting & Legal"}
+ROLE_LABELS = {"Team": "Volunteer Team", "Leadership": "Leadership", "Accounting": "Accounting & Legal"}
+ROLE_BLURBS = {
+    "Team": "You can view and update contacts and session information.",
+    "Leadership": "You can help run the Hub day to day: contacts, sessions, letters and the team.",
+    "Accounting": "You have view-only access to the accounting and legal areas you have been given.",
+}
 ACCOUNTING_ROLE = "Accounting"
 # The only areas an Accounting & Legal login can ever be given (the Owner picks
 # which of these each person gets). Program materials and marketing are never offered.
@@ -355,13 +360,14 @@ FIXED_ACCESS_AREAS = [
     ("trainee_roster", "Trainee Roster (on each training session page)"),
     ("budgets", "Budgets (view only; Admin menu)"),
     ("alerts", "Dashboard alerts (the \"Needs attention\" list and email bounces)"),
+    ("assign_logins", "Assign logins (give a contact a Volunteer Team login, or remove one)"),
 ]
 # Ticking either session box also gives Contacts automatically, since the session pages
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
 FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence", "guides", "budgets")
-UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "guides", "budgets", "alerts"}
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "guides", "budgets", "alerts", "assign_logins"}
 
 
 def _can_see_session_part(part):
@@ -859,7 +865,7 @@ def staff_list():
         sid: sorted(((h, sorted(v)) for h, v in d.items()), key=lambda t: (_order.get(t[0], 2), t[0]))
         for sid, d in access_groups_by_staff.items()}
     return render_template(
-        "staff_list.html", staff=rows, access_by_staff=access_by_staff,
+        "staff_list.html", staff=rows, can_assign_logins=_has_area_access("assign_logins"), access_by_staff=access_by_staff,
         access_groups_by_staff=access_groups_by_staff,
         all_areas=all_areas, granted_keys_by_staff=granted_keys_by_staff,
         accounting_areas=[a for a in all_areas if a[0] in ACCOUNTING_AREAS],
@@ -1079,6 +1085,7 @@ def staff_access(staff_id):
 
 @crm.route("/staff/new")
 @leadership_required
+@area_required("assign_logins")
 def staff_new_search():
     """Adding a team member starts here: find their Contact record first,
     so every team member's name/address/emergency contact/etc lives in one
@@ -1115,6 +1122,7 @@ def staff_new_search():
 
 @crm.route("/staff/new/lookup")
 @leadership_required
+@area_required("assign_logins")
 def staff_new_lookup():
     """Live matches for the Add a team account search box (as you type)."""
     q = request.args.get("q", "").strip()
@@ -1141,14 +1149,14 @@ def _email_team_login(first, full_name, email, role, temp_password, intro):
     first = (first or full_name or "").strip() or "there"
     subject = f"Your {PROGRAM_NAME} team login"
     text_content = (
-        f"Hi {first},\n\n{intro} {PROGRAM_NAME} team site as {role_label(role)}.\n\n"
+        f"Hi {first},\n\n{intro} {PROGRAM_NAME} team site as {role_label(role)}. {ROLE_BLURBS.get(role, '')}\n\n"
         f"Log in here: {login_url}\nEmail: {email}\nTemporary password: {temp_password}\n\n"
         "You'll be asked to choose your own password the first time you log in. "
         "Please delete this message once you have.\n"
     )
     html_content = (
         f"<p>Hi {_html.escape(first)},</p><p>{_html.escape(intro)} {_html.escape(PROGRAM_NAME)} team site as "
-        f"<strong>{_html.escape(role_label(role))}</strong>.</p>"
+        f"<strong>{_html.escape(role_label(role))}</strong>. {_html.escape(ROLE_BLURBS.get(role, ''))}</p>"
         f"<p><a href=\"{login_url}\">Log in here</a><br>Email: <strong>{_html.escape(email)}</strong><br>"
         f"Temporary password: <strong>{_html.escape(temp_password)}</strong></p>"
         "<p>You'll be asked to choose your own password the first time you log in. "
@@ -1164,8 +1172,92 @@ def _email_team_login(first, full_name, email, role, temp_password, intro):
         return False, str(e), sms_body
 
 
+@crm.route("/contacts/<int:contact_id>/login-role", methods=["POST"])
+@leadership_required
+@area_required("assign_logins")
+def contact_login_role(contact_id):
+    """The Login dropdown on a contact page: blank = no login; otherwise Volunteer Team, Leadership or Accounting & Legal."""
+    choice = (request.form.get("login_role") or "").strip()
+    if choice and choice not in ROLE_LABELS:
+        flash("Unknown login type. Nothing was changed.")
+        return redirect(url_for(".contact_detail", contact_id=contact_id))
+    conn = get_db()
+    contact = conn.execute(f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts WHERE id = ?", (contact_id,)).fetchone()
+    if not contact:
+        conn.close()
+        flash("Couldn't find that contact.")
+        return redirect(url_for(".contacts_list"))
+    owner = bool(session.get("is_owner"))
+    staff = conn.execute("SELECT * FROM staff WHERE contact_id = ? ORDER BY active DESC LIMIT 1", (contact_id,)).fetchone()
+    back = redirect(url_for(".contact_detail", contact_id=contact_id))
+    if staff and staff["is_owner"]:
+        conn.close()
+        flash("This person is an Owner. Owner logins are managed under Site Access.")
+        return back
+    # Only the Owner may create, change or remove anything other than a plain Volunteer Team login.
+    if not owner and ((choice and choice != "Team") or (staff and staff["active"] and staff["role"] != "Team")):
+        conn.close()
+        flash("Only the Owner can set a Leadership or Accounting & Legal login. Ask the Owner to change it.")
+        return back
+    current = staff["role"] if (staff and staff["active"]) else ""
+    if choice == current:
+        conn.close()
+        flash("No change.")
+        return back
+    if not choice:  # remove login
+        if staff and staff["id"] == session.get("staff_id"):
+            conn.close()
+            flash("You can't remove your own login.")
+            return back
+        if staff and staff["active"]:
+            conn.execute("UPDATE staff SET active = 0 WHERE id = ?", (staff["id"],))
+            conn.commit()
+        conn.close()
+        flash("Login removed. They are still a contact and can no longer log in.")
+        return back
+    if staff and staff["active"]:  # change category only
+        conn.execute("UPDATE staff SET role = ? WHERE id = ?", (choice, staff["id"]))
+        conn.commit()
+        conn.close()
+        flash(f"Login changed to {role_label(choice)}. No new email was sent.")
+        return back
+    email = (contact["email"] or "").strip().lower()
+    if not email:
+        conn.close()
+        flash("Add an email address to this contact first. The login link is sent there.")
+        return back
+    other = conn.execute("SELECT id FROM staff WHERE LOWER(email) = ? AND (contact_id IS NULL OR contact_id <> ?)", (email, contact_id)).fetchone()
+    if other:
+        conn.close()
+        flash("Another account already uses that email, so no login was created.")
+        return back
+    temp_password = secrets.token_urlsafe(9)
+    _ensure_must_change()
+    try:
+        if staff:  # earlier login turned off: switch it back on
+            conn.execute("UPDATE staff SET active = 1, name = ?, email = ?, role = ?, password_hash = ?, must_change_password = 1 WHERE id = ?",
+                         (contact["full_name"], email, choice, generate_password_hash(temp_password), staff["id"]))
+        else:
+            conn.execute("INSERT INTO staff (name, email, password_hash, role, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, 1)",
+                         (contact["full_name"], email, generate_password_hash(temp_password), choice, contact_id))
+        conn.commit()
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        conn.close()
+        print(f"login-role failed: {e!r}", flush=True)
+        flash("Couldn't create that login. Nothing was changed.")
+        return back
+    conn.close()
+    email_sent, email_error, sms_body = _email_team_login(contact["first_name"], contact["full_name"], email, choice, temp_password, "You've been added to the")
+    return render_template("staff_new_done.html", heading=f"{contact['full_name']} was given a {role_label(choice)} login",
+                           person=contact, email=email, temp_password=temp_password,
+                           email_sent=email_sent, email_error=email_error, sms_body=sms_body)
+
+
 @crm.route("/staff/new/contact/<int:contact_id>", methods=["GET", "POST"])
 @leadership_required
+@area_required("assign_logins")
 def staff_new_for_contact(contact_id):
     conn = get_db()
     contact = conn.execute(
@@ -3366,9 +3458,16 @@ def contact_detail(contact_id):
         conn.rollback()
         print(f"profile stages skipped: {e}", flush=True)
         stages = []
+    try:
+        login_staff = conn.execute("SELECT id, role, active, is_owner FROM staff WHERE contact_id = ? ORDER BY active DESC LIMIT 1", (contact_id,)).fetchone()
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
+        login_staff = None
     conn.close()
     return render_template(
         "contact_detail.html",
+        login_staff=login_staff, can_assign_logins=_has_area_access("assign_logins"),
         stages=stages,
         sent_messages=sent_messages,
         guide=guide,
