@@ -3,15 +3,15 @@
 {% block content %}
 <h1>Site Access</h1>
 <p class="muted">
-  The Owner and Leadership see this page. It controls who can log in{% if session.is_owner %} and what each person can open{% else %}. Leadership can add, deactivate, reactivate and reset passwords for Team accounts; the Owner handles everything else{% endif %}.
+  The Owner and Leadership see this page. It controls who can log in{% if session.is_owner %} and what each person can open{% else %}. Leadership can reset passwords for Volunteer Team accounts; the Owner handles everything else{% endif %}.
   Leadership accounts see confidential areas (Contacts, Donations, Contracts, program materials) only once you authorize them here.
   <strong>Accounting &amp; Legal</strong> logins (accountant, bookkeeper, attorney) are view-only and can only be given Accounting,
-  Donations, Contracts, or Contacts. Deactivating an account blocks it from logging in and removes it from this list; the person stays in Contacts, and adding them again turns their account back on.
+  Donations, Contracts, or Contacts. Choosing No login for someone on the Contacts page removes them from this list and clears their access; the person stays in Contacts.
 </p>
 
 <div style="position:sticky; top:56px; z-index:40; background:var(--bg, #f5f1e8); padding:8px 0; margin-bottom:8px">
-  {% if can_assign_logins %}<a class="btn" href="{{ url_for('.staff_new_search') }}">+ Add a team account</a>{% else %}<span class="muted">Only the Owner, or a leader the Owner has authorized, can add logins.</span>{% endif %}
-  <span class="muted" style="margin-left:10px; font-size:.9rem">Find them in Contacts (or add them as a contact) first.</span>
+  <a class="btn" href="{{ url_for('.contacts_list') }}">Add or remove a login: Contacts &rarr; Hub Login</a>
+  <span class="muted" style="margin-left:10px; font-size:.9rem">Logins are added and removed on the Contacts page (the Hub Login column). Here you choose what each person can open.</span>
 </div>
 {% if session.is_owner %}
 <div class="card" style="margin-bottom:12px; padding:12px 16px">
@@ -161,15 +161,7 @@
         </details>
         {% endif %}
         {% if not is_self_owner_row and (session.is_owner or (s.role == 'Team' and not s.is_owner)) %}
-          {% if s.active %}
-          <form method="post" action="{{ url_for('.staff_deactivate', staff_id=s.id) }}" style="display:inline">
-            <button class="btn secondary" type="submit">Deactivate</button>
-          </form>
-          {% else %}
-          <form method="post" action="{{ url_for('.staff_reactivate', staff_id=s.id) }}" style="display:inline">
-            <button class="btn secondary" type="submit">Reactivate</button>
-          </form>
-          {% endif %}
+          {% if s.contact_id %}<a class="btn secondary" href="{{ url_for('.contact_detail', contact_id=s.contact_id) }}#hub-login" title="Remove or change this login on their contact page">Hub Login</a>{% endif %}
           {% if True %}
           <details style="display:inline-block; vertical-align:top">
             <summary class="btn secondary" style="display:inline-block; cursor:pointer">Reset password</summary>

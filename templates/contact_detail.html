@@ -65,7 +65,7 @@
 {% endif %}
 
 {% if can_assign_logins %}
-<div class="card">
+<div class="card" id="hub-login">
   <h3 style="margin-top:0">Hub Login <span class="muted" style="font-weight:400; font-size:.85rem">(can this person log in to the Hub?)</span></h3>
   {% set cur = (login_staff.role if (login_staff and login_staff.active) else '') %}
   {% if login_staff and login_staff.is_owner %}

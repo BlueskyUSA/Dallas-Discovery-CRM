@@ -1215,9 +1215,10 @@ def contact_login_role(contact_id):
             return back
         if staff and staff["active"]:
             conn.execute("UPDATE staff SET active = 0 WHERE id = ?", (staff["id"],))
+            conn.execute("DELETE FROM access_grants WHERE staff_id = ?", (staff["id"],))
             conn.commit()
         conn.close()
-        flash("Login removed. They are still a contact and can no longer log in.")
+        flash("Login removed. They no longer appear in Site Access, their access was cleared, and they can no longer log in. They are still a contact.")
         return back
     if staff and staff["active"]:  # change category only
         conn.execute("UPDATE staff SET role = ? WHERE id = ?", (choice, staff["id"]))
