@@ -5326,7 +5326,7 @@ def cohort_detail(cohort_id):
     conn.close()
     return render_template(
         "cohort_detail.html",
-        ta_status=ta_status,
+        ta_status=ta_status, letters_live=_session_letters_live(),
         cohort=cohort,
         roster=roster, partner_names=partner_names, bands=bands, pay_info=pay_info,
         needs_rows=needs_rows, needs_total=needs_total, needs_help=needs.HELP_TEXT,
@@ -6068,6 +6068,8 @@ def session_letter_send(cohort_id, key):
         abort(404)
     if not _session_letters_live():
         flash("Sending to people is switched off for now. You can preview any letter and send yourself a test copy.")
+        if request.form.get("back") == "session":
+            return redirect(url_for(".cohort_detail", cohort_id=cohort_id) + "#sec-team")
         return redirect(url_for(".session_letters", cohort_id=cohort_id))
     ids = {int(x) for x in request.form.getlist("contact_id") if x.isdigit()}
     conn = get_db()
@@ -6104,6 +6106,8 @@ def session_letter_send(cohort_id, key):
     if skipped:
         msg += " Not sent: " + "; ".join(skipped) + "."
     flash(msg)
+    if request.form.get("back") == "session":
+        return redirect(url_for(".cohort_detail", cohort_id=cohort_id) + "#sec-team")
     return redirect(url_for(".session_letters", cohort_id=cohort_id))
 
 
