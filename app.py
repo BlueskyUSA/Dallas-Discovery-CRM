@@ -2311,8 +2311,22 @@ def contacts_list():
             rows = [r for r in rows if bool(profile_all_missing(r)) == (prof == "incomplete")]
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
+    group_buttons, list_name, list_count = [], None, 0
+    try:
+        counts = {r["list_id"]: r["n"] for r in conn.execute("SELECT list_id, COUNT(*) AS n FROM contact_list_members GROUP BY list_id").fetchall()}
+        by_name = {l["name"]: l["id"] for l in all_lists}
+        for nm in [LEADERSHIP_LIST] + LEADERSHIP_SOURCES:
+            if nm in by_name:
+                group_buttons.append(dict(id=by_name[nm], name=nm, n=counts.get(by_name[nm], 0)))
+        if list_id:
+            list_name = next((l["name"] for l in all_lists if l["id"] == list_id), None)
+            list_count = counts.get(list_id, 0)
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
     conn.close()
-    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick)
+    return render_template("contacts_list.html", contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
+                           group_buttons=group_buttons, list_name=list_name, list_count=list_count)
 
 
 @crm.route("/contacts/new", methods=["GET", "POST"])

@@ -3,6 +3,22 @@
 {% block content %}
 {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
 <h1>Contacts</h1>
+{% if group_buttons %}
+<div class="card" style="margin-bottom:12px">
+  <div style="font-weight:700; margin-bottom:6px">Leadership and team groups <span class="muted" style="font-weight:400">&mdash; click a group to see who is in it</span></div>
+  <div style="display:flex; flex-wrap:wrap; gap:6px">
+    {% for g in group_buttons %}
+    <a class="btn {{ '' if list_id == g.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=g.id) }}" style="font-size:.88rem; padding:4px 12px">{{ g.name }} <span style="opacity:.75">({{ g.n }})</span></a>
+    {% endfor %}
+  </div>
+  {% if list_id and list_name and session.is_owner %}
+  <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+    <a class="btn" href="{{ url_for('.email_blast_from_list', list_id=list_id) }}" style="font-size:1rem; padding:8px 18px">&#9993; Email everyone in {{ list_name }} ({{ list_count }})</a>
+    <span class="muted" style="font-size:.85rem">Opens a letter to this group. People without an email address, or who unsubscribed, are skipped.</span>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 <form class="inline" method="get">
   <input type="text" name="q" placeholder="Search name or email" value="{{ q }}">
   <select name="list" onchange="this.form.submit()">
