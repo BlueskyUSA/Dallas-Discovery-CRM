@@ -6304,6 +6304,9 @@ def lists_manage():
            FROM contact_lists l LEFT JOIN contact_list_members m ON m.list_id = l.id
            GROUP BY l.id, l.name, l.created_at ORDER BY l.name"""
     ).fetchall()
+    # Team groups (Leadership Team, TAs, Guides...) are not data sources: they live in "Sort & Email a Group" on Contacts.
+    hidden = {n.lower() for n in [LEADERSHIP_LIST, *LEADERSHIP_SOURCES] + [n for n, _ in TEAM_LISTS]}
+    lists = [l for l in lists if (l["name"] or "").lower() not in hidden]
     total = conn.execute("SELECT COUNT(*) AS n FROM contacts").fetchone()["n"]
     emailable = conn.execute("SELECT COUNT(*) AS n FROM contacts WHERE email IS NOT NULL AND email <> ''").fetchone()["n"]
     conn.close()
