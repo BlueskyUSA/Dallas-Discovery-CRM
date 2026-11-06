@@ -1,0 +1,82 @@
+{% extends "crm_base.html" %}
+{% block title %}Owner Instructions — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Owner Instructions</h1>
+<p class="muted">Only you, the Owner, can see this page. It collects the steps in Render and GitHub that are needed to turn things on or keep the Hub running.</p>
+
+<details class="card" open id="switches">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Safety switches (what is ON or OFF right now) &#9662;</summary>
+  <p class="muted">Each switch holds back a kind of email until you are ready. They are changed in Render, not here (see "How to change a switch" below).</p>
+  <table class="stack">
+    <tr><th>Switch</th><th>State</th><th>What it controls</th></tr>
+    {% for name, on, what in switches %}
+    <tr><td><code>{{ name }}</code></td><td>{% if on %}<span class="badge good">ON</span>{% else %}<span class="badge warn">OFF</span>{% endif %}</td><td>{{ what }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+
+<details class="card" id="checklist" open>
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Before-you-go-live checklist &#9662;</summary>
+  <p class="muted">Tick things off as you finish them. Your ticks are saved.</p>
+  {% for key, label in checklist %}
+  <form method="post" action="{{ url_for('.owner_instructions_check') }}" style="margin:4px 0">
+    <input type="hidden" name="key" value="{{ key }}">
+    <button type="submit" class="btn secondary" style="padding:1px 8px; font-size:.9rem">{{ '☑' if key in done else '☐' }}</button>
+    <span style="{{ 'text-decoration:line-through; color:#888' if key in done }}">{{ label }}</span>
+    {% if key in done %}<span class="muted" style="font-size:.8rem">&mdash; {{ done[key].done_at }}{% if done[key].done_by %}, {{ done[key].done_by }}{% endif %}</span>{% endif %}
+  </form>
+  {% endfor %}
+</details>
+
+<details class="card">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">How to change a switch in Render &#9662;</summary>
+  <ol>
+    <li>Log in to Render and open the Hub service (dallas-discovery-crm).</li>
+    <li>Click <b>Environment</b> in the left menu.</li>
+    <li>Click <b>Add Environment Variable</b> (or edit the existing one).</li>
+    <li>Type the switch name exactly as shown above, for example <code>SESSION_LETTERS_LIVE</code>, and set the value to <code>1</code>. To turn it back off, set it to <code>0</code> or delete it.</li>
+    <li>Click <b>Save</b>. Render restarts the Hub by itself (about a minute). Then hard-refresh this page: the switch shows ON.</li>
+  </ol>
+  <p class="muted">Order that makes sense: <code>SESSION_LETTERS_LIVE</code> first, then <code>AUTO_LETTERS_LIVE</code> (it needs the first one), then <code>BLASTS_LIVE</code> when you are ready to send email blasts.</p>
+</details>
+
+<details class="card">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Brevo bounce connection (one-time) &#9662;</summary>
+  <p>So Brevo can tell the Hub when an email could not be delivered:</p>
+  <ol>
+    <li>In Brevo, open <b>Settings → Transactional emails → Webhook</b> and add a new webhook.</li>
+    <li>Paste the address below. Authentication: <b>No authentication</b>.</li>
+    <li>Event category: <b>Transactional email</b>. Tick Hard bounce, Soft bounce, Blocked, Invalid email and Spam. Activate it.</li>
+  </ol>
+  {% if hook %}<input type="text" readonly value="{{ hook }}" style="width:100%" onclick="this.select()"><p class="muted">Keep this address private. It works like a password.</p>{% endif %}
+</details>
+
+<details class="card">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Uploading an update to GitHub &#9662;</summary>
+  <ol>
+    <li>Unzip the Update file and open the unzipped folder.</li>
+    <li>Drag the <b>templates</b> folder and the loose <b>.py</b> files onto GitHub: Add file → Upload files.</li>
+    <li>Commit once (one commit for everything).</li>
+    <li>Wait for Render to show <b>Live</b>, then hard-refresh the Hub.</li>
+  </ol>
+  <p class="muted">Each file replaces the earlier copy of the same name. If Render shows a failed deploy, open the deploy log and send it to Claude.</p>
+</details>
+
+<details class="card">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Using Render's Shell for a command &#9662;</summary>
+  <ol>
+    <li>In Render, open the Hub service and click <b>Shell</b>.</li>
+    <li>Paste the whole command Claude gives you, including the <code>python3</code> at the start, and press Return.</li>
+  </ol>
+</details>
+
+<details class="card">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Where things are &#9662;</summary>
+  <ul>
+    <li><b>Site Access</b> (Admin → Team): who has which access, including Dashboard alerts. Only you can change it.</li>
+    <li><b>Email bounces</b>: <code>/crm/email-bounces</code> &mdash; people whose emails did not arrive.</li>
+    <li><b>Email blasts</b>: Contacts → Sort &amp; Email a Group, or the Email blasts page.</li>
+    <li><b>Letters</b>: the Correspondence page. Only you edit the wording.</li>
+  </ul>
+</details>
+{% endblock %}

@@ -55,6 +55,7 @@
         <summary>Admin &#9662;</summary>
         <div class="navmenu-items">
           {% if session.is_owner or is_lead %}<a href="{{ url_for('.website_team') }}">Website Leaders</a>{% endif %}
+          {% if session.is_owner %}<a href="{{ url_for('.owner_instructions') }}">Owner Instructions</a>{% endif %}
           {% if show_contacts %}
           <a href="{{ url_for('.contact_requests_list') }}">Contact requests</a>
           <a href="{{ url_for('.call_requests_queue') }}">Call requests</a>
