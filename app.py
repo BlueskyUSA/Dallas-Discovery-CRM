@@ -1020,13 +1020,8 @@ def staff_access(staff_id):
             currently_has = area_key in current_grants
             wants = area_key in selected
             if wants and not currently_has:
-                count = conn.execute(
-                    "SELECT COUNT(*) c FROM access_grants WHERE area_key = ?", (area_key,)
-                ).fetchone()["c"]
-                if count >= ACCESS_AREA_MAX_GRANTS and area_key not in UNCAPPED_AREAS \
-                        and not (area_key == "contacts" and auto_contacts):
-                    skipped_full.append(label)
-                    continue
+                # Only the Owner reaches this page, and the Owner decides who gets what: the old
+                # "4 people per area" limit no longer stops a tick from being saved.
                 conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (area_key, staff_id))
                 added.append(label + (" (added automatically)" if area_key == "contacts" and auto_contacts else ""))
             elif not wants and currently_has:
