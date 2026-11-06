@@ -354,13 +354,14 @@ FIXED_ACCESS_AREAS = [
     ("session_team", "Session Team (on each training session page)"),
     ("trainee_roster", "Trainee Roster (on each training session page)"),
     ("budgets", "Budgets (view only; Admin menu)"),
+    ("alerts", "Dashboard alerts (the \"Needs attention\" list and email bounces)"),
 ]
 # Ticking either session box also gives Contacts automatically, since the session pages
 # live under Contacts. These two (and the Contacts that comes with them) have no 4-person limit.
 SESSION_VIEW_AREAS = ("session_team", "trainee_roster")
 # "Grant full access" does not include these; only the Owner switches them on, person by person.
 FULL_ACCESS_EXCLUDED_AREAS = ("accounting", "donations", "contracts", "marketing", "correspondence", "guides", "budgets")
-UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "guides", "budgets"}
+UNCAPPED_AREAS = set(SESSION_VIEW_AREAS) | {"correspondence", "guides", "budgets", "alerts"}
 
 
 def _can_see_session_part(part):
@@ -418,11 +419,30 @@ def _area_labels_map(conn):
     return labels
 
 
+def _seed_alerts_access(conn):
+    """One time: everyone with a Leadership account keeps seeing the alerts they saw before the
+    'Dashboard alerts' box existed. After that, access is exactly what the Owner ticks."""
+    try:
+        conn.execute("CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY)")
+        if conn.execute("SELECT 1 FROM app_flags WHERE key = 'alerts_seeded'").fetchone():
+            return
+        conn.execute("""INSERT INTO access_grants (area_key, staff_id)
+                        SELECT 'alerts', s.id FROM staff s WHERE s.role = 'Leadership' AND s.active = 1
+                        AND NOT EXISTS (SELECT 1 FROM access_grants g WHERE g.area_key = 'alerts' AND g.staff_id = s.id)""")
+        conn.execute("INSERT INTO app_flags (key) VALUES ('alerts_seeded')")
+        conn.commit()
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        print(f"alerts access seed skipped: {e}", flush=True)
+
+
 def _all_areas(conn):
     """(area_key, label) for every fixed area plus all 6 program slots
     (B1-B6) -- the full set of things access can be granted for. A slot
     shows the program's real name once it exists, or just its code as a
     placeholder before then, so access can be set up ahead of time."""
+    _seed_alerts_access(conn)
     area_labels = _area_labels_map(conn)
     return list(FIXED_ACCESS_AREAS) + [
         (key, area_labels.get(key, key)) for key in PROGRAM_HEADING_AREA_KEYS
@@ -2070,7 +2090,8 @@ def dashboard():
     alerts = []
     try:
         import alerts as _alerts
-        is_lead = bool(session.get("is_owner") or session.get("staff_role") == "Leadership")
+        _seed_alerts_access(conn)
+        is_lead = bool(_has_area_access("alerts"))
         alerts = _alerts.collect(conn, bool(session.get("is_owner")), is_lead,
                                  bool(_can_handle_money()), lambda code, name: NAV_PROGRAM_LABEL.get(code, name), url_for)
     except Exception as e:
@@ -2079,7 +2100,7 @@ def dashboard():
     conn.close()
     return render_template("dashboard.html", contact_count=contact_count, upcoming=upcoming, programs=programs,
                            next_sessions=next_sessions, alerts=alerts,
-                           show_alerts=bool(session.get("is_owner") or session.get("staff_role") == "Leadership" or _can_handle_money()))
+                           show_alerts=bool(_has_area_access("alerts") or _can_handle_money()))
 
 
 # ---------- contacts ----------
@@ -8387,7 +8408,7 @@ import contact_health
 contact_health.register(app, crm, owner_required, get_db)
 import ta_invites
 import bounces
-bounces.register(app, crm, leadership_required, get_db)
+bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
 import correspondence
 correspondence.register(app, crm, get_db, {
