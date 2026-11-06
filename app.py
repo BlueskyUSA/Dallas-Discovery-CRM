@@ -1427,7 +1427,8 @@ def staff_grant_full_access(staff_id):
 
     # "Full access" leaves out the four money/legal/marketing areas. The Owner turns those on, one at a
     # time, from the Access box (existing grants are never removed here).
-    all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS if key not in FULL_ACCESS_EXCLUDED_AREAS] + [
+    everything = request.form.get("everything") == "1"
+    all_area_keys = [key for key, _ in FIXED_ACCESS_AREAS if everything or key not in FULL_ACCESS_EXCLUDED_AREAS] + [
         program_heading_key(row["code"], h)
         for row in conn.execute("SELECT code FROM programs").fetchall()
         for h in MATERIAL_CATEGORIES
@@ -1446,12 +1447,41 @@ def staff_grant_full_access(staff_id):
     conn.commit()
     conn.close()
 
-    msg = (f"{staff['name']} is now Leadership with access to everything except Accounting, Donations, "
-           "Contracts & business plan, and Marketing. Those are under Ownership access if they need them.")
+    if everything:
+        msg = (f"{staff['name']} is now Leadership with access to everything, including Accounting, Donations, "
+               "Contracts & business plan, Marketing, Correspondence and Guides.")
+    else:
+        msg = (f"{staff['name']} is now Leadership with access to everything except Accounting, Donations, "
+               "Contracts & business plan, and Marketing. Those are under Ownership access if they need them.")
     if skipped_full:
         msg += f" ({', '.join(skipped_full)} already had 4 authorized users -- remove one there if they need it too.)"
     flash(msg)
     return redirect(url_for(".staff_list", open=staff_id))
+
+
+@crm.route("/staff/everything-leadership", methods=["POST"])
+@owner_required
+def staff_everything_leadership():
+    """One click: every active Leadership account gets every area, money, legal and marketing included.
+    Never removes anything anyone already has. Owner only."""
+    conn = get_db()
+    leaders = conn.execute(
+        "SELECT id, name FROM staff WHERE role = 'Leadership' AND active = 1 AND COALESCE(is_owner, 0) = 0").fetchall()
+    keys = [key for key, _ in FIXED_ACCESS_AREAS] + [
+        program_heading_key(row["code"], h)
+        for row in conn.execute("SELECT code FROM programs").fetchall() for h in MATERIAL_CATEGORIES]
+    added = 0
+    for p in leaders:
+        have = {r["area_key"] for r in conn.execute("SELECT area_key FROM access_grants WHERE staff_id = ?", (p["id"],)).fetchall()}
+        for key in keys:
+            if key not in have:
+                conn.execute("INSERT INTO access_grants (area_key, staff_id) VALUES (?, ?)", (key, p["id"]))
+                added += 1
+    conn.commit()
+    conn.close()
+    flash(f"Every Leadership account ({len(leaders)}) now has access to everything." if added
+          else "No changes -- every Leadership account already has everything.")
+    return redirect(url_for(".staff_list"))
 
 
 @crm.route("/staff/correspondence-leadership", methods=["POST"])

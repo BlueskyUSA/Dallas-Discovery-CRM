@@ -15,6 +15,14 @@
 </div>
 {% if session.is_owner %}
 <div class="card" style="margin-bottom:12px; padding:12px 16px">
+  <strong>Everything for all Leadership:</strong>
+  <form method="post" action="{{ url_for('.staff_everything_leadership') }}" style="display:inline; margin-left:8px"
+        onsubmit="return confirm('Give EVERY Leadership account access to everything, including Accounting, Donations, Legal, Marketing, Correspondence and Guides? You can still change any one person afterward.');">
+    <button class="btn" type="submit">Give everything to all Leadership</button>
+  </form>
+  <span class="muted" style="font-size:.85rem; margin-left:6px">Nothing anyone already has is removed. You can still change one person at a time under Modify access.</span>
+</div>
+<div class="card" style="margin-bottom:12px; padding:12px 16px">
   <strong>Correspondence for all Leadership:</strong>
   <form method="post" action="{{ url_for('.staff_correspondence_leadership') }}" style="display:inline; margin-left:8px">
     <button class="btn" type="submit" name="action" value="give">Give to all Leadership</button>
@@ -101,6 +109,11 @@
                     onsubmit="return confirm('Give {{ s.name }} full access to everything except Accounting, Donations, Legal and Marketing? Those stay under Ownership access.');" style="margin-bottom:6px;">
                 <button class="btn secondary" type="submit" style="width:100%">Grant full access</button>
                 <span class="muted" style="display:block; font-size:.8rem; margin-top:4px">Everything below, except Ownership access.</span>
+              </form>
+              <form method="post" action="{{ url_for('.staff_grant_full_access', staff_id=s.id) }}"
+                    onsubmit="return confirm('Give {{ s.name }} access to EVERYTHING, including Accounting, Donations, Legal, Marketing, Correspondence and Guides?');" style="margin-bottom:6px;">
+                <input type="hidden" name="everything" value="1">
+                <button class="btn" type="submit" style="width:100%">Grant everything (including Ownership access)</button>
               </form>
               {% if s.role == 'Leadership' and not s.is_owner %}
               <form method="post" action="{{ url_for('.staff_remove_full_access', staff_id=s.id) }}"
