@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # loads DATABASE_URL from a local .env file, if present
 
-from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response, g
+from flask import jsonify, Flask, Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, make_response, g
 from datetime import date, datetime, timedelta
 import secrets
 import os
@@ -1091,6 +1091,26 @@ def staff_new_search():
                 prefill["last_name"] = parts[-1]
         return redirect(url_for(".contact_new", for_team_login=1, **prefill))
     return render_template("staff_new_search.html", q=q, contacts=contacts)
+
+
+@crm.route("/staff/new/lookup")
+@leadership_required
+def staff_new_lookup():
+    """Live matches for the Add a team account search box (as you type)."""
+    q = request.args.get("q", "").strip()
+    out = []
+    if len(q) >= 2:
+        conn = get_db()
+        try:
+            _search_sql, _search_params = _contact_search_clause(q)
+            rows = conn.execute(
+                f"""SELECT id, email, {FULL_NAME_SQL} AS full_name FROM contacts
+                    WHERE {_search_sql} ORDER BY last_name, first_name LIMIT 15""", _search_params).fetchall()
+            out = [dict(id=r["id"], name=r["full_name"], email=r["email"] or "",
+                        url=url_for(".staff_new_for_contact", contact_id=r["id"])) for r in rows]
+        finally:
+            conn.close()
+    return jsonify(results=out, q=q)
 
 
 def _email_team_login(first, full_name, email, role, temp_password, intro):

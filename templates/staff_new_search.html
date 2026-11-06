@@ -17,6 +17,33 @@
   </form>
 </div>
 
+<div id="liveBox" class="card" style="margin-top:16px; display:none"></div>
+<script>
+(function(){
+  var inp=document.querySelector('input[name=q]'), box=document.getElementById('liveBox'), t=null, last="";
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function show(d){
+    var h='';
+    if(d.results.length){
+      h='<table><tr><th>Name</th><th>Email</th><th></th></tr>';
+      d.results.forEach(function(c){h+='<tr><td>'+esc(c.name)+'</td><td>'+(esc(c.email)||'&mdash;')+'</td><td><a class="btn" href="'+c.url+'">Use this contact</a></td></tr>';});
+      h+='</table>';
+    } else { h='<p class="muted">No contacts matched &ldquo;'+esc(d.q)+'&rdquo; yet. Keep typing, or press Search to add them as a new contact.</p>'; }
+    h+='<p style="margin-top:14px">Can&rsquo;t find them? <a href="{{ url_for('.contact_new', for_team_login=1) }}">Add them as a new contact</a>, then come back here to finish setting up their login.</p>';
+    box.innerHTML=h; box.style.display='block';
+  }
+  inp.addEventListener('input',function(){
+    var v=inp.value.trim(); clearTimeout(t);
+    if(v.length<2){box.style.display='none'; last=""; return;}
+    t=setTimeout(function(){
+      if(v===last) return; last=v;
+      fetch('{{ url_for('.staff_new_lookup') }}?q='+encodeURIComponent(v),{credentials:'same-origin'})
+        .then(function(r){return r.json();}).then(function(d){ if(inp.value.trim()===d.q) show(d); }).catch(function(){});
+    },200);
+  });
+  if(inp.value.trim().length>=2){ inp.dispatchEvent(new Event('input')); }
+})();
+</script>
 {% if q %}
 <div class="card" style="margin-top:16px">
   {% if contacts %}
