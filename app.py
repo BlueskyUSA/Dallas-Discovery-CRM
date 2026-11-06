@@ -2210,6 +2210,63 @@ _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "ema
                   "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))"}
 
 
+TEAM_LISTS = [  # (list name, session roles that put someone on it)
+    ("Facilitators", ("Lead Facilitator", "Support Facilitator")),
+    ("TAs", ("TA", "Back-up TA")),
+    ("Audio/Visual Team", ("Audio/Visual",)),
+    ("Check-in and Greeters", ("Check-in / Greeter",)),
+    ("Security Team", ("Security",)),
+    ("Office Support Team", ("Office Support",)),
+]
+LEADERSHIP_LIST = "Leadership Team"
+LEADERSHIP_SOURCES = ["Facilitators", "TAs", "Guides", "Guide Team Captain", "Audio/Visual Team",
+                      "Check-in and Greeters", "Security Team", "Office Support Team"]
+
+
+def _sync_team_lists(conn):
+    """Fills contact lists from the session Team Rosters (only adds; someone who has served stays on the list).
+    Office Support Team can also be filled by hand. Never raises."""
+    try:
+        for name, roles in TEAM_LISTS:
+            lid = call_flow.list_id_for(conn, name)
+            conn.execute(
+                """INSERT INTO contact_list_members (contact_id, list_id, added_at)
+                   SELECT DISTINCT cs.contact_id, ?, to_char(now(), 'YYYY-MM-DD') FROM cohort_staffing cs
+                   WHERE cs.role IN ({}) AND cs.contact_id IS NOT NULL
+                   AND NOT EXISTS (SELECT 1 FROM contact_list_members m WHERE m.contact_id = cs.contact_id AND m.list_id = ?)""".format(
+                       ",".join("?" for _ in roles)),
+                (lid, *roles, lid))
+        conn.commit()
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        print(f"team lists skipped: {e}", flush=True)
+
+
+def _sync_leadership_list(conn):
+    """'Leadership Team' = everyone on any of the lists in LEADERSHIP_SOURCES. Rebuilt each time. Never raises."""
+    try:
+        lid = call_flow.list_id_for(conn, LEADERSHIP_LIST)
+        src = [r["id"] for r in conn.execute(
+            "SELECT id FROM contact_lists WHERE name IN ({})".format(",".join("?" for _ in LEADERSHIP_SOURCES)), tuple(LEADERSHIP_SOURCES)).fetchall()]
+        if not src:
+            return
+        ph = ",".join("?" for _ in src)
+        conn.execute(
+            f"""INSERT INTO contact_list_members (contact_id, list_id, added_at)
+                SELECT DISTINCT m.contact_id, ?, to_char(now(), 'YYYY-MM-DD') FROM contact_list_members m
+                WHERE m.list_id IN ({ph}) AND NOT EXISTS (SELECT 1 FROM contact_list_members x WHERE x.contact_id = m.contact_id AND x.list_id = ?)""",
+            (lid, *src, lid))
+        conn.execute(
+            f"""DELETE FROM contact_list_members WHERE list_id = ? AND contact_id NOT IN
+                (SELECT contact_id FROM contact_list_members WHERE list_id IN ({ph}))""", (lid, *src))
+        conn.commit()
+    except Exception as e:
+        try: conn.rollback()
+        except Exception: pass
+        print(f"leadership list skipped: {e}", flush=True)
+
+
 @crm.route("/contacts")
 @area_required("contacts")
 def contacts_list():
@@ -2220,6 +2277,13 @@ def contacts_list():
         sort = "last"
     desc = request.args.get("dir") == "desc"
     conn = get_db()
+    _sync_team_lists(conn)
+    try:
+        call_flow.ensure_tables(get_db)
+        call_flow.sync_guide_lists(conn)
+    except Exception:
+        pass
+    _sync_leadership_list(conn)
     where, params = [], []
     if q:
         _search_sql, _search_params = _contact_search_clause(q)
@@ -2245,11 +2309,6 @@ def contacts_list():
             rows = [r for r in rows if personal_missing(r)]
         else:
             rows = [r for r in rows if bool(profile_all_missing(r)) == (prof == "incomplete")]
-    try:
-        call_flow.ensure_tables(get_db)
-        call_flow.sync_guide_lists(conn)
-    except Exception:
-        pass
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
     conn.close()
@@ -5638,7 +5697,7 @@ def _order_team(members):
     return [m for g in ordered for m in g]
 
 
-SESSION_ROLES = ["Lead Facilitator", "Support Facilitator", "TA", "Support Team", "Back-up TA", "Trainee"]
+SESSION_ROLES = ["Lead Facilitator", "Support Facilitator", "TA", "Support Team", "Back-up TA", "Audio/Visual", "Check-in / Greeter", "Security", "Office Support", "Trainee"]
 SESSION_DUTIES = ["Sound Equipment", "Large Group Leader", "Team Captain", "Microphone 1", "Microphone 2",
                   "Lights", "Doors", "Signs / Security", "Mail & Name Tags", "Housekeeping", "Male Runner",
                   "Female Runner", "Time Keeper", "Chairs", "Chair Counter", "Troubleshooter / Misc", "Not confirmed"]
