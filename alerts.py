@@ -48,8 +48,9 @@ def collect(conn, is_owner, is_lead, can_money, label_of, url_for, today=None):
         def call_requests():
             cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
             n = conn.execute(
-                """SELECT COUNT(*) AS n FROM call_requests WHERE COALESCE(status,'New') = 'New'
-                   AND claimed_by IS NULL AND REPLACE(created_at, 'T', ' ') < ?""", (cutoff,)).fetchone()["n"]
+                """SELECT COUNT(*) AS n FROM call_requests r JOIN contacts c ON c.id = r.contact_id
+                   WHERE COALESCE(r.status,'New') = 'New'
+                   AND r.claimed_by IS NULL AND REPLACE(r.created_at, 'T', ' ') < ?""", (cutoff,)).fetchone()["n"]
             if n:
                 out.append(dict(level="urgent", text=f"{_plural(n, 'request')} from the website {'has' if n == 1 else 'have'} had no Guide response for over a day.",
                                 url=url_for(".call_requests_queue"), cta="Open Call requests"))
