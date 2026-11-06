@@ -57,6 +57,11 @@
     table.stack td[data-label="Hub Login"] select { width: 118px; max-width: 118px; }
   }
 </style>
+{% if can_assign_logins %}<div class="card" style="margin:6px 0; padding:10px 14px; border-left:4px solid #3d5a3d; font-size:.92rem">
+  <strong>Hub Login:</strong> pick a choice in a person's row, then <strong>press Set</strong>. Nothing changes until you press Set.<br>
+  &bull; <strong>Volunteer Team / Leadership / Accounting &amp; Legal</strong>: they are emailed a login link and a <strong>temporary password</strong>, and choose their own password the first time they log in.<br>
+  &bull; <strong>No login</strong>: removes their Hub login and clears their Site Access. They stay in Contacts.
+</div>{% endif %}
 <p class="muted" style="margin:6px 0">Tip: click a heading (First, Last, Email, Cell or Relationship) to sort the list. Click it again to reverse.</p>
 <div class="sortbar">
   <strong>Sort by:</strong>
@@ -85,7 +90,8 @@
         <form method="post" action="{{ url_for('.contact_login_role', contact_id=c.id) }}" style="display:flex; gap:4px; align-items:center; margin:0"
               onsubmit="var s=this.login_role; if(s.value && s.value != this.dataset.cur){ return confirm('Give {{ c.full_name|e }} a ' + s.options[s.selectedIndex].text + ' login? They will be emailed a login link.'); } if(!s.value && this.dataset.cur){ return confirm('Remove the login for {{ c.full_name|e }}? They stay a contact but can no longer log in.'); } return true;" data-cur="{{ {'Volunteer Team':'Team','Leadership':'Leadership','Accounting & Legal':'Accounting'}.get(cur_login, '') }}">
           <input type="hidden" name="return_to" value="list"><input type="hidden" name="return_qs" value="{{ request.query_string.decode() }}">
-          <select name="login_role" style="padding:2px 4px; font-size:.85rem">
+          <select name="login_role" style="padding:2px 4px; font-size:.85rem"
+                  onchange="var f=this.form, b=f.querySelector('button'), n=f.querySelector('.notsaved'); var chg=(this.value !== f.dataset.cur); b.className = chg ? 'btn' : 'btn secondary'; if(n){ n.style.display = chg ? 'block' : 'none'; }">
             <option value="" {{ 'selected' if not cur_login }}>No login</option>
             <option value="Team" {{ 'selected' if cur_login == 'Volunteer Team' }}>Volunteer Team</option>
             {% if session.is_owner %}<option value="Leadership" {{ 'selected' if cur_login == 'Leadership' }}>Leadership</option>
@@ -93,6 +99,7 @@
           </select>
           <button class="btn secondary" type="submit" style="padding:2px 8px; font-size:.8rem">Set</button>
         </form>
+        <div class="notsaved" style="display:none; color:#b3412f; font-size:.78rem; font-weight:600">Not saved yet &mdash; press Set</div>
         {% elif cur_login %}<span class="badge good">{{ cur_login }}</span>{% else %}<span class="muted">&mdash;</span>{% endif %}
       </td>{% endif %}
     </tr>
