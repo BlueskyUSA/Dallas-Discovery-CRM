@@ -248,6 +248,17 @@ def keepalive():
     return ("", 204)
 
 
+def true_owner_required(view):
+    """Only the real Owner (not an Administrator): making or removing Owners and Administrators."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("is_owner") or session.get("is_admin"):
+            flash("That's restricted to the account Owner.")
+            return redirect(url_for(".dashboard"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
 def leadership_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
@@ -295,6 +306,7 @@ ROLE_BLURBS = {
     "Team": "You can view and update contacts and session information.",
     "Leadership": "You can help run the Hub day to day: contacts, sessions, letters and the team.",
     "Accounting": "You have view-only access to the accounting and legal areas you have been given.",
+    "Administrator": "You can run everything in the Hub when the Owner is away, including letters, logins and the go-live switches. Only ownership itself stays with the Owner.",
 }
 ACCOUNTING_ROLE = "Accounting"
 # The only areas an Accounting & Legal login can ever be given (the Owner picks
@@ -321,6 +333,25 @@ def accounting_view_only():
         return
     flash("Your Accounting & Legal login is view-only. Nothing was changed.")
     return redirect(url_for(".dashboard"))
+
+
+@crm.before_request
+def administrator_cannot_touch_owner():
+    """An Administrator has Owner powers but can never edit, deactivate or reset the real Owner's login."""
+    if not session.get("is_admin") or request.method != "POST":
+        return
+    sid = (request.view_args or {}).get("staff_id")
+    if not sid:
+        return
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT is_owner FROM staff WHERE id = ?", (sid,)).fetchone()
+        conn.close()
+    except Exception:
+        return
+    if row and row["is_owner"] == 1:
+        flash("Only the Owner can change the Owner's login. Nothing was changed.")
+        return redirect(url_for(".staff_list"))
 
 
 def _accounting_target_blocked(staff_id):
@@ -699,11 +730,13 @@ def _attempt_login(next_url, door="team"):
             session["must_change"] = False
         try:
             session["is_owner"] = bool(staff["is_owner"])
+            session["is_admin"] = (staff["is_owner"] == 2)   # 2 = Administrator: Owner powers, but not ownership itself
         except (KeyError, IndexError):
             # is_owner column doesn't exist yet -- migrate_add_owner.py hasn't
             # been run against this database yet. Fail safe (no owner access)
             # rather than crash the login.
             session["is_owner"] = False
+            session["is_admin"] = False
         resp = redirect(next_url)
         # Remember the email on this device only, so the login page fills it in next time (never the password).
         resp.set_cookie("last_login_email", staff["email"], max_age=60 * 60 * 24 * 365, httponly=True,
@@ -1178,7 +1211,7 @@ def _email_team_login(first, full_name, email, role, temp_password, intro):
 def contact_login_role(contact_id):
     """The Login dropdown on a contact page: blank = no login; otherwise Volunteer Team, Leadership or Accounting & Legal."""
     choice = (request.form.get("login_role") or "").strip()
-    if choice and choice not in ROLE_LABELS:
+    if choice and choice not in ROLE_LABELS and choice != "Administrator":
         flash("Unknown login type. Nothing was changed.")
         return redirect(url_for(".contact_detail", contact_id=contact_id))
     conn = get_db()
@@ -1194,16 +1227,22 @@ def contact_login_role(contact_id):
         from urllib.parse import parse_qsl
         keep = {k: v for k, v in parse_qsl(request.form.get("return_qs") or "") if k in ("q", "list", "sort", "dir", "profile")}
         back = redirect(url_for(".contacts_list", **keep))
-    if staff and staff["is_owner"]:
+    true_owner = owner and not session.get("is_admin")
+    if staff and staff["is_owner"] == 1:
         conn.close()
         flash("This person is an Owner. Owner logins are managed under Site Access.")
         return back
-    # Only the Owner may create, change or remove anything other than a plain Volunteer Team login.
+    is_admin_login = bool(staff and staff["active"] and staff["is_owner"] == 2)
+    if (choice == "Administrator" or is_admin_login) and not true_owner:
+        conn.close()
+        flash("Only the Owner can set or change an Administrator login.")
+        return back
+    # Only the Owner (or an Administrator) may create, change or remove anything other than a plain Volunteer Team login.
     if not owner and ((choice and choice != "Team") or (staff and staff["active"] and staff["role"] != "Team")):
         conn.close()
         flash("Only the Owner can set a Leadership or Accounting & Legal login. Ask the Owner to change it.")
         return back
-    current = staff["role"] if (staff and staff["active"]) else ""
+    current = ("Administrator" if is_admin_login else staff["role"]) if (staff and staff["active"]) else ""
     if choice == current:
         conn.close()
         flash("No change.")
@@ -1220,11 +1259,13 @@ def contact_login_role(contact_id):
         conn.close()
         flash("Login removed. They no longer appear in Site Access, their access was cleared, and they can no longer log in. They are still a contact.")
         return back
+    new_role = "Leadership" if choice == "Administrator" else choice
+    new_flag = 2 if choice == "Administrator" else 0
     if staff and staff["active"]:  # change category only
-        conn.execute("UPDATE staff SET role = ? WHERE id = ?", (choice, staff["id"]))
+        conn.execute("UPDATE staff SET role = ?, is_owner = ? WHERE id = ?", (new_role, new_flag, staff["id"]))
         conn.commit()
         conn.close()
-        flash(f"Login changed to {role_label(choice)}. No new email was sent.")
+        flash(f"Login changed to {role_label(choice)}. No new email was sent. They will see the change the next time they log in.")
         return back
     email = (contact["email"] or "").strip().lower()
     if not email:
@@ -1240,11 +1281,11 @@ def contact_login_role(contact_id):
     _ensure_must_change()
     try:
         if staff:  # earlier login turned off: switch it back on
-            conn.execute("UPDATE staff SET active = 1, name = ?, email = ?, role = ?, password_hash = ?, must_change_password = 1 WHERE id = ?",
-                         (contact["full_name"], email, choice, generate_password_hash(temp_password), staff["id"]))
+            conn.execute("UPDATE staff SET active = 1, name = ?, email = ?, role = ?, is_owner = ?, password_hash = ?, must_change_password = 1 WHERE id = ?",
+                         (contact["full_name"], email, new_role, new_flag, generate_password_hash(temp_password), staff["id"]))
         else:
-            conn.execute("INSERT INTO staff (name, email, password_hash, role, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, 1)",
-                         (contact["full_name"], email, generate_password_hash(temp_password), choice, contact_id))
+            conn.execute("INSERT INTO staff (name, email, password_hash, role, is_owner, contact_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                         (contact["full_name"], email, generate_password_hash(temp_password), new_role, new_flag, contact_id))
         conn.commit()
     except Exception as e:
         try: conn.rollback()
@@ -1463,7 +1504,7 @@ def staff_deactivate(staff_id):
     if _team_manage_blocked(target):
         conn.close()
         return redirect(url_for(".staff_list"))
-    if target and target["is_owner"]:
+    if target and target["is_owner"] == 1:
         remaining_active_owners = conn.execute(
             "SELECT COUNT(*) c FROM staff WHERE is_owner = 1 AND active = 1"
         ).fetchone()["c"]
@@ -1672,7 +1713,7 @@ def staff_remove_full_access(staff_id):
 
 
 @crm.route("/staff/<int:staff_id>/make-owner", methods=["POST"])
-@owner_required
+@true_owner_required
 def staff_make_owner(staff_id):
     conn = get_db()
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
@@ -1681,11 +1722,11 @@ def staff_make_owner(staff_id):
         conn.commit()
         flash(f"{staff['name']} is now an Owner -- unrestricted access, same as you.")
     conn.close()
-    return redirect(url_for(".staff_list"))
+    return redirect(url_for(".owners_corner"))
 
 
 @crm.route("/staff/change-ownership", methods=["POST"])
-@owner_required
+@true_owner_required
 def change_ownership():
     """Owner-only, password-gated: makes another active staff account an
     Owner too, without touching the current Owner's own status. Requires
@@ -1697,37 +1738,42 @@ def change_ownership():
     if not me or not check_password_hash(me["password_hash"], request.form.get("password", "")):
         flash("Incorrect password -- ownership not changed.")
         conn.close()
-        return redirect(url_for(".staff_list"))
+        return redirect(url_for(".owners_corner"))
     target = conn.execute(
         "SELECT * FROM staff WHERE id = ? AND active = 1", (request.form.get("new_owner_id"),)
     ).fetchone()
     if not target:
         flash("Choose an active staff account to make an Owner.")
         conn.close()
-        return redirect(url_for(".staff_list"))
+        return redirect(url_for(".owners_corner"))
     conn.execute("UPDATE staff SET is_owner = 1, role = 'Leadership' WHERE id = ?", (target["id"],))
     conn.commit()
     conn.close()
     flash(f"{target['name']} is now an Owner too -- full, unrestricted access, same as you. They'll see it the next time they log in.")
-    return redirect(url_for(".staff_list"))
+    return redirect(url_for(".owners_corner"))
 
 
 @crm.route("/staff/<int:staff_id>/remove-owner", methods=["POST"])
-@owner_required
+@true_owner_required
 def staff_remove_owner(staff_id):
     conn = get_db()
     remaining_owners = conn.execute("SELECT COUNT(*) c FROM staff WHERE is_owner = 1").fetchone()["c"]
-    if remaining_owners <= 1:
+    _t = conn.execute("SELECT is_owner FROM staff WHERE id = ?", (staff_id,)).fetchone()
+    if remaining_owners <= 1 and _t and _t["is_owner"] == 1:
         flash("Can't remove the last remaining Owner.")
         conn.close()
-        return redirect(url_for(".staff_list"))
+        return redirect(url_for(".owners_corner"))
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
-    if staff:
+    if staff and staff["is_owner"] == 2:
+        conn.execute("UPDATE staff SET is_owner = 0 WHERE id = ?", (staff_id,))
+        conn.commit()
+        flash(f"{staff['name']} is no longer an Administrator. They are now a Leadership login.")
+    elif staff:
         conn.execute("UPDATE staff SET is_owner = 0 WHERE id = ?", (staff_id,))
         conn.commit()
         flash(f"{staff['name']} is no longer an Owner.")
     conn.close()
-    return redirect(url_for(".staff_list"))
+    return redirect(url_for(".owners_corner"))
 
 
 def _contact_search_clause(q):
@@ -2305,7 +2351,7 @@ def profile_stages(conn, contact):
 
 _CONTACT_SORTS = {"last": "LOWER(last_name)", "first": "LOWER(first_name)", "email": "LOWER(COALESCE(email,''))",
                   "cell": "COALESCE(cell_phone,'')", "status": "LOWER(COALESCE(status,''))",
-                  "login": "COALESCE((SELECT CASE WHEN s.is_owner = 1 THEN 'Owner' ELSE s.role END FROM staff s WHERE s.contact_id = contacts.id AND s.active = 1 ORDER BY s.id LIMIT 1), 'zzz')"}
+                  "login": "COALESCE((SELECT CASE WHEN s.is_owner = 1 THEN 'Owner' WHEN s.is_owner = 2 THEN 'Administrator' ELSE s.role END FROM staff s WHERE s.contact_id = contacts.id AND s.active = 1 ORDER BY s.id LIMIT 1), 'zzz')"}
 
 
 TEAM_LISTS = [  # (list name, session roles that put someone on it)
@@ -2425,7 +2471,7 @@ def contacts_list():
     logins = {}
     try:
         for r in conn.execute("SELECT contact_id, role, is_owner FROM staff WHERE active = 1 AND contact_id IS NOT NULL").fetchall():
-            logins[r["contact_id"]] = "Owner" if r["is_owner"] else role_label(r["role"])
+            logins[r["contact_id"]] = "Owner" if r["is_owner"] == 1 else ("Administrator" if r["is_owner"] == 2 else role_label(r["role"]))
     except Exception:
         try: conn.rollback()
         except Exception: pass
@@ -2492,7 +2538,7 @@ def _sync_login_email(conn, contact_id, old_email, new_email):
         st = conn.execute("SELECT * FROM staff WHERE contact_id = ? AND active = 1 AND LOWER(email) = ?", (contact_id, old)).fetchone()
         if not st:
             return
-        if st["is_owner"] or st["role"] == ACCOUNTING_ROLE:
+        if st["is_owner"] == 1 or st["role"] == ACCOUNTING_ROLE or (st["is_owner"] == 2 and session.get("is_admin")):
             flash("Note: their team login still uses the old email. Only the Owner can change that one, under Site Access.")
             return
         allowed = session.get("is_owner") or (session.get("staff_role") == "Leadership" and st["role"] == "Team")
@@ -8642,6 +8688,8 @@ contact_health.register(app, crm, owner_required, get_db)
 import ta_invites
 import owner_guide, correspondence as _corr_sw
 owner_guide.register(app, crm, owner_required, get_db, _corr_sw.switches)
+import owners_corner
+owners_corner.register(app, crm, true_owner_required, get_db)
 import bounces
 bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))

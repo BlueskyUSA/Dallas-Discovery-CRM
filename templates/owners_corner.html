@@ -1,0 +1,48 @@
+{% extends "crm_base.html" %}
+{% block title %}Owner's Corner — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Owner's Corner</h1>
+<p class="muted">Only you, the Owner, can see this page. Administrators cannot. It holds what belongs to ownership itself.</p>
+
+<div class="card">
+  <h3 style="margin-top:0">Owner and Administrators</h3>
+  <table class="stack">
+    <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
+    {% for p in people %}
+    <tr>
+      <td>{{ p.name }}</td><td data-label="Email">{{ p.email }}</td>
+      <td data-label="Role">{{ 'Owner' if p.is_owner == 1 else 'Administrator' }}{% if not p.active %} (login off){% endif %}</td>
+      <td>{% if p.is_owner == 2 %}
+        <form method="post" action="{{ url_for('.staff_remove_owner', staff_id=p.id) }}" onsubmit="return confirm('Remove Administrator status from {{ p.name|e }}? They become a Leadership login.');" style="margin:0">
+          <button class="btn danger" type="submit" style="padding:2px 8px">Remove Administrator</button>
+        </form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted" style="margin-bottom:0">To add an Administrator: Contacts &rarr; find the person &rarr; Hub Login &rarr; Administrator &rarr; Set.</p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Ownership transfer</h3>
+  <p>This gives another person the same ownership you have. You stay an Owner too. Use it only when ownership is truly being shared or moved, for example to the LLC's manager. Administrators cannot do this.</p>
+  <form method="post" action="{{ url_for('.change_ownership') }}" style="max-width:380px">
+    <div class="field"><label>Also make an Owner:</label>
+      <select name="new_owner_id" required>
+        <option value="">— choose an active account —</option>
+        {% for o in others %}<option value="{{ o.id }}">{{ o.name }}{% if o.is_owner == 1 %} (already an Owner){% elif o.is_owner == 2 %} (Administrator){% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Your password, to confirm:</label><input type="password" name="password" required autocomplete="current-password"></div>
+    <button class="btn danger" type="submit" onclick="return confirm('Give this account full Owner access, same as you? You will stay an Owner too.');">Confirm</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Private notes</h3>
+  <p class="muted">Only you see these. A good place for the LLC license terms, ideas for licensing the Hub to other organizations, and reminders.</p>
+  <form method="post" action="{{ url_for('.owners_corner_notes') }}">
+    <textarea name="body" rows="10" style="width:100%">{{ note.body if note else '' }}</textarea>
+    <div style="margin-top:6px"><button class="btn" type="submit">Save notes</button>{% if note and note.updated_at %} <span class="muted" style="font-size:.85rem">Saved {{ note.updated_at }}</span>{% endif %}</div>
+  </form>
+</div>
+{% endblock %}
