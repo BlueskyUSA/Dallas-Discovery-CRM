@@ -219,7 +219,7 @@ SESSION_IDLE_TIMEOUT_MINUTES = 30
 
 @crm.before_request
 def require_staff_login():
-    if request.endpoint in ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login"):
+    if request.endpoint in ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.administrator_login", "crm.owner_login"):
         return
     if not session.get("staff_id"):
         return redirect(url_for(".login", next=request.path))
@@ -314,7 +314,7 @@ ACCOUNTING_ROLE = "Accounting"
 ACCOUNTING_AREAS = ["accounting", "donations", "contracts", "contacts"]
 # Accounting & Legal logins are view-only: any form submission is refused except
 # signing in/out and changing their own password.
-ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.owner_login",
+ACCOUNTING_WRITE_ALLOWED = ("crm.login", "crm.team_login", "crm.leadership_login", "crm.accounting_login", "crm.administrator_login", "crm.owner_login",
                             "crm.logout", "crm.change_password",
                             # money entry -- each of these also checks the Accounting / Donations area grant
                             "crm.enrollment_payment", "crm.finance_record_payment", "crm.payment_void",
@@ -641,6 +641,11 @@ def _door_allows(door, staff, is_owner):
     Accounting & Legal door: Accounting & Legal logins, plus a Leadership account only
     if the Owner has granted it."""
     if is_owner:
+        try:
+            if door == "owner" and staff["is_owner"] == 2:
+                return False   # Administrators use their own door
+        except (KeyError, IndexError):
+            pass
         return True
     role = staff["role"]
     if door == "team":
@@ -663,6 +668,11 @@ def _door_allows(door, staff, is_owner):
 
 
 def _home_door_title(staff):
+    try:
+        if staff["is_owner"] == 2:
+            return "Administrator Login"
+    except (KeyError, IndexError):
+        pass
     return {"Team": "Volunteer Team Login", "Leadership": "Leadership Login", ACCOUNTING_ROLE: "Accounting & Legal Login"}.get(
         staff["role"], "Volunteer Team Login")
 
@@ -715,7 +725,7 @@ def _attempt_login(next_url, door="team"):
         if not _door_allows(door, staff, owner_flag):
             title = next(t for k, _, t in LOGIN_PAGES if k == door)
             if door == "owner":
-                flash("The Owner Login is for the account Owner only.")
+                flash("The Owner Login is for the account Owner only. Administrators: please use the Administrator Login.")
             elif door == "accounting" and staff["role"] == "Leadership":
                 flash("The Owner has not given your account access to the Accounting & Legal Login. Ask the Owner.")
             else:
@@ -750,6 +760,7 @@ LOGIN_PAGES = [
     ("team", "team_login", "Volunteer Team Login"),
     ("leadership", "leadership_login", "Leadership Login"),
     ("accounting", "accounting_login", "Accounting & Legal Login"),
+    ("administrator", "administrator_login", "Administrator Login"),
     ("owner", "owner_login", "Owner Login"),
 ]
 
@@ -785,6 +796,7 @@ LOGIN_BUTTON_TEXT = {
     "team": "Volunteer Team Members Login Here",
     "leadership": "Leadership Login Here",
     "accounting": "Accounting & Legal Login Here",
+    "administrator": "Administrator Login Here",
     "owner": "Owner Login Here",
 }
 
@@ -819,6 +831,11 @@ def leadership_login():
 @crm.route("/accounting-login", methods=["GET", "POST"])
 def accounting_login():
     return _login_page("accounting")
+
+
+@crm.route("/administrator-login", methods=["GET", "POST"])
+def administrator_login():
+    return _login_page("administrator")
 
 
 @crm.route("/owner-login", methods=["GET", "POST"])
