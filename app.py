@@ -8738,6 +8738,8 @@ import hub_ownership
 hub_ownership.register(app, crm, owner_required, get_db)
 import contact_import
 contact_import.register(app, crm, owner_required, get_db)
+import error_alerts
+error_alerts.register(app, crm, owner_required, get_db)
 import glance
 glance.register(app, crm, leadership_required, get_db, _payment_info_for_cohort, _can_handle_money,
                 hidden_lists=lambda: [LEADERSHIP_LIST, *LEADERSHIP_SOURCES] + [n for n, _ in TEAM_LISTS])

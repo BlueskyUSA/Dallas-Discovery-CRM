@@ -99,6 +99,14 @@
   {% if hook %}<input type="text" readonly value="{{ hook }}" style="width:100%" onclick="this.select()"><p class="muted">Keep this address private. It works like a password.</p>{% endif %}
 </details>
 
+<details class="card" id="alerts">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Error alerts &#9662;</summary>
+  <p>If the Hub hits an unexpected error, it emails the Owner (what page, what error, where in the code). The same problem is emailed at most once every 30 minutes, and never more than 10 alert emails an hour. Visitors just see a short apology page. No names, passwords or form contents are in the email.</p>
+  <form method="post" action="{{ url_for('.error_alert_test') }}"><button class="btn" type="submit">Send me a test alert</button></form>
+  <p class="muted">To send alerts to a different address, add <code>ERROR_ALERT_EMAIL</code> in Render's Environment. Several addresses can be separated by commas.</p>
+  <p class="muted" style="margin-bottom:0"><b>One thing the Hub cannot do:</b> if the whole site is down, it cannot email you about itself. For that, turn on Render's own failure emails (Render → your account → Notification settings) and a free outside checker such as UptimeRobot watching the Hub's web address.</p>
+</details>
+
 <details class="card">
   <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Uploading an update to GitHub &#9662;</summary>
   <ol>
