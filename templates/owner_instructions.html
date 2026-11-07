@@ -1,8 +1,49 @@
 {% extends "crm_base.html" %}
-{% block title %}Owner Instructions — {{ program_name }} ERP{% endblock %}
+{% block title %}Administrator — {{ program_name }} ERP{% endblock %}
 {% block content %}
-<h1>Owner Instructions</h1>
-<p class="muted">Only the Owner and Administrators can see this page. It collects the steps in Render and GitHub that are needed to turn things on or keep the Hub running.</p>
+<h1>Administrator</h1>
+<p class="muted">Only the Owner and Administrators can see this page. It collects the software accounts and the steps in Render and GitHub that are needed to turn things on or keep the Hub running.</p>
+
+<details class="card" open id="software">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Software accounts &#9662;</summary>
+  <p class="muted">Every service the Hub depends on: where to sign in, which login it uses, and where the password is kept. <b>Passwords are not stored here.</b> Keep them in a shared password manager (for example Bitwarden or 1Password) and write its name in the "Where the password is kept" column, so Max and Pamela can find them.</p>
+  {% set ns = namespace(total=0.0) %}
+  {% for a in software %}
+  {% set _c = (a.monthly_cost or '')|replace('$','')|replace(',','')|trim %}{% if _c and _c.replace('.','',1).isdigit() %}{% set ns.total = ns.total + _c|float %}{% endif %}
+  <form method="post" action="{{ url_for('.owner_software_save') }}" style="border-top:1px solid #ddd; padding:8px 0">
+    <input type="hidden" name="id" value="{{ a.id }}">
+    <div style="display:flex; gap:6px; flex-wrap:wrap">
+      <input name="name" value="{{ a.name }}" placeholder="Software" style="flex:1 1 140px; font-weight:700">
+      <input name="purpose" value="{{ a.purpose or '' }}" placeholder="What it is for" style="flex:2 1 220px">
+      <input name="monthly_cost" value="{{ a.monthly_cost or '' }}" placeholder="Monthly cost" style="flex:0 1 100px">
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px">
+      <input name="login_url" value="{{ a.login_url or '' }}" placeholder="Sign-in address" style="flex:2 1 220px">
+      <input name="login_name" value="{{ a.login_name or '' }}" placeholder="Login name / email" style="flex:1 1 180px">
+      <input name="password_where" value="{{ a.password_where or '' }}" placeholder="Where the password is kept" style="flex:1 1 180px">
+    </div>
+    <input name="notes" value="{{ a.notes or '' }}" placeholder="Notes (who has access, account owner, renewal date)" style="width:100%; margin-top:6px">
+    <div style="margin-top:6px; display:flex; gap:8px; align-items:center">
+      <button class="btn" type="submit" style="padding:2px 12px">Save</button>
+      {% if a.login_url %}<a href="{{ a.login_url }}" target="_blank" rel="noopener" style="font-size:.85rem">Open sign-in page</a>{% endif %}
+      {% if a.updated_at %}<span class="muted" style="font-size:.8rem">Updated {{ a.updated_at }}{% if a.updated_by %} by {{ a.updated_by }}{% endif %}</span>{% endif %}
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('.owner_software_delete', sid=a.id) }}" onsubmit="return confirm('Remove {{ a.name|e }} from the list?');" style="margin:0 0 6px">
+    <button class="btn danger" type="submit" style="padding:1px 8px; font-size:.8rem">Remove</button>
+  </form>
+  {% endfor %}
+  {% if ns.total %}<p style="border-top:1px solid #ddd; padding-top:8px"><b>Monthly total (numbers entered above): ${{ '%.2f'|format(ns.total) }}</b></p>{% endif %}
+  <form method="post" action="{{ url_for('.owner_software_save') }}" style="border-top:2px solid #bbb; padding-top:8px">
+    <b>Add software</b>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px">
+      <input name="name" placeholder="Software" required style="flex:1 1 140px">
+      <input name="purpose" placeholder="What it is for" style="flex:2 1 220px">
+      <input name="login_url" placeholder="Sign-in address" style="flex:2 1 220px">
+      <button class="btn" type="submit">Add</button>
+    </div>
+  </form>
+</details>
 
 <details class="card" open id="switches">
   <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Safety switches (what is ON or OFF right now) &#9662;</summary>

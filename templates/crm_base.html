@@ -97,12 +97,6 @@
             <a href="{{ url_for('.export_for_claude') }}" style="padding-left:30px">Download for Claude</a>
           </details>
           {% endif %}
-          {% if session.is_owner and not session.is_admin %}
-          <details class="subnav">
-            <summary>Owner's Corner &#9662;</summary>
-            <a href="{{ url_for('.owners_corner') }}" style="padding-left:30px">Ownership &amp; notes</a>
-          </details>
-          {% endif %}
         </div>
       </details>
       {% endif %}
