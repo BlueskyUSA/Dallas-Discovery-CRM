@@ -55,7 +55,26 @@ function hubLoginChange(sel){
   {% if session.is_owner %}<a class="btn secondary" href="{{ url_for('.contact_health') }}">Health check</a>{% endif %}{% if session.is_owner %}<a class="btn secondary" href="{{ url_for('.contact_import') }}">Import</a>{% endif %}
 </form>
 
-{% if list_id or q or prof %}<p class="muted">{{ contacts|length }} contact{{ '' if contacts|length == 1 else 's' }} found.</p>{% endif %}
+{% set _a = request.args.to_dict() %}
+{% macro pager() %}
+  {% if pages > 1 %}
+  <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:6px 0">
+    {% if page > 1 %}<a class="btn secondary" href="{{ url_for('.contacts_list', **dict(_a, page=1)) }}">&laquo; First</a><a class="btn secondary" href="{{ url_for('.contacts_list', **dict(_a, page=page-1)) }}">&lsaquo; Previous</a>{% endif %}
+    <span style="font-weight:600">Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}<a class="btn secondary" href="{{ url_for('.contacts_list', **dict(_a, page=page+1)) }}">Next &rsaquo;</a><a class="btn secondary" href="{{ url_for('.contacts_list', **dict(_a, page=pages)) }}">Last &raquo;</a>{% endif %}
+  </div>
+  {% endif %}
+{% endmacro %}
+<p class="muted" style="margin-bottom:4px">{% if total %}Showing {{ (page-1)*page_size + 1 }}&ndash;{{ (page-1)*page_size + contacts|length }} of {{ '{:,}'.format(total) }} contact{{ '' if total == 1 else 's' }}{% if list_id or q or prof or letter %} found{% endif %}.{% else %}No contacts found.{% endif %}</p>
+{% if sort in ('last', 'first') %}
+<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin:4px 0 8px" title="Jump to names starting with a letter">
+  <span class="muted" style="font-size:.85rem">Jump to ({{ 'first' if sort == 'first' else 'last' }} name):</span>
+  <a class="sortlink {{ 'on' if not letter }}" href="{{ url_for('.contacts_list', **dict(_a, letter='', page=1)) }}">All</a>
+  {% for L in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}<a class="sortlink {{ 'on' if letter == L }}" style="padding:2px 7px" href="{{ url_for('.contacts_list', **dict(_a, letter=L, page=1)) }}">{{ L }}</a>{% endfor %}
+  <a class="sortlink {{ 'on' if letter == '#' }}" style="padding:2px 7px" href="{{ url_for('.contacts_list', **dict(_a, letter='#', page=1)) }}">#</a>
+</div>
+{% endif %}
+{{ pager() }}
 <style>
   .sortbar { display:none; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 10px; }
   @media (max-width: 760px) { .sortbar { display:flex; } }
@@ -123,4 +142,5 @@ function hubLoginChange(sel){
     {% endfor %}
   </table>
 </div>
+{{ pager() }}
 {% endblock %}

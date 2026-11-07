@@ -2428,6 +2428,9 @@ def _sync_leadership_list(conn):
         print(f"leadership list skipped: {e}", flush=True)
 
 
+CONTACTS_PAGE_SIZE = 100
+
+
 @crm.route("/contacts")
 @area_required("contacts")
 def contacts_list():
@@ -2457,19 +2460,42 @@ def contacts_list():
     prof = request.args.get("profile", "")
     if prof not in ("complete", "incomplete", "basic", "personal"):
         prof = ""
-    limit_sql = "" if (q or list_id or prof) else "LIMIT 200"
-    rows = conn.execute(
-        f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} "
-        f"ORDER BY {_CONTACT_SORTS[sort]}{' DESC' if desc else ''}, last_name, first_name {limit_sql}",
-        params,
-    ).fetchall()
+    # A to Z jump: filters on the first letter of the Last name (or First name when sorted by First).
+    letter = (request.args.get("letter") or "").strip().upper()[:1]
+    letter = letter if letter == "#" or ("A" <= letter <= "Z") else ""
+    if letter and sort in ("last", "first"):
+        col = "first_name" if sort == "first" else "last_name"
+        if letter == "#":
+            where.append(f"UPPER(SUBSTR(COALESCE({col}, ''), 1, 1)) NOT BETWEEN 'A' AND 'Z'")
+        else:
+            where.append(f"UPPER({col}) LIKE ?")
+            params.append(letter + "%")
+        where_sql = "WHERE " + " AND ".join(where)
+    else:
+        letter = ""
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    order_sql = f"ORDER BY {_CONTACT_SORTS[sort]}{' DESC' if desc else ''}, last_name, first_name"
     if prof:
+        # The profile filter is worked out per person, so it runs on all matches and then pages.
+        rows = conn.execute(f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} {order_sql}", params).fetchall()
         if prof == "basic":
             rows = [r for r in rows if profile_missing(r)]
         elif prof == "personal":
             rows = [r for r in rows if personal_missing(r)]
         else:
             rows = [r for r in rows if bool(profile_all_missing(r)) == (prof == "incomplete")]
+        total = len(rows)
+        pages = max(1, -(-total // CONTACTS_PAGE_SIZE))
+        page = min(page, pages)
+        rows = rows[(page - 1) * CONTACTS_PAGE_SIZE: page * CONTACTS_PAGE_SIZE]
+    else:
+        total = conn.execute(f"SELECT COUNT(*) AS n FROM contacts {where_sql}", params).fetchone()["n"]
+        pages = max(1, -(-total // CONTACTS_PAGE_SIZE))
+        page = min(page, pages)
+        rows = conn.execute(
+            f"SELECT *, {FULL_NAME_SQL} AS full_name FROM contacts {where_sql} {order_sql} LIMIT ? OFFSET ?",
+            params + [CONTACTS_PAGE_SIZE, (page - 1) * CONTACTS_PAGE_SIZE],
+        ).fetchall()
     all_lists = conn.execute("SELECT id, name FROM contact_lists ORDER BY name").fetchall()
     quick = [dict(id=l["id"], name=l["name"]) for l in all_lists if l["name"] in (call_flow.GUIDE_LIST, call_flow.LEAD_GUIDE_LIST)]
     group_buttons, list_name, list_count = [], None, 0
@@ -2494,6 +2520,7 @@ def contacts_list():
         except Exception: pass
     conn.close()
     return render_template("contacts_list.html", logins=logins, can_assign_logins=_has_area_access("assign_logins"), contacts=rows, q=q, list_id=list_id, sort=sort, desc=desc, prof=prof, all_lists=all_lists, quick_lists=quick,
+                           page=page, pages=pages, total=total, page_size=CONTACTS_PAGE_SIZE, letter=letter,
                            group_buttons=group_buttons, list_name=list_name, list_count=list_count)
 
 
@@ -8708,7 +8735,8 @@ hub_ownership.register(app, crm, owner_required, get_db)
 import contact_import
 contact_import.register(app, crm, owner_required, get_db)
 import glance
-glance.register(app, crm, leadership_required, get_db, _payment_info_for_cohort, _can_handle_money)
+glance.register(app, crm, leadership_required, get_db, _payment_info_for_cohort, _can_handle_money,
+                hidden_lists=lambda: [LEADERSHIP_LIST, *LEADERSHIP_SOURCES] + [n for n, _ in TEAM_LISTS])
 import bounces
 bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
