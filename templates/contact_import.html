@@ -1,0 +1,72 @@
+{% extends "crm_base.html" %}
+{% block title %}Import Contacts — {{ program_name }} ERP{% endblock %}
+{% block content %}
+<h1>Import Contacts</h1>
+<p class="muted">Add a file of contacts to the Hub in three steps: check the file, read exactly what would happen, then import. <b>Importing never emails anyone.</b> Every import is tagged with a name, shows up as its own group, and can be undone.</p>
+
+{% if not report %}
+<div class="card">
+  <h3 style="margin-top:0">Step 1. Check a file</h3>
+  <form method="post" action="{{ url_for('.contact_import_check') }}" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx,.xlsm" required>
+    <button class="btn" type="submit">Check this file</button>
+  </form>
+  <p class="muted" style="margin-bottom:0">Nothing is added by the check. The first sheet of an Excel file is used, with the column names in the first row (First, Last, Email, Cell, Street, City, State, Zip and so on).</p>
+</div>
+{% else %}
+<div class="card">
+  <h3 style="margin-top:0">Step 2. What the check found in {{ report.filename }}</h3>
+  {% if report.passed %}<p><span class="badge good">Passed</span> The file can be imported.</p>
+  {% else %}<p><span class="badge warn">Did not pass</span></p><ul>{% for p in report.problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+  <div style="display:flex; gap:14px; flex-wrap:wrap; margin:8px 0">
+    <div><b style="font-size:1.6rem">{{ report.total }}</b><br><span class="muted">rows in the file</span></div>
+    <div><b style="font-size:1.6rem; color:#2f6b3a">{{ report.add }}</b><br><span class="muted">would be added</span></div>
+    <div><b style="font-size:1.6rem; color:#b3412f">{{ report.skipped }}</b><br><span class="muted">would NOT be added</span></div>
+  </div>
+  {% if report.reasons %}
+  <p style="margin-bottom:4px"><b>Why rows would not be added</b> <a href="{{ url_for('.contact_import_not_added', token=report.token) }}">Download the Not added list</a></p>
+  <ul style="margin-top:0">{% for why, n in report.reasons.items() %}<li>{{ n }} &mdash; {{ why }}</li>{% endfor %}</ul>
+  {% endif %}
+  <p style="margin-bottom:4px"><b>Things to know about the rows that would be added</b></p>
+  <ul style="margin-top:0">
+    <li>{{ report.counts.no_email }} have no email address (phone only). They are added as contacts.</li>
+    {% if report.counts.bad_email %}<li>{{ report.counts.bad_email }} had an email that did not look valid. The bad address is not used; it is written in their notes.</li>{% endif %}
+    {% if report.counts.sensitive_notes %}<li><b>{{ report.counts.sensitive_notes }} had a note that looked like a password, PIN or account number.</b> That note was left out.</li>{% endif %}
+    {% if report.counts.maybe_same %}<li>{{ report.counts.maybe_same }} share a name with someone already in the Hub. They are added; use the duplicate finder afterward if you want to merge any.</li>{% endif %}
+  </ul>
+  {% if report.sample %}
+  <details><summary style="cursor:pointer">Preview the first {{ report.sample|length }} to be added</summary>
+    <table class="stack"><tr><th>Name</th><th>Email</th><th>Cell</th><th>City</th><th>Group</th></tr>
+    {% for p in report.sample %}<tr><td>{{ p.first }} {{ p.last }}</td><td data-label="Email">{{ p.email }}</td><td data-label="Cell">{{ p.cell }}</td><td data-label="City">{{ p.city }}</td><td data-label="Group">{{ p.group }}</td></tr>{% endfor %}</table>
+  </details>{% endif %}
+</div>
+
+{% if report.passed %}
+<div class="card">
+  <h3 style="margin-top:0">Step 3. Import</h3>
+  <form method="post" action="{{ url_for('.contact_import_run') }}" onsubmit="return confirm('Add {{ report.add }} contacts to the Hub now? Nothing will be emailed. You can undo this afterward.');">
+    <input type="hidden" name="token" value="{{ report.token }}">
+    <div class="field"><label>Name for this group of contacts</label><input name="source" value="{{ default_source }}" required style="width:100%; max-width:380px">
+      <div class="muted" style="font-size:.85rem">Every contact is tagged with this name and gets their own group on the Contacts page, so you can email or remove them as a set.</div></div>
+    {% if report.groups %}<label style="display:block; margin:6px 0"><input type="checkbox" name="group_lists" value="1" checked> Also make a smaller group for each category in the file ({% for g, n in report.groups.items() %}{{ g }} {{ n }}{{ ', ' if not loop.last }}{% endfor %})</label>{% endif %}
+    <label style="display:block; margin:6px 0"><input type="checkbox" name="backup_done" value="1" required> I took a fresh Render database backup just now.</label>
+    <button class="btn" type="submit">Import {{ report.add }} contacts</button>
+    <a class="btn secondary" href="{{ url_for('.contact_import') }}">Cancel</a>
+  </form>
+</div>
+{% else %}<p><a class="btn secondary" href="{{ url_for('.contact_import') }}">Start over</a></p>{% endif %}
+{% endif %}
+
+<div class="card">
+  <h3 style="margin-top:0">Past imports</h3>
+  {% if batches %}
+  <table class="stack"><tr><th>Group name</th><th>File</th><th>When</th><th>Added</th><th>Not added</th><th></th></tr>
+  {% for b in batches %}
+  <tr><td>{{ b.source }}</td><td data-label="File">{{ b.filename }}</td><td data-label="When">{{ b.created_at }}{% if b.created_by %}<br><span class="muted">{{ b.created_by }}</span>{% endif %}</td>
+    <td data-label="Added">{{ b.added }}</td><td data-label="Not added">{{ b.skipped }}</td>
+    <td>{% if b.undone_at %}<span class="muted">Undone {{ b.undone_at }}: removed {{ b.undone_count }}{% if b.kept_count %}, kept {{ b.kept_count }} already in use{% endif %}</span>
+      {% else %}<form method="post" action="{{ url_for('.contact_import_undo', bid=b.id) }}" onsubmit="return confirm('Remove everyone added by this import? People who have since been enrolled, given a login or otherwise used in the Hub are kept.');" style="margin:0"><button class="btn danger" type="submit" style="padding:2px 8px">Undo this import</button></form>{% endif %}</td></tr>
+  {% endfor %}</table>
+  {% else %}<p class="muted" style="margin:0">No imports yet.</p>{% endif %}
+</div>
+{% endblock %}
