@@ -8705,6 +8705,8 @@ import owners_corner
 owners_corner.register(app, crm, true_owner_required, get_db)
 import hub_ownership
 hub_ownership.register(app, crm, owner_required, get_db)
+import glance
+glance.register(app, crm, leadership_required, get_db, _payment_info_for_cohort, _can_handle_money)
 import bounces
 bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
