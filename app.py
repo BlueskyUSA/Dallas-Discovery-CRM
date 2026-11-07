@@ -8707,6 +8707,8 @@ import owner_guide, correspondence as _corr_sw
 owner_guide.register(app, crm, owner_required, get_db, _corr_sw.switches)
 import owners_corner
 owners_corner.register(app, crm, true_owner_required, get_db)
+import hub_ownership
+hub_ownership.register(app, crm, owner_required, get_db)
 import bounces
 bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
