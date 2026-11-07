@@ -27,6 +27,14 @@ SOFTWARE_SEED = [  # (name, what it is for, login address)
 ]
 
 
+SOFTWARE_ADDED = [
+    ("seed_google", [
+        ("Google Meet", "Video call link saved on contact pages. The link is only pasted in; the Hub is not connected to Google", "https://meet.google.com", "Free"),
+        ("Google Fonts", "Lettering on the website pages. No account needed; the site still works without it", "https://fonts.google.com", "Free"),
+    ]),
+]
+
+
 def ensure(conn):
     conn.execute("CREATE TABLE IF NOT EXISTS owner_checklist (key TEXT PRIMARY KEY, done_by TEXT, done_at TEXT)")
     conn.execute("""CREATE TABLE IF NOT EXISTS software_accounts (
@@ -35,6 +43,13 @@ def ensure(conn):
     if not conn.execute("SELECT 1 FROM software_accounts LIMIT 1").fetchone():
         for n, w, u in SOFTWARE_SEED:
             conn.execute("INSERT INTO software_accounts (name, purpose, login_url) VALUES (?, ?, ?)", (n, w, u))
+    # One-time additions to an already-filled list (a marker keeps a removed row from coming back).
+    for marker, rows in SOFTWARE_ADDED:
+        if not conn.execute("SELECT 1 FROM owner_checklist WHERE key = ?", (marker,)).fetchone():
+            for n, w, u, c in rows:
+                if not conn.execute("SELECT 1 FROM software_accounts WHERE name = ?", (n,)).fetchone():
+                    conn.execute("INSERT INTO software_accounts (name, purpose, login_url, monthly_cost) VALUES (?, ?, ?, ?)", (n, w, u, c))
+            conn.execute("INSERT INTO owner_checklist (key, done_by, done_at) VALUES (?, 'system', to_char(now(), 'YYYY-MM-DD'))", (marker,))
     conn.commit()
 
 
