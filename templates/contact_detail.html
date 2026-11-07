@@ -67,9 +67,9 @@
 {% if can_assign_logins %}
 <div class="card" id="hub-login">
   <h3 style="margin-top:0">Hub Login <span class="muted" style="font-weight:400; font-size:.85rem">(can this person log in to the Hub?)</span></h3>
-  {% set cur = (login_staff.role if (login_staff and login_staff.active) else '') %}
-  {% if login_staff and login_staff.is_owner %}
-  <p>Owner. Managed under Site Access.</p>
+  {% set cur = (('Administrator' if login_staff.is_owner == 2 else login_staff.role) if (login_staff and login_staff.active) else '') %}
+  {% if login_staff and (login_staff.is_owner == 1 or (login_staff.is_owner == 2 and session.is_admin)) %}
+  <p>{{ 'Owner' if login_staff.is_owner == 1 else 'Administrator' }}. Managed by the Owner under Site Access.</p>
   {% else %}
   <form method="post" action="{{ url_for('.contact_login_role', contact_id=contact.id) }}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
     <select name="login_role" id="hubLoginSel" data-cur="{{ cur }}" data-name="{{ contact.full_name|e }}">
@@ -77,6 +77,7 @@
       <option value="Team" {{ 'selected' if cur == 'Team' }}>Volunteer Team</option>
       {% if session.is_owner %}<option value="Leadership" {{ 'selected' if cur == 'Leadership' }}>Leadership</option>
       <option value="Accounting" {{ 'selected' if cur == 'Accounting' }}>Accounting &amp; Legal (view-only)</option>{% endif %}
+      {% if session.is_owner and not session.is_admin %}<option value="Administrator" {{ 'selected' if cur == 'Administrator' }}>Administrator (backup operator)</option>{% endif %}
     </select>
     <button class="btn" type="submit" id="hubLoginBtn">Save</button>
   </form>
@@ -98,7 +99,7 @@
   <p class="muted" style="margin:8px 0 0; font-size:.85rem">
     No login: a contact only. They get letters and invitations but can't open the Hub.<br>
     Volunteer Team: views and updates contacts and session information.
-    {% if session.is_owner %}<br>Leadership: helps run the Hub day to day.<br>Accounting &amp; Legal: view-only access to the areas you choose.{% endif %}<br>
+    {% if session.is_owner %}<br>Leadership: helps run the Hub day to day.<br>Accounting &amp; Legal: view-only access to the areas you choose.{% endif %}{% if session.is_owner and not session.is_admin %}<br>Administrator: can run everything when you are away, except making or removing Owners.{% endif %}<br>
     <strong>Nothing changes until you press Save.</strong> Choosing a login for someone emails them a login link and a temporary password (they pick their own password when they first log in). Choosing <strong>No login</strong> removes their Hub login and clears their Site Access; they stay a contact. Fine-tune their areas under Site Access.
   </p>
   {% endif %}

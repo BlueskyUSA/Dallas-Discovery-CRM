@@ -1722,7 +1722,7 @@ def staff_make_owner(staff_id):
         conn.commit()
         flash(f"{staff['name']} is now an Owner -- unrestricted access, same as you.")
     conn.close()
-    return redirect(url_for(".owners_corner"))
+    return redirect(url_for(".staff_list"))
 
 
 @crm.route("/staff/change-ownership", methods=["POST"])
@@ -1738,19 +1738,19 @@ def change_ownership():
     if not me or not check_password_hash(me["password_hash"], request.form.get("password", "")):
         flash("Incorrect password -- ownership not changed.")
         conn.close()
-        return redirect(url_for(".owners_corner"))
+        return redirect(url_for(".staff_list"))
     target = conn.execute(
         "SELECT * FROM staff WHERE id = ? AND active = 1", (request.form.get("new_owner_id"),)
     ).fetchone()
     if not target:
         flash("Choose an active staff account to make an Owner.")
         conn.close()
-        return redirect(url_for(".owners_corner"))
+        return redirect(url_for(".staff_list"))
     conn.execute("UPDATE staff SET is_owner = 1, role = 'Leadership' WHERE id = ?", (target["id"],))
     conn.commit()
     conn.close()
     flash(f"{target['name']} is now an Owner too -- full, unrestricted access, same as you. They'll see it the next time they log in.")
-    return redirect(url_for(".owners_corner"))
+    return redirect(url_for(".staff_list"))
 
 
 @crm.route("/staff/<int:staff_id>/remove-owner", methods=["POST"])
@@ -1762,7 +1762,7 @@ def staff_remove_owner(staff_id):
     if remaining_owners <= 1 and _t and _t["is_owner"] == 1:
         flash("Can't remove the last remaining Owner.")
         conn.close()
-        return redirect(url_for(".owners_corner"))
+        return redirect(url_for(".staff_list"))
     staff = conn.execute("SELECT * FROM staff WHERE id = ?", (staff_id,)).fetchone()
     if staff and staff["is_owner"] == 2:
         conn.execute("UPDATE staff SET is_owner = 0 WHERE id = ?", (staff_id,))
@@ -1773,7 +1773,7 @@ def staff_remove_owner(staff_id):
         conn.commit()
         flash(f"{staff['name']} is no longer an Owner.")
     conn.close()
-    return redirect(url_for(".owners_corner"))
+    return redirect(url_for(".staff_list"))
 
 
 def _contact_search_clause(q):
@@ -8688,8 +8688,6 @@ contact_health.register(app, crm, owner_required, get_db)
 import ta_invites
 import owner_guide, correspondence as _corr_sw
 owner_guide.register(app, crm, owner_required, get_db, _corr_sw.switches)
-import owners_corner
-owners_corner.register(app, crm, true_owner_required, get_db)
 import bounces
 bounces.register(app, crm, area_required("alerts"), get_db)
 ta_invites.register(app, get_db, lambda code, name: NAV_PROGRAM_LABEL.get(code, name), lambda c: date_span(c))
