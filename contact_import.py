@@ -28,6 +28,53 @@ STATUS = "Interested Party"
 CHUNK = 250
 
 
+NAMES_LIST = "Names to check"
+BIZ = re.compile(r"\b(service|services|inc|llc|ltd|co|company|corp|department|dept|store|bank|hospital|insurance|center|association|assoc|group|supply|shop|bistro|cust)\b", re.I)
+
+
+def name_flags(first, last):
+    """Plain-English reasons a name may be split wrongly. Empty list = looks fine."""
+    f = (first or "").strip(); l = (last or "").strip(); out = []
+    if not l:
+        out.append("No last name")
+    if re.search(r"\d", f + l):
+        out.append("Digits in the name")
+    if l and not re.match(r"[A-Za-z]", l):
+        out.append("Last name starts with a symbol")
+    if l and re.search(r"[\[\](){}@:]", l):
+        out.append("Odd characters in last name")
+    if l and len(re.sub(r"[^A-Za-z]", "", l)) <= 1:
+        out.append("Last name is one letter")
+    if BIZ.search(f + " " + l):
+        out.append("Looks like a company")
+    if l and len(f.split()) >= 2 and not re.search(r"(&|\band\b|\+)", f, re.I):
+        out.append("First name has several words")
+    if SENSITIVE.search(f + " " + l):
+        out.append("Name field may hold a password or login")
+    return out
+
+
+def refresh_names_list(conn):
+    """Make the 'Names to check' list match the imported contacts that still look uncertain."""
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lid = _make_list(conn, NAMES_LIST, now)
+    rows = conn.execute("SELECT id, first_name, last_name FROM contacts WHERE import_batch_id IS NOT NULL").fetchall()
+    want = {r["id"]: name_flags(r["first_name"], r["last_name"]) for r in rows}
+    want = {k: v for k, v in want.items() if v}
+    have = {r["contact_id"] for r in conn.execute("SELECT contact_id FROM contact_list_members WHERE list_id = ?", (lid,)).fetchall()}
+    add = [i for i in want if i not in have]
+    drop = [i for i in have if i not in want]
+    for i in range(0, len(add), 200):
+        part = add[i:i + 200]
+        conn.execute("INSERT INTO contact_list_members (contact_id, list_id, added_at) VALUES " + ",".join(["(?,?,?)"] * len(part)),
+                     [x for c in part for x in (c, lid, now[:10])])
+    for i in range(0, len(drop), 400):
+        part = drop[i:i + 400]
+        conn.execute(f"DELETE FROM contact_list_members WHERE list_id = ? AND contact_id IN ({','.join('?' for _ in part)})", [lid] + part)
+    conn.commit()
+    return len(want), want
+
+
 def _norm(s):
     return ch._norm(s)
 
@@ -228,9 +275,43 @@ def register(app, crm, owner_required, get_db):
         try:
             ensure(conn)
             batches = conn.execute("SELECT * FROM contact_imports ORDER BY id DESC").fetchall()
+            nr = conn.execute("""SELECT COUNT(*) c FROM contact_list_members m JOIN contact_lists l ON l.id = m.list_id
+                                 WHERE l.name = ?""", (NAMES_LIST,)).fetchone()
+            names_count = nr["c"] if nr else 0
         finally:
             conn.close()
-        return render_template("contact_import.html", report=None, batches=batches, default_source="Kent's own contacts")
+        return render_template("contact_import.html", report=None, batches=batches, default_source="Kent's own contacts", names_count=names_count)
+
+    @crm.route("/contacts/import/names-to-check", methods=["POST"])
+    @owner_required
+    def contact_names_refresh():
+        conn = get_db()
+        try:
+            ensure(conn)
+            n, _ = refresh_names_list(conn)
+        finally:
+            conn.close()
+        flash(f"The \"{NAMES_LIST}\" list now has {n} contacts. Nothing was changed on any contact and nothing was emailed.")
+        return redirect(url_for(".contact_import"))
+
+    @crm.route("/contacts/import/names-to-check.csv")
+    @owner_required
+    def contact_names_csv():
+        import csv, io
+        conn = get_db()
+        try:
+            ensure(conn)
+            rows = conn.execute("SELECT id, first_name, last_name, email, cell_phone, import_group FROM contacts WHERE import_batch_id IS NOT NULL ORDER BY last_name, first_name").fetchall()
+        finally:
+            conn.close()
+        buf = io.StringIO(); w = csv.writer(buf)
+        w.writerow(["Hub ID", "First name", "Last name", "Email", "Cell", "Group", "Why it was flagged"])
+        for r in rows:
+            fl = name_flags(r["first_name"], r["last_name"])
+            if fl:
+                w.writerow([r["id"], r["first_name"], r["last_name"] or "", r["email"] or "", r["cell_phone"] or "", r["import_group"] or "", "; ".join(fl)])
+        from flask import Response
+        return Response(buf.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=names-to-check.csv"})
 
     @crm.route("/contacts/import/check", methods=["POST"])
     @owner_required
@@ -348,6 +429,11 @@ def register(app, crm, owner_required, get_db):
                     list_ids.append(gl)
                     conn.execute("""INSERT INTO contact_list_members (contact_id, list_id, added_at)
                                     SELECT id, ?, ? FROM contacts WHERE import_batch_id = ? AND import_group = ?""", (gl, now[:10], bid, g))
+            conn.commit()
+            try:
+                refresh_names_list(conn)
+            except Exception:
+                conn.rollback()
             conn.execute("UPDATE contact_imports SET added = ?, list_ids = ? WHERE id = ?", (added, json.dumps(list_ids), bid))
             conn.execute("DELETE FROM import_staging WHERE token = ?", (token,))
             conn.commit()

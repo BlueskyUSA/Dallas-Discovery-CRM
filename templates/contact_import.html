@@ -57,6 +57,16 @@
 {% else %}<p><a class="btn secondary" href="{{ url_for('.contact_import') }}">Start over</a></p>{% endif %}
 {% endif %}
 
+{% if not report %}
+<div class="card">
+  <h3 style="margin-top:0">Names to check</h3>
+  <p>Some imported contacts may have the first and last name run together (for example "Dustin Whitlock" with last name "18"). This gathers the uncertain ones into a group called <b>Names to check</b>, so you can review them before anything is changed. It only builds the list; it never edits a contact and never emails anyone.</p>
+  <form method="post" action="{{ url_for('.contact_names_refresh') }}" style="display:inline"><button class="btn" type="submit">Build / refresh the list</button></form>
+  <a class="btn secondary" href="{{ url_for('.contact_names_csv') }}">Download the list with reasons (Excel)</a>
+  <p class="muted" style="margin-bottom:0">{% if names_count %}Currently {{ names_count }} contacts are in the list. It appears in the group drop-down on the Contacts page.{% else %}The list has not been built yet.{% endif %}</p>
+</div>
+{% endif %}
+
 <div class="card">
   <h3 style="margin-top:0">Past imports</h3>
   {% if batches %}
