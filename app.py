@@ -239,6 +239,34 @@ def require_staff_login():
             session.clear()
             flash("You were logged out after 30 minutes of inactivity -- please log back in.")
             return redirect(url_for(".login", next=request.path))
+    # A login that was removed or deactivated, or whose access was changed, is logged out on its very next click
+    # (not left signed in until the 30-minute timer runs out).
+    try:
+        conn = get_db()
+        try:
+            me = conn.execute("SELECT * FROM staff WHERE id = ?", (session["staff_id"],)).fetchone()
+        finally:
+            conn.close()
+    except Exception:
+        me = False          # could not check (database hiccup): do not lock everyone out
+    if me is not False:
+        changed = False
+        if not me or not me["active"]:
+            msg = "Your login has been removed, so you were signed out."
+            changed = True
+        else:
+            msg = "Your access was changed, so please sign in again."
+            try:
+                flag = me["is_owner"]
+                if (me["role"] != session.get("staff_role") or bool(flag) != bool(session.get("is_owner"))
+                        or (flag == 2) != bool(session.get("is_admin"))):
+                    changed = True
+            except (KeyError, IndexError):
+                pass
+        if changed:
+            session.clear()
+            flash(msg)
+            return redirect(url_for(".login"))
     session["last_seen"] = now.isoformat()
 
 
