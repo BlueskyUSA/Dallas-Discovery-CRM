@@ -17,15 +17,20 @@ function hubLoginChange(sel){
 
 {% macro sh(key, label) %}<a href="{{ url_for('.contacts_list', q=q or None, list=list_id, sort=key, profile=prof or None, dir=('desc' if (sort == key and not desc) else None)) }}" class="sortlink{{ ' on' if sort == key }}" title="Click to sort by {{ label|lower }}">{{ label }} {% if sort == key %}{{ '▼' if desc else '▲' }}{% else %}<span style="opacity:.45">⇅</span>{% endif %}</a>{% endmacro %}
 <h1>Contacts</h1>
-{% if group_buttons %}
+{% if group_options %}
 <details class="card" style="margin-bottom:12px" {{ 'open' if list_id }}>
-  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Sort &amp; Email a Group <span class="muted" style="font-weight:400; font-size:.9rem">&mdash; Leadership Team, Facilitators, TAs, Guides and more &#9662;</span></summary>
-  <p class="muted" style="margin:8px 0 6px">Click a group to see who is in it{% if session.is_owner %}, then email everyone in it with one button{% endif %}.</p>
-  <div style="display:flex; flex-wrap:wrap; gap:6px">
-    {% for g in group_buttons %}
-    <a class="btn {{ '' if list_id == g.id else 'secondary' }}" href="{{ url_for('.contacts_list', list=g.id) }}" style="font-size:.88rem; padding:4px 12px">{{ g.name }} <span style="opacity:.75">({{ g.n }})</span></a>
-    {% endfor %}
-  </div>
+  <summary style="cursor:pointer; font-weight:700; font-size:1.05rem">Sort &amp; Email a Group <span class="muted" style="font-weight:400; font-size:.9rem">&mdash; every group in the Hub: teams, imported files and saved lists &#9662;</span></summary>
+  <p class="muted" style="margin:8px 0 6px">Pick a group to see who is in it{% if session.is_owner %}, then email everyone in it with one button{% endif %}.</p>
+  <form method="get" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0">
+    <select name="list" onchange="this.form.submit()" style="min-width:260px; max-width:100%; font-size:1rem; padding:6px">
+      <option value="">All contacts</option>
+      {% set _teams = group_options|selectattr('team')|list %}{% set _others = group_options|rejectattr('team')|list %}
+      {% if _teams %}<optgroup label="Teams">{% for g in _teams %}<option value="{{ g.id }}" {{ 'selected' if list_id == g.id }}>{{ g.name }} ({{ '{:,}'.format(g.n) }})</option>{% endfor %}</optgroup>{% endif %}
+      {% if _others %}<optgroup label="Imported files and saved lists">{% for g in _others %}<option value="{{ g.id }}" {{ 'selected' if list_id == g.id }}>{{ g.name }} ({{ '{:,}'.format(g.n) }})</option>{% endfor %}</optgroup>{% endif %}
+    </select>
+    <input type="hidden" name="sort" value="{{ sort }}">{% if desc %}<input type="hidden" name="dir" value="desc">{% endif %}
+    {% if list_id %}<a class="btn secondary" href="{{ url_for('.contacts_list', sort=sort) }}">Show all contacts</a>{% endif %}
+  </form>
   {% if list_id and list_name and session.is_owner %}
   <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:center; flex-wrap:wrap">
     <a class="btn" href="{{ url_for('.email_blast_from_list', list_id=list_id) }}" style="font-size:1rem; padding:8px 18px">&#9993; Email everyone in {{ list_name }} ({{ list_count }})</a>
