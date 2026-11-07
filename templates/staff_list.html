@@ -173,13 +173,13 @@
           </details>
           {% endif %}
         {% endif %}
-        {% if session.is_owner and not session.is_admin and not is_self_owner_row and s.is_owner %}
+        {% if false %}
           <form method="post" action="{{ url_for('.staff_remove_owner', staff_id=s.id) }}"
                 onsubmit="return confirm('Remove {{ "Owner" if s.is_owner == 1 else "Administrator" }} status from {{ s.name }}?');" style="display:inline">
             <button class="btn danger" type="submit">{{ 'Remove owner' if s.is_owner == 1 else 'Remove Administrator' }}</button>
           </form>
         {% endif %}
-        {% if is_self_owner_row and not session.is_admin %}
+        {% if false %}
         <details style="display:inline-block; vertical-align:middle;">
           <summary class="btn danger" style="display:inline-block; cursor:pointer;">Change ownership</summary>
           <form method="post" action="{{ url_for('.change_ownership') }}" style="margin-top:8px; min-width:260px;">
