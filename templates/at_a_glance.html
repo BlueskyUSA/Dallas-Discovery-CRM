@@ -11,19 +11,51 @@
   .ag-step{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:.9rem}
   .ag-step .nm{flex:0 0 170px}.ag-step .bar{flex:1;background:#e8e3d3;border-radius:6px;height:16px;overflow:hidden}
   .ag-step .bar>div{height:100%;background:#c9a44c}.ag-step .n{flex:0 0 36px;text-align:right;font-weight:700}
+  details.ag-prog>summary::-webkit-details-marker{display:none}
 </style>
 <h1>At a Glance</h1>
-<p class="muted">Where each upcoming training stands today ({{ as_of }}). Counts come from the Guides' request log, the rosters and the payment records. Nothing here changes anything.</p>
+<p class="muted">Where each program stands today ({{ as_of }}). Counts come from the Guides' request log, the rosters and the payment records. Nothing here changes anything.</p>
 
-{% if not sessions %}<div class="card"><p>No upcoming trainings are scheduled yet.</p></div>{% endif %}
+{% if people %}
+<details class="card ag-prog">
+  <summary style="cursor:pointer; list-style:none">
+    <span style="font-size:1.25rem; font-weight:700">Contacts in the Hub</span>
+    <span style="float:right; font-weight:600">{{ '{:,}'.format(people.total) }} people &#9662;</span>
+  </summary>
+  <div class="ag-grid">
+    <div class="ag-tile"><div class="ag-num">{{ '{:,}'.format(people.total) }}</div><div class="ag-lab">Contacts in all</div></div>
+    <div class="ag-tile"><div class="ag-num">{{ '{:,}'.format(people.emailable) }}</div><div class="ag-lab">Have an email address</div></div>
+    <div class="ag-tile"><div class="ag-num">{{ '{:,}'.format(people.no_email) }}</div><div class="ag-lab">Phone or mail only</div></div>
+    <div class="ag-tile"><div class="ag-num">{{ '{:,}'.format(people.blocked) }}</div><div class="ag-lab">Unsubscribed or do not email</div></div>
+  </div>
+  <h4 style="margin:12px 0 4px">Where they come from</h4>
+  {% if people.sources %}
+  {% for x in people.sources %}
+  <div class="ag-step"><span class="nm" style="flex-basis:260px">{{ x.name }}<br><span class="muted" style="font-size:.75rem">{{ x.kind }}</span></span><span class="bar"><div style="width:{{ x.pct }}%"></div></span><span class="n" style="flex-basis:60px">{{ '{:,}'.format(x.n) }}</span></div>
+  {% endfor %}
+  <p class="muted" style="font-size:.85rem">A person can be in more than one saved list, so these numbers can add up to more than the total.</p>
+  {% else %}<p class="muted">None yet.</p>{% endif %}
+  {% if people.heard %}
+  <h4 style="margin:12px 0 4px">How people say they heard about us</h4>
+  <table class="stack"><tr><th>Answer</th><th>People</th></tr>
+  {% for h in people.heard %}<tr><td>{{ h.name }}</td><td data-label="People">{{ h.n }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</details>
+{% endif %}
+
 {% for s in sessions %}
-<div class="card">
-  <h2 style="margin-top:0"><a href="{{ url_for('.cohort_detail', cohort_id=s.id) }}">{{ s.label }}</a>
-    <span class="muted" style="font-size:.9rem; font-weight:400">{{ s.date }}{% if s.days_away is not none %} &middot; {{ s.days_away }} days away{% endif %}</span></h2>
+<details class="card ag-prog">
+  <summary style="cursor:pointer; list-style:none">
+    <span style="font-size:1.25rem; font-weight:700">{{ s.label }}</span>
+    <span class="muted" style="font-size:.9rem">{% if s.no_session %}No session scheduled yet{% else %}{{ s.date }}{% if s.days_away is not none %} &middot; {{ s.days_away }} days away{% endif %}{% endif %}</span>
+    <span style="float:right; font-weight:600">{% if s.no_session %}{{ s.interested }} asked{% else %}{% if s.goal %}{{ s.people }} of {{ s.goal }} seats &middot; {% endif %}{{ s.paid }} paid{% endif %} &#9662;</span>
+    {% if s.goal %}<div class="ag-bar" style="margin:8px 0 0"><div style="width:{{ [s.pct, 4]|max }}%">{{ s.pct }}%</div></div>{% endif %}
+  </summary>
+  {% if s.id %}<p style="margin:10px 0 0"><a href="{{ url_for('.cohort_detail', cohort_id=s.id) }}">Open the session page</a></p>
+  {% else %}<p class="muted" style="margin:10px 0 0">Nothing is scheduled for this program yet. Counts below are requests that came in for it.</p>{% endif %}
 
   {% if s.goal %}
   <div><b>{{ s.people }} of {{ s.goal }} seats</b>{% if s.goal_couples %} (goal: {{ s.goal_couples }} couples; {{ s.couples }} so far){% endif %} &mdash; {{ s.seats_left }} left</div>
-  <div class="ag-bar"><div style="width:{{ [s.pct, 4]|max }}%">{{ s.pct }}%</div></div>
   {% else %}
   <div class="muted">No seat goal set for this session. Set the seats on the session page to see seats left.</div>
   {% endif %}
@@ -59,6 +91,6 @@
     {% for a in s.attention %}<tr><td><a href="{{ url_for('.contact_detail', contact_id=a.contact_id) }}">{{ a.name }}</a></td><td data-label="Missing">{{ a.what }}</td><td data-label="Reserved">{% if a.days is not none %}{{ a.days }} day{{ 's' if a.days != 1 }} ago{% endif %}</td></tr>{% endfor %}
   </table>
   {% else %}<p class="muted">Everyone reserved is fully set. None.</p>{% endif %}
-</div>
+</details>
 {% endfor %}
 {% endblock %}
