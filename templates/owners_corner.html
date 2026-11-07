@@ -37,6 +37,36 @@
   </form>
 </div>
 
+<div class="card" id="code-access">
+  <h3 style="margin-top:0">Protecting the Hub's code</h3>
+  <p class="muted">Whoever can change the code in GitHub can change the live Hub and reach the database. These steps keep that list short. Menu names in GitHub, Render and Brevo change now and then, so follow the closest match.</p>
+  <h4 style="margin:10px 0 4px">1. Two-step login (everyone with access)</h4>
+  <ul>
+    <li><b>GitHub:</b> your picture (top right) &rarr; Settings &rarr; Password and authentication &rarr; Two-factor authentication &rarr; Enable.</li>
+    <li><b>Render:</b> Account Settings &rarr; Security &rarr; turn on two-factor authentication.</li>
+    <li><b>Brevo:</b> your name (top right) &rarr; Profile &rarr; Security &rarr; turn on two-factor authentication.</li>
+  </ul>
+  <h4 style="margin:10px 0 4px">2. Require approval before a change goes live (GitHub)</h4>
+  <ol>
+    <li>Open the HUB_CRM repository &rarr; Settings &rarr; Branches &rarr; Add branch ruleset (or Add rule).</li>
+    <li>Branch name pattern: <code>master</code>.</li>
+    <li>Tick <b>Require a pull request before merging</b> and require <b>1 approval</b>.</li>
+    <li>Leave "Do not allow bypassing" / "Include administrators" <b>unticked</b>, so your own usual uploads still work. Everyone else must go through you.</li>
+  </ol>
+  <h4 style="margin:10px 0 4px">3. Adding a technical maintainer (only when someone truly takes that role)</h4>
+  <ol>
+    <li>GitHub: HUB_CRM &rarr; Settings &rarr; Collaborators &rarr; Add people &rarr; choose the role <b>Write</b> (never Admin).</li>
+    <li>Render: Account Settings &rarr; Team members &rarr; Invite &rarr; choose the lowest role that still lets them view logs and deploys.</li>
+    <li>Write their name and role under "People who help" on the Hub Ownership page.</li>
+  </ol>
+  <h4 style="margin:10px 0 4px">4. When the LLC exists</h4>
+  <ul>
+    <li>Move the GitHub repository and the Render service into the LLC's accounts (GitHub: Settings &rarr; Transfer ownership), using an email that belongs to the LLC.</li>
+    <li>Update the Software accounts list under Administrator &rarr; Software &amp; go-live.</li>
+  </ul>
+  <p class="muted" style="margin-bottom:0">Max and Pamela as Administrators do not need GitHub or Render access to run the Hub day to day. Give it only if they will also maintain the software.</p>
+</div>
+
 <div class="card">
   <h3 style="margin-top:0">Private notes</h3>
   <p class="muted">Only you see these. A good place for the LLC license terms, ideas for licensing the Hub to other organizations, and reminders.</p>
