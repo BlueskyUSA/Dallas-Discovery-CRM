@@ -6470,8 +6470,7 @@ def leadership_pipeline():
 # ---------- contact lists ("where this contact came from") ----------
 
 @crm.route("/lists")
-@area_required("contacts")
-@leadership_required
+@owner_required
 def lists_manage():
     conn = get_db()
     lists = conn.execute(
@@ -6489,8 +6488,7 @@ def lists_manage():
 
 
 @crm.route("/lists/new", methods=["POST"])
-@area_required("contacts")
-@leadership_required
+@owner_required
 def list_new():
     name = " ".join((request.form.get("name") or "").split())
     if not name:
@@ -6508,8 +6506,7 @@ def list_new():
 
 
 @crm.route("/lists/<int:list_id>/rename", methods=["POST"])
-@area_required("contacts")
-@leadership_required
+@owner_required
 def list_rename(list_id):
     name = " ".join((request.form.get("name") or "").split())
     conn = get_db()
@@ -6528,8 +6525,7 @@ def list_rename(list_id):
 
 
 @crm.route("/lists/<int:list_id>/delete", methods=["POST"])
-@area_required("contacts")
-@leadership_required
+@owner_required
 def list_delete(list_id):
     conn = get_db()
     n = conn.execute("SELECT COUNT(*) AS n FROM contact_list_members WHERE list_id = ?", (list_id,)).fetchone()["n"]
